@@ -5,7 +5,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).send('Method not allowed');
   }
 
-  const apiKey = process.env.VITE_KIMI_API_KEY;
+  const apiKey = process.env.KIMI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'API key not configured' });
   }
