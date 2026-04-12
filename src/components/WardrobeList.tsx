@@ -167,7 +167,7 @@ export function WardrobeList() {
       const validItems = parsedData.filter(item => item.name && item.category);
 
       if (validItems.length === 0) {
-        alert('文件中没有找到有效的数据（每条记录需要 name 和 category 字段）。');
+        alert(`没有有效数据。parsedData 前两项：${JSON.stringify(parsedData.slice(0, 2))}`);
         return;
       }
 
