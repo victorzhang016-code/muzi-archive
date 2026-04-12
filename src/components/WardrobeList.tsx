@@ -114,22 +114,20 @@ export function WardrobeList() {
         let requestBody: object;
 
         if (file.name.endsWith('.pdf')) {
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result.split(',')[1]);
-            };
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-          });
-          requestBody = { base64, mimeType: 'application/pdf' };
+          const { extractText, getDocumentProxy } = await import('unpdf');
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+          const { text } = await extractText(pdf, { mergePages: true });
+          if (!text || !text.trim()) {
+            throw new Error('PDF 文字提取失败：可能是图片型扫描件，请改用 TXT 或 JSON');
+          }
+          fileText = text;
         } else {
           fileText = await file.text();
-          requestBody = {
-            messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
-          };
         }
+        requestBody = {
+          messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
+        };
 
         const aiRes = await fetch('/api/ai-import', {
           method: 'POST',
