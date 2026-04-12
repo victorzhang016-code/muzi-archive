@@ -109,26 +109,27 @@ export function WardrobeList() {
           });
         }
       } else if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
-        let messageContent: any[];
+        let fileText: string;
 
-        if (file.name.endsWith('.txt')) {
-          const text = await file.text();
-          messageContent = [{
-            type: 'text',
-            text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。只返回 JSON 数组，不要其他内容。\n\n${text}`
-          }];
+        if (file.name.endsWith('.pdf')) {
+          const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist');
+          GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await getDocument({ data: arrayBuffer }).promise;
+          const pages = await Promise.all(
+            Array.from({ length: pdf.numPages }, (_, i) =>
+              pdf.getPage(i + 1).then(p => p.getTextContent()).then(c => c.items.map((it: any) => it.str).join(' '))
+            )
+          );
+          fileText = pages.join('\n');
         } else {
-          const base64Data = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          messageContent = [
-            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Data } },
-            { type: 'text', text: '从这个文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。只返回 JSON 数组，不要其他内容。' }
-          ];
+          fileText = await file.text();
         }
+
+        const messageContent = [{
+          type: 'text',
+          text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。只返回 JSON 数组，不要其他内容。\n\n${fileText}`
+        }];
 
         const aiRes = await fetch('/api/ai-import', {
           method: 'POST',
