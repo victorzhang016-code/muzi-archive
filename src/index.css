@@ -59,17 +59,15 @@
   .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* ── Masonry ── */
+/* ── Grid (横向逐行排列) ── */
 .masonry-grid {
-  columns: 3;
-  column-gap: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  align-items: start;
 }
-.masonry-grid > * {
-  break-inside: avoid;
-  margin-bottom: 2rem;
-}
-@media (max-width: 1024px) { .masonry-grid { columns: 2; } }
-@media (max-width: 640px)  { .masonry-grid { columns: 1; max-width: 300px; margin-inline: auto; } }
+@media (max-width: 1024px) { .masonry-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .masonry-grid { grid-template-columns: 1fr; max-width: 300px; margin-inline: auto; } }
 
 /* ── Card wrapper: straight by default, tilt on hover ── */
 .tag-card-wrapper {
