@@ -146,7 +146,7 @@ export function WardrobeList() {
         }
         const aiData = await aiRes.json();
         const rawText = aiData.content?.[0]?.text ?? '';
-        throw new Error(`[DEBUG] ${rawText.slice(0, 400) || JSON.stringify(aiData).slice(0, 400)}`);
+        if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
       } else {
