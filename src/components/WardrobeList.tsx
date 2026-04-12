@@ -142,7 +142,7 @@ export function WardrobeList() {
         const rawText = aiData.content?.[0]?.text ?? '';
         if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) throw new Error('AI 未返回有效 JSON 数组');
+        if (!jsonMatch) throw new Error(`AI 未返回有效 JSON 数组。原始返回（前 600 字）：${rawText.slice(0, 600)}`);
         let cleanJson = jsonMatch[0].replace(/,\s*([}\]])/g, '$1');
         parsedData = JSON.parse(cleanJson);
       } else {
