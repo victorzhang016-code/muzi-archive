@@ -112,16 +112,17 @@ export function WardrobeList() {
         let fileText: string;
 
         if (file.name.endsWith('.pdf')) {
-          const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist');
-          GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
+          const pdfjs = await import('pdfjs-dist');
+          pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
           const arrayBuffer = await file.arrayBuffer();
-          const pdf = await getDocument({ data: arrayBuffer }).promise;
+          const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
           const pages = await Promise.all(
             Array.from({ length: pdf.numPages }, (_, i) =>
               pdf.getPage(i + 1).then(p => p.getTextContent()).then(c => c.items.map((it: any) => it.str).join(' '))
             )
           );
           fileText = pages.join('\n');
+          if (!fileText.trim()) throw new Error('PDF 文字提取失败，可能是扫描件或图片 PDF');
         } else {
           fileText = await file.text();
         }
