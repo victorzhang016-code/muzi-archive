@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-kraft:    #DDD8CC;
+  --color-tag:      #FDFCF5;
+  --color-ink:      #1C1C1A;
+  --color-graphite: #6B6A65;
+  --color-stamp:    #C24127;
+  --color-string:   #8B7355;
+  --color-stitch:   #E8E4DA;
+  --color-rule:     #CCC8BE;
+
+  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-tag:     "JetBrains Mono", ui-monospace, monospace;
+  --font-story:   "Playfair Display", "Noto Serif SC", ui-serif, Georgia, serif;
+  --font-sans:    "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #D2CCBE;   /* warm linen base — lighter than before */
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  /* ── Linen texture — lighter, 20% opacity ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: url('/textures/linen.jpg');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.20;
+    mix-blend-mode: multiply;
+  }
+
+  /* ── Side light + gentle vignette ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse 60% 40% at 90% 2%, rgba(255,230,130,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 35% 45% at 5% 95%, rgba(160,130,80,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 100% at 50% 50%, transparent 60%, rgba(0,0,0,0.05) 100%);
+  }
+
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* ── Masonry ── */
+.masonry-grid {
+  columns: 3;
+  column-gap: 2rem;
+}
+.masonry-grid > * {
+  break-inside: avoid;
+  margin-bottom: 2rem;
+}
+@media (max-width: 1024px) { .masonry-grid { columns: 2; } }
+@media (max-width: 640px)  { .masonry-grid { columns: 1; max-width: 300px; margin-inline: auto; } }
+
+/* ── Card wrapper: straight by default, tilt on hover ── */
+.tag-card-wrapper {
+  transform: rotate(0deg);
+  transition: transform 0.30s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.30s ease;
+}
+.tag-card-wrapper:hover {
+  transform: translateY(-5px) rotate(var(--tag-rotation, 0deg));
+}
+
+/* ── Physical shadow ── */
+.tag-shadow {
+  box-shadow:
+    1px 1px 0 rgba(0,0,0,0.04),
+    2px 3px 8px rgba(0,0,0,0.12),
+    4px 8px 24px rgba(0,0,0,0.07);
+}
+.tag-card-wrapper:hover .tag-inner {
+  box-shadow:
+    1px 1px 0 rgba(0,0,0,0.05),
+    3px 8px 18px rgba(0,0,0,0.16),
+    6px 18px 36px rgba(0,0,0,0.10);
+}
+
+/* ── Punch hole ── */
+.tag-hole {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.12);
+  position: relative;
+  flex-shrink: 0;
+}
+.tag-hole::after {
+  content: '';
+  position: absolute;
+  top: 1.5px;
+  left: 2px;
+  width: 4px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.50);
+}
+
+/* ── CERTIFIED stamp ── */
+.stamp-certified {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--color-stamp);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.80;
+  box-shadow: 0 0 0 3px rgba(194,65,39,0.10);
+  mix-blend-mode: multiply;
+}
+
+/* ── Entry animation ──
+   Use fill-mode "backwards" only: applies "from" state before start (no flash during delay),
+   but does NOT lock the "to" state after finish — letting hover transforms work freely. */
+@keyframes fadeInDrop {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+.animate-tag-in {
+  animation: fadeInDrop 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.5s ease-out both; }
+
+/* ── Custom range thumb (zoom slider) ── */
+input[type=range] { -webkit-appearance: none; appearance: none; outline: none; }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #1C1C1A;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+input[type=range]::-moz-range-thumb {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #1C1C1A;
+  border: none;
+  cursor: pointer;
+}
+
+/* ── Wash label ── */
+.wash-label {
+  font-family: var(--font-tag);
+  font-size: 8px;
+  line-height: 1.75;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}

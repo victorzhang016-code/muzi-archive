@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "WardrobeItem": {
+      "title": "WardrobeItem",
+      "description": "An item in the user's wardrobe with its story and rating.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the clothing item."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["上装", "下装", "鞋子", "配饰"],
+          "description": "The category of the item."
+        },
+        "season": {
+          "type": "string",
+          "enum": ["春秋", "夏季", "冬季", "四季", "无"],
+          "description": "The season the item is best suited for."
+        },
+        "rating": {
+          "type": "number",
+          "description": "The user's rating for the item, typically out of 10."
+        },
+        "story": {
+          "type": "string",
+          "description": "The story or description behind the item."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the uploaded image for the item."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time the item was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time the item was last updated."
+        }
+      },
+      "required": ["userId", "name", "category", "rating", "story", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/wardrobe_items/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/WardrobeItem"
+      },
+      "description": "A collection of wardrobe items belonging to users."
+    }
+  }
+}
