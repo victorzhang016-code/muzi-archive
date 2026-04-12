@@ -4,11 +4,14 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const apiKey = process.env.VITE_KIMI_API_KEY;
+
+  // DEBUG: show available env keys
+  const envKeys = Object.keys(process.env).filter(k => k.startsWith('VITE_'));
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API key not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'API key not configured', availableViteKeys: envKeys }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   const body = await req.json();

@@ -140,7 +140,10 @@ export function WardrobeList() {
             messages: [{ role: 'user', content: messageContent }],
           }),
         });
-        if (!aiRes.ok) throw new Error(`AI 解析失败: ${aiRes.status}`);
+        if (!aiRes.ok) {
+          const errBody = await aiRes.text();
+          throw new Error(`AI 解析失败: ${aiRes.status} — ${errBody.slice(0, 300)}`);
+        }
         const aiData = await aiRes.json();
         const rawText = aiData.content?.[0]?.text ?? '';
         throw new Error(`[DEBUG] ${rawText.slice(0, 400) || JSON.stringify(aiData).slice(0, 400)}`);
