@@ -142,7 +142,9 @@ export function WardrobeList() {
         });
         if (!aiRes.ok) throw new Error(`AI 解析失败: ${aiRes.status}`);
         const aiData = await aiRes.json();
-        const rawText = aiData.content[0].text;
+        console.log('[AI raw]', JSON.stringify(aiData));
+        const rawText = aiData.content?.[0]?.text ?? '';
+        alert('[DEBUG] rawText: ' + rawText.slice(0, 500));
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
       } else {
