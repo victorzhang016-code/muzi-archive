@@ -173,11 +173,16 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick }:
 
             <h3
               onClick={(e) => { if (onEdit && (!item.name || item.name === '未命名')) { e.stopPropagation(); onEdit(item); } }}
-              className="font-story text-[17px] font-bold leading-snug mb-2 line-clamp-2"
+              className="font-story text-[17px] font-bold leading-snug mb-1 line-clamp-2"
               style={{ color: (!item.name || item.name === '未命名') ? theme.textMuted : theme.textPrimary }}
             >
               {item.name && item.name !== '未命名' ? item.name : '+ 添加名称...'}
             </h3>
+            {item.brand && (
+              <p className="font-tag text-[9px] uppercase tracking-[0.15em] mb-2" style={{ color: theme.textMuted }}>
+                {item.brand}
+              </p>
+            )}
 
             {item.story ? (
               <p className="text-[12px] leading-[1.75] line-clamp-2 font-story mb-3" style={{ color: theme.textSecondary }}>

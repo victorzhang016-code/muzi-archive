@@ -20,6 +20,7 @@ const SEASONS: Season[] = ['春秋', '春季', '秋季', '夏季', '冬季', '�
 
 export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
   const [name, setName] = useState('');
+  const [brand, setBrand] = useState('');
   const [category, setCategory] = useState<Category>('上装');
   const [season, setSeason] = useState<Season>('春秋');
   const [rating, setRating] = useState<number>(5);
@@ -39,6 +40,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
   useEffect(() => {
     if (itemToEdit) {
       setName(itemToEdit.name);
+      setBrand(itemToEdit.brand ?? '');
       setCategory(itemToEdit.category);
       setSeason(itemToEdit.season);
       setRating(itemToEdit.rating);
@@ -53,6 +55,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
 
   const resetForm = () => {
     setName('');
+    setBrand('');
     setCategory('上装');
     setSeason('春秋');
     setRating(5);
@@ -125,6 +128,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
         const docRef = doc(db, 'wardrobe_items', itemToEdit.id);
         await updateDoc(docRef, {
           name,
+          brand: brand || deleteField(),
           category,
           season,
           rating,
@@ -138,6 +142,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
         const newItem: NewWardrobeItem = {
           userId: auth.currentUser.uid,
           name,
+          ...(brand ? { brand } : {}),
           category,
           season,
           rating,
@@ -295,6 +300,18 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-2 bg-white border border-graphite/20 focus:border-ink outline-none transition-colors font-serif text-lg"
                 placeholder="例如：水绿色夹克"
+              />
+            </div>
+
+            <div>
+              <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">品牌</label>
+              <input
+                type="text"
+                maxLength={60}
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-graphite/20 focus:border-ink outline-none transition-colors font-tag text-sm"
+                placeholder="例如：C2H4"
               />
             </div>
 

@@ -126,7 +126,7 @@ export function WardrobeList() {
           fileText = await file.text();
         }
         requestBody = {
-          messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
+          messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、brand（品牌名，字符串，可选）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
         };
 
         const aiRes = await fetch('/api/ai-import', {
@@ -187,6 +187,7 @@ export function WardrobeList() {
           const newDocRef = doc(itemsRef);
           const itemData: Record<string, any> = {
             name: item.name,
+            ...(item.brand ? { brand: item.brand } : {}),
             rating: Number(item.rating) || 5,
             category: item.category,
             season: item.season || '四季',

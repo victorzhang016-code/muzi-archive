@@ -212,13 +212,18 @@ export function ItemDetail() {
             <h1
               onClick={() => { if (!item.name || item.name === '未命名') setIsEditModalOpen(true); }}
               className={cn(
-                "font-story font-bold text-3xl sm:text-4xl leading-tight tracking-tight mb-5",
+                "font-story font-bold text-3xl sm:text-4xl leading-tight tracking-tight mb-1",
                 (!item.name || item.name === '未命名') ? "italic cursor-pointer" : ""
               )}
               style={{ color: (!item.name || item.name === '未命名') ? theme.textMuted : theme.textPrimary }}
             >
               {item.name && item.name !== '未命名' ? item.name : '+ 添加名称...'}
             </h1>
+            {item.brand && (
+              <p className="font-tag text-[10px] uppercase tracking-[0.2em] mb-5" style={{ color: theme.textMuted }}>
+                {item.brand}
+              </p>
+            )}
 
             <div className="mb-7">
               <div className="w-6 h-[1.5px] mb-5" style={{ background: theme.accentColor }} />
@@ -262,6 +267,9 @@ export function ItemDetail() {
           <p><span style={{ color: theme.textMuted }}>SEASON </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.season}</span></p>
           <p><span style={{ color: theme.textMuted }}>RATING </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.rating}/10</span></p>
           <p><span style={{ color: theme.textMuted }}>DATE </span><span style={{ color: theme.textSecondary }} className="font-medium">{dateStr}</span></p>
+          {item.brand && (
+            <p><span style={{ color: theme.textMuted }}>BRAND </span><span style={{ color: theme.textSecondary }} className="font-medium uppercase">{item.brand}</span></p>
+          )}
           {item.purchaseYear && (
             <p><span style={{ color: theme.textMuted }}>YEAR </span><span style={{ color: theme.accentColor }} className="font-bold">{item.purchaseYear}</span></p>
           )}

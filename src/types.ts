@@ -11,6 +11,7 @@ export interface WardrobeItem {
   season: Season;
   rating: number;
   story: string;
+  brand?: string;
   purchaseYear?: number;
   imageUrl?: string;
   orderIndex?: number;
