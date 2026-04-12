@@ -109,8 +109,6 @@ export function WardrobeList() {
           });
         }
       } else if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
-        const apiKey = import.meta.env.VITE_KIMI_API_KEY;
-
         let messageContent: any[];
 
         if (file.name.endsWith('.txt')) {
@@ -132,13 +130,9 @@ export function WardrobeList() {
           ];
         }
 
-        const aiRes = await fetch('https://api.kimi.com/coding/v1/messages', {
+        const aiRes = await fetch('/api/ai-import', {
           method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json',
-          },
+          headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             model: 'claude-sonnet-4-5',
             max_tokens: 4096,
