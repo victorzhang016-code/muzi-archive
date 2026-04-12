@@ -111,60 +111,45 @@ export function WardrobeList() {
       } else if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
         const apiKey = import.meta.env.VITE_KIMI_API_KEY;
 
-        // Upload file to Kimi Files API
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('purpose', 'file-extract');
+        let messageContent: any[];
 
-        const uploadRes = await fetch('https://api.moonshot.cn/v1/files', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-          body: formData,
-        });
-        if (!uploadRes.ok) throw new Error(`文件上传失败: ${uploadRes.status}`);
-        const uploadData = await uploadRes.json();
-        const fileId = uploadData.id;
+        if (file.name.endsWith('.txt')) {
+          const text = await file.text();
+          messageContent = [{
+            type: 'text',
+            text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。只返回 JSON 数组，不要其他内容。\n\n${text}`
+          }];
+        } else {
+          const base64Data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          messageContent = [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Data } },
+            { type: 'text', text: '从这个文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。只返回 JSON 数组，不要其他内容。' }
+          ];
+        }
 
-        // Get extracted text content
-        const contentRes = await fetch(`https://api.moonshot.cn/v1/files/${fileId}/content`, {
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-        });
-        if (!contentRes.ok) throw new Error(`文件内容获取失败: ${contentRes.status}`);
-        const fileContent = await contentRes.text();
-
-        // Delete uploaded file to save quota
-        await fetch(`https://api.moonshot.cn/v1/files/${fileId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-        });
-
-        // Parse with chat completion
-        const chatRes = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+        const aiRes = await fetch('https://api.kimi.com/coding/v1/messages', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'moonshot-v1-8k',
-            messages: [
-              {
-                role: 'system',
-                content: '你是一个帮助提取衣物数据的助手。只返回 JSON，不要任何解释。'
-              },
-              {
-                role: 'user',
-                content: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。\n\n${fileContent}`
-              }
-            ],
-            response_format: { type: 'json_object' },
+            model: 'claude-sonnet-4-5',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: messageContent }],
           }),
         });
-        if (!chatRes.ok) throw new Error(`AI 解析失败: ${chatRes.status}`);
-        const chatData = await chatRes.json();
-        const raw = chatData.choices[0].message.content;
-        const parsed = JSON.parse(raw);
-        parsedData = Array.isArray(parsed) ? parsed : (parsed.items ?? parsed.data ?? []);
+        if (!aiRes.ok) throw new Error(`AI 解析失败: ${aiRes.status}`);
+        const aiData = await aiRes.json();
+        const rawText = aiData.content[0].text;
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
       } else {
         alert('不支持的文件格式，请上传 JSON, CSV, TXT 或 PDF 文件。');
         return;
