@@ -128,7 +128,7 @@ export function WardrobeList() {
 
         const messageContent = [{
           type: 'text',
-          text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。只返回 JSON 数组，不要其他内容。\n\n${fileText}`
+          text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}`
         }];
 
         const aiRes = await fetch('/api/ai-import', {
@@ -147,9 +147,10 @@ export function WardrobeList() {
         const aiData = await aiRes.json();
         const rawText = aiData.content?.[0]?.text ?? '';
         if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
-        const stripped = rawText.replace(/^```[a-z]*\n?/m, '').replace(/\n?```$/m, '').trim();
-        const jsonMatch = stripped.match(/\[[\s\S]*\]/);
-        parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error('AI 未返回有效 JSON 数组');
+        let cleanJson = jsonMatch[0].replace(/,\s*([}\]])/g, '$1');
+        parsedData = JSON.parse(cleanJson);
       } else {
         alert('不支持的文件格式，请上传 JSON, CSV, TXT 或 PDF 文件。');
         return;
