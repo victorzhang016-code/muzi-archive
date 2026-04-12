@@ -141,9 +141,20 @@ export function WardrobeList() {
         const aiData = await aiRes.json();
         const rawText = aiData.content?.[0]?.text ?? '';
         if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
-        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) throw new Error(`AI 未返回有效 JSON 数组。原始返回（前 600 字）：${rawText.slice(0, 600)}`);
-        let cleanJson = jsonMatch[0].replace(/,\s*([}\]])/g, '$1');
+        let jsonStr = '';
+        const fullMatch = rawText.match(/\[[\s\S]*\]/);
+        if (fullMatch) {
+          jsonStr = fullMatch[0];
+        } else {
+          // 兜底：返回被截断了，找到最后一个完整对象后手动闭合
+          const startIdx = rawText.indexOf('[');
+          if (startIdx === -1) throw new Error(`AI 未返回 JSON。原始返回（前 600 字）：${rawText.slice(0, 600)}`);
+          const partial = rawText.slice(startIdx);
+          const lastObjEnd = partial.lastIndexOf('},');
+          if (lastObjEnd === -1) throw new Error(`AI 返回内容无完整对象。原始返回（前 600 字）：${rawText.slice(0, 600)}`);
+          jsonStr = partial.slice(0, lastObjEnd + 1) + ']';
+        }
+        const cleanJson = jsonStr.replace(/,\s*([}\]])/g, '$1');
         parsedData = JSON.parse(cleanJson);
       } else {
         alert('不支持的文件格式，请上传 JSON, CSV, TXT 或 PDF 文件。');

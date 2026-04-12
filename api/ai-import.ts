@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 4096, messages }),
+    body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 16384, messages }),
   });
 
   const data = await aiRes.json();
