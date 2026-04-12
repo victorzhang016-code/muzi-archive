@@ -8,7 +8,6 @@ import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { Plus, Loader2, Database, ArrowUpDown, Trash2, Share2, Copy, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SEED_DATA } from '../data/seedData';
-import { GoogleGenAI, Type } from "@google/genai";
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { sfx } from '../lib/sounds';
 
@@ -110,52 +109,62 @@ export function WardrobeList() {
           });
         }
       } else if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
-        const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+        const apiKey = import.meta.env.VITE_KIMI_API_KEY;
 
-        const base64EncodedDataPromise = new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+        // Upload file to Kimi Files API
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('purpose', 'file-extract');
+
+        const uploadRes = await fetch('https://api.moonshot.cn/v1/files', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+          body: formData,
+        });
+        if (!uploadRes.ok) throw new Error(`文件上传失败: ${uploadRes.status}`);
+        const uploadData = await uploadRes.json();
+        const fileId = uploadData.id;
+
+        // Get extracted text content
+        const contentRes = await fetch(`https://api.moonshot.cn/v1/files/${fileId}/content`, {
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+        });
+        if (!contentRes.ok) throw new Error(`文件内容获取失败: ${contentRes.status}`);
+        const fileContent = await contentRes.text();
+
+        // Delete uploaded file to save quota
+        await fetch(`https://api.moonshot.cn/v1/files/${fileId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${apiKey}` },
         });
 
-        const base64Data = await base64EncodedDataPromise;
-        const mimeType = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain');
-
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: mimeType
+        // Parse with chat completion
+        const chatRes = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'moonshot-v1-8k',
+            messages: [
+              {
+                role: 'system',
+                content: '你是一个帮助提取衣物数据的助手。只返回 JSON，不要任何解释。'
+              },
+              {
+                role: 'user',
+                content: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。\n\n${fileContent}`
               }
-            },
-            "Extract the wardrobe items from this document. Return a JSON array of objects. Each object should have: name (string), rating (number 1-10), category (string, one of: 上装, 下装, 鞋子, 配饰), season (string, one of: 春季, 秋季, 春秋, 夏季, 冬季, 四季), story (string, description or story of the item)."
-          ],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  rating: { type: Type.NUMBER },
-                  category: { type: Type.STRING },
-                  season: { type: Type.STRING },
-                  story: { type: Type.STRING }
-                },
-                required: ["name", "rating", "category", "season", "story"]
-              }
-            }
-          }
+            ],
+            response_format: { type: 'json_object' },
+          }),
         });
-
-        const textResponse = response.text;
-        if (textResponse) {
-          parsedData = JSON.parse(textResponse);
-        }
+        if (!chatRes.ok) throw new Error(`AI 解析失败: ${chatRes.status}`);
+        const chatData = await chatRes.json();
+        const raw = chatData.choices[0].message.content;
+        const parsed = JSON.parse(raw);
+        parsedData = Array.isArray(parsed) ? parsed : (parsed.items ?? parsed.data ?? []);
       } else {
         alert('不支持的文件格式，请上传 JSON, CSV, TXT 或 PDF 文件。');
         return;
