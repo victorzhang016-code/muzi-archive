@@ -1,20 +1,14 @@
-export default async function handler(req: Request): Promise<Response> {
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return res.status(405).send('Method not allowed');
   }
 
   const apiKey = process.env.VITE_KIMI_API_KEY;
-
-  // DEBUG: show available env keys
-  const envKeys = Object.keys(process.env).filter(k => k.startsWith('VITE_'));
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: 'API key not configured', availableViteKeys: envKeys }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(500).json({ error: 'API key not configured' });
   }
-
-  const body = await req.json();
 
   const aiRes = await fetch('https://api.kimi.com/coding/v1/messages', {
     method: 'POST',
@@ -23,12 +17,9 @@ export default async function handler(req: Request): Promise<Response> {
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(req.body),
   });
 
   const data = await aiRes.json();
-  return new Response(JSON.stringify(data), {
-    status: aiRes.status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return res.status(aiRes.status).json(data);
 }
