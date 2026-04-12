@@ -143,7 +143,7 @@ export function WardrobeList() {
         if (!aiRes.ok) throw new Error(`AI 解析失败: ${aiRes.status}`);
         const aiData = await aiRes.json();
         const rawText = aiData.content?.[0]?.text ?? '';
-        if (!rawText) throw new Error(`AI 回包异常: ${JSON.stringify(aiData).slice(0, 300)}`);
+        throw new Error(`[DEBUG] ${rawText.slice(0, 400) || JSON.stringify(aiData).slice(0, 400)}`);
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
       } else {
