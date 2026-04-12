@@ -114,8 +114,15 @@ export function WardrobeList() {
         let requestBody: object;
 
         if (file.name.endsWith('.pdf')) {
-          const arrayBuffer = await file.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]);
+            };
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          });
           requestBody = { base64, mimeType: 'application/pdf' };
         } else {
           fileText = await file.text();
