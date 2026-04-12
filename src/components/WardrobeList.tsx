@@ -147,7 +147,8 @@ export function WardrobeList() {
         const aiData = await aiRes.json();
         const rawText = aiData.content?.[0]?.text ?? '';
         if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
-        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        const stripped = rawText.replace(/^```[a-z]*\n?/m, '').replace(/\n?```$/m, '').trim();
+        const jsonMatch = stripped.match(/\[[\s\S]*\]/);
         parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
       } else {
         alert('不支持的文件格式，请上传 JSON, CSV, TXT 或 PDF 文件。');
