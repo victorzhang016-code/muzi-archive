@@ -36,13 +36,13 @@ function AppRoutes() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
         {!user ? (
-          <div className="text-center max-w-2xl mx-auto mt-20">
-            <h2 className="text-4xl sm:text-5xl font-story font-bold text-ink tracking-tight mb-6">
+          <div className="text-center max-w-2xl mx-auto mt-12 sm:mt-20">
+            <h2 className="text-3xl sm:text-5xl font-story font-bold text-ink tracking-tight mb-4 sm:mb-6">
               记录你的衣柜故事
             </h2>
-            <p className="text-lg text-graphite mb-10 leading-relaxed font-story">
+            <p className="text-base sm:text-lg text-graphite mb-8 sm:mb-10 leading-relaxed font-story">
               每一件衣服都有它的故事。在这里，你可以记录下每一件心爱衣物的购买经历、穿搭感受和那些难忘的瞬间。
             </p>
             <div className="inline-block">

@@ -1,13 +1,28 @@
 import { useState, useEffect } from 'react';
-import { signInWithPopup, linkWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import {
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  linkWithPopup, linkWithRedirect,
+  GoogleAuthProvider, signOut, onAuthStateChanged, User
+} from 'firebase/auth';
 import { auth } from '../firebase';
 import { LogIn, LogOut, Loader2 } from 'lucide-react';
+
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle errors from mobile redirect sign-in (e.g. credential-already-in-use)
+    getRedirectResult(auth).catch(async (error) => {
+      if (error.code === 'auth/credential-already-in-use') {
+        await signInWithRedirect(auth, new GoogleAuthProvider());
+      } else {
+        console.error('Redirect sign-in error:', error);
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -19,14 +34,26 @@ export function useAuth() {
     const provider = new GoogleAuthProvider();
     const currentUser = auth.currentUser;
     try {
-      if (currentUser?.isAnonymous) {
-        await linkWithPopup(currentUser, provider);
+      if (isMobile) {
+        if (currentUser?.isAnonymous) {
+          await linkWithRedirect(currentUser, provider);
+        } else {
+          await signInWithRedirect(auth, provider);
+        }
       } else {
-        await signInWithPopup(auth, provider);
+        if (currentUser?.isAnonymous) {
+          await linkWithPopup(currentUser, provider);
+        } else {
+          await signInWithPopup(auth, provider);
+        }
       }
     } catch (error: any) {
       if (error.code === 'auth/credential-already-in-use') {
-        await signInWithPopup(auth, provider);
+        if (isMobile) {
+          await signInWithRedirect(auth, provider);
+        } else {
+          await signInWithPopup(auth, provider);
+        }
       } else {
         console.error('Error signing in with Google', error);
       }
@@ -82,7 +109,8 @@ export function AuthButton() {
       className="flex items-center gap-2 px-4 py-2 rounded-full bg-black hover:bg-gray-800 text-white transition-colors text-sm font-medium"
     >
       <LogIn className="w-4 h-4" />
-      <span>Sign In with Google</span>
+      <span className="hidden sm:inline">Sign In with Google</span>
+      <span className="sm:hidden">登录</span>
     </button>
   );
 }

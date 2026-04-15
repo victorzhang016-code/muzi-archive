@@ -320,7 +320,15 @@ export function WardrobeList() {
         </div>
 
         {/* Actions row */}
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-stretch sm:items-end gap-2">
+          {/* Mobile-only primary action */}
+          <button
+            onClick={() => { sfx.modalOpen(); openAddModal(); }}
+            className="sm:hidden w-full flex items-center justify-center gap-2 px-5 py-3 bg-ink text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-ink/85 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>添加衣物</span>
+          </button>
           <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar bg-tag border border-graphite/20 shadow-sm">
             <button
               onClick={toggleShare}
@@ -407,7 +415,7 @@ export function WardrobeList() {
 
             <button
               onClick={() => { sfx.modalOpen(); openAddModal(); }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-ink text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-ink/85 transition-colors whitespace-nowrap"
+              className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-ink text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-ink/85 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>添加衣物</span>

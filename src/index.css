@@ -67,7 +67,7 @@
   align-items: start;
 }
 @media (max-width: 1024px) { .masonry-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 640px)  { .masonry-grid { grid-template-columns: 1fr; max-width: 300px; margin-inline: auto; } }
+@media (max-width: 640px)  { .masonry-grid { grid-template-columns: 1fr; } }
 
 /* ── Card wrapper: straight by default, tilt on hover ── */
 .tag-card-wrapper {

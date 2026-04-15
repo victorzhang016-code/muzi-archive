@@ -188,7 +188,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
         </div>
 
         {cropImageSrc ? (
-          <div className="p-6 flex flex-col h-[60vh] min-h-[400px]">
+          <div className="p-4 sm:p-6 flex flex-col h-[55vh] min-h-[300px] sm:min-h-[400px]">
             <div className="text-center mb-4 shrink-0">
               <p className="text-sm text-graphite font-medium">拖动图片调整位置，滑动底部控制缩放</p>
             </div>
@@ -246,7 +246,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
           {error && (
             <div className="p-4 bg-red-50 text-stamp border border-red-100 text-sm font-medium">
               {error}
