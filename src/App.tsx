@@ -4,6 +4,7 @@ import { AuthButton, useAuth } from './components/Auth';
 import { WardrobeList } from './components/WardrobeList';
 import { ItemDetail } from './components/ItemDetail';
 import { ShareView } from './components/ShareView';
+import { MigrateData } from './components/MigrateData';
 import { WardrobeProvider } from './contexts/WardrobeContext';
 import { Shirt } from 'lucide-react';
 
@@ -54,6 +55,7 @@ function AppRoutes() {
             <Routes>
               <Route path="/" element={<WardrobeList />} />
               <Route path="/item/:id" element={<ItemDetail />} />
+              <Route path="/migrate" element={<MigrateData />} />
             </Routes>
           </WardrobeProvider>
         )}

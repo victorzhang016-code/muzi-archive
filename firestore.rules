@@ -27,8 +27,8 @@ service cloud.firestore {
     }
 
     match /wardrobe_items/{itemId} {
-      // 本人读，或主人开启了分享
-      allow read: if isDocOwner() || sharingEnabled(resource.data.userId);
+      // TEMP: 任何已登录用户可读（数据迁移用，完成后恢复）
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']);
       allow delete: if isDocOwner();
