@@ -83,9 +83,10 @@ export function AuthButton() {
     );
   }
 
-  if (user) {
+  // 已用 Google 登录：显示头像 + 登出
+  if (user && !user.isAnonymous) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           {user.photoURL && (
             <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
@@ -97,12 +98,13 @@ export function AuthButton() {
           className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors text-sm font-medium"
         >
           <LogOut className="w-4 h-4" />
-          <span>Sign Out</span>
+          <span className="hidden sm:inline">Sign Out</span>
         </button>
       </div>
     );
   }
 
+  // 匿名或未登录：显示 Google 登录按钮
   return (
     <button
       onClick={login}
