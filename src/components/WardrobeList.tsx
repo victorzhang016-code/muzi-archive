@@ -25,6 +25,7 @@ export function WardrobeList() {
   const scrollYRef = useRef(0);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
+  const [brandFilterOpen, setBrandFilterOpen] = useState(false);
   const [brandStatsOpen, setBrandStatsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<WardrobeItem | null>(null);
@@ -624,33 +625,60 @@ export function WardrobeList() {
             ))}
           </div>
         )}
-        {/* Brand filter pills */}
+        {/* Brand filter — 折叠式，默认只显示标题行 */}
         {brandIndex.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Brand</span>
-            {filterBrand !== null && (
+          <div className="flex flex-col gap-2">
+            {/* 标题行：Brand 标签 + 展开箭头 + 当前选中品牌（如有） */}
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
-                className="px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30"
+                onClick={() => setBrandFilterOpen(v => !v)}
+                className="flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors shrink-0"
               >
-                全部
+                <span>{brandFilterOpen ? '▾' : '▸'}</span>
+                <span>Brand</span>
               </button>
-            )}
-            {brandIndex.map(({ key, display, count }) => (
-              <button
-                key={key}
-                onClick={() => { sfx.filterClick(); setFilterBrand(filterBrand === key ? null : key); }}
-                className={cn(
-                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
-                  filterBrand === key
-                    ? "bg-ink/10 text-ink border-ink/30"
-                    : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
+              {/* 已选中时，收起状态也保留可见的 badge */}
+              {filterBrand !== null && !brandFilterOpen && (() => {
+                const b = brandIndex.find(b => b.key === filterBrand);
+                return b ? (
+                  <button
+                    onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
+                    className="px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30 flex items-center gap-1.5"
+                  >
+                    {b.display}
+                    <span className="text-ink/40 text-[10px]">✕</span>
+                  </button>
+                ) : null;
+              })()}
+            </div>
+            {/* 展开后的 pills */}
+            {brandFilterOpen && (
+              <div className="flex items-center gap-2 flex-wrap pl-4">
+                {filterBrand !== null && (
+                  <button
+                    onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
+                    className="px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30"
+                  >
+                    全部
+                  </button>
                 )}
-              >
-                {display}
-                <span className={cn("ml-1.5 text-[10px] font-normal", filterBrand === key ? "text-ink/50" : "text-graphite/40")}>{count}</span>
-              </button>
-            ))}
+                {brandIndex.map(({ key, display, count }) => (
+                  <button
+                    key={key}
+                    onClick={() => { sfx.filterClick(); setFilterBrand(filterBrand === key ? null : key); }}
+                    className={cn(
+                      "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                      filterBrand === key
+                        ? "bg-ink/10 text-ink border-ink/30"
+                        : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
+                    )}
+                  >
+                    {display}
+                    <span className={cn("ml-1.5 text-[10px] font-normal", filterBrand === key ? "text-ink/50" : "text-graphite/40")}>{count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
