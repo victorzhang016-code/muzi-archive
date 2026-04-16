@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
   signInWithPopup, signInWithRedirect, getRedirectResult,
-  linkWithPopup, linkWithRedirect,
   GoogleAuthProvider, signOut, onAuthStateChanged, User
 } from 'firebase/auth';
 import { auth } from '../firebase';
-import { LogIn, LogOut, Loader2 } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -14,17 +13,13 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle errors from mobile redirect sign-in (e.g. credential-already-in-use)
-    getRedirectResult(auth).catch(async (error) => {
-      if (error.code === 'auth/credential-already-in-use') {
-        await signInWithRedirect(auth, new GoogleAuthProvider());
-      } else {
-        console.error('Redirect sign-in error:', error);
-      }
+    getRedirectResult(auth).catch((error) => {
+      console.error('Redirect sign-in error:', error);
     });
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      // 匿名用户视为未登录
+      setUser(firebaseUser && !firebaseUser.isAnonymous ? firebaseUser : null);
       setLoading(false);
     });
     return unsubscribe;
@@ -32,31 +27,14 @@ export function useAuth() {
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
-    const currentUser = auth.currentUser;
     try {
       if (isMobile) {
-        if (currentUser?.isAnonymous) {
-          await linkWithRedirect(currentUser, provider);
-        } else {
-          await signInWithRedirect(auth, provider);
-        }
+        await signInWithRedirect(auth, provider);
       } else {
-        if (currentUser?.isAnonymous) {
-          await linkWithPopup(currentUser, provider);
-        } else {
-          await signInWithPopup(auth, provider);
-        }
+        await signInWithPopup(auth, provider);
       }
-    } catch (error: any) {
-      if (error.code === 'auth/credential-already-in-use') {
-        if (isMobile) {
-          await signInWithRedirect(auth, provider);
-        } else {
-          await signInWithPopup(auth, provider);
-        }
-      } else {
-        console.error('Error signing in with Google', error);
-      }
+    } catch (error) {
+      console.error('Error signing in with Google', error);
     }
   };
 
@@ -72,47 +50,31 @@ export function useAuth() {
 }
 
 export function AuthButton() {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
 
   if (loading) {
     return (
       <button disabled className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-500">
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span>Loading...</span>
       </button>
     );
   }
 
-  // 已用 Google 登录：显示头像 + 登出
-  if (user && !user.isAnonymous) {
-    return (
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          {user.photoURL && (
-            <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
-          )}
-          <span className="text-sm font-medium text-gray-700 hidden sm:block">{user.displayName}</span>
-        </div>
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors text-sm font-medium"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Sign Out</span>
-        </button>
-      </div>
-    );
-  }
+  if (!user) return null;
 
-  // 匿名或未登录：显示 Google 登录按钮
   return (
-    <button
-      onClick={login}
-      className="flex items-center gap-2 px-4 py-2 rounded-full bg-black hover:bg-gray-800 text-white transition-colors text-sm font-medium"
-    >
-      <LogIn className="w-4 h-4" />
-      <span className="hidden sm:inline">Sign In with Google</span>
-      <span className="sm:hidden">登录</span>
-    </button>
+    <div className="flex items-center gap-3">
+      {user.photoURL && (
+        <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
+      )}
+      <span className="text-sm font-medium text-gray-700 hidden sm:block">{user.displayName}</span>
+      <button
+        onClick={logout}
+        className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors text-sm font-medium"
+      >
+        <LogOut className="w-4 h-4" />
+        <span className="hidden sm:inline">退出</span>
+      </button>
+    </div>
   );
 }
