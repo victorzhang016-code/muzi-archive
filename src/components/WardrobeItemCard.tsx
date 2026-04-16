@@ -123,6 +123,11 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick }:
               <span className="font-tag text-[7px] uppercase tracking-[0.1em] leading-none" style={{ color: theme.textMuted }}>
                 {item.season}
               </span>
+              {item.length && (
+                <span className="font-tag text-[7px] uppercase tracking-[0.1em] leading-none" style={{ color: theme.textMuted }}>
+                  {item.length}
+                </span>
+              )}
               {item.purchaseYear && (
                 <span className="font-tag text-[7px] tracking-[0.05em] leading-none" style={{ color: theme.accentColor, opacity: 0.8 }}>
                   {item.purchaseYear}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Upload, Loader2, Crop as CropIcon } from 'lucide-react';
-import { WardrobeItem, NewWardrobeItem, Category, Season } from '../types';
+import { WardrobeItem, NewWardrobeItem, Category, Season, PantsLength } from '../types';
 import { auth, db } from '../firebase';
 import { collection, addDoc, updateDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
@@ -13,16 +13,18 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   itemToEdit?: WardrobeItem | null;
+  defaultCategory?: Category;
 }
 
 const CATEGORIES: Category[] = ['上装', '下装', '鞋子', '配饰'];
 const SEASONS: Season[] = ['春秋', '春季', '秋季', '夏季', '冬季', '四季', '无'];
 
-export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
+export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory }: Props) {
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState<Category>('上装');
   const [season, setSeason] = useState<Season>('春秋');
+  const [length, setLength] = useState<PantsLength | ''>('');
   const [rating, setRating] = useState<number>(5);
   const [story, setStory] = useState('');
   const [purchaseYear, setPurchaseYear] = useState<number | ''>(new Date().getFullYear());
@@ -43,6 +45,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
       setBrand(itemToEdit.brand ?? '');
       setCategory(itemToEdit.category);
       setSeason(itemToEdit.season);
+      setLength(itemToEdit.length ?? '');
       setRating(itemToEdit.rating);
       setStory(itemToEdit.story);
       setPurchaseYear(itemToEdit.purchaseYear ?? '');
@@ -51,13 +54,14 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
     } else {
       resetForm();
     }
-  }, [itemToEdit, isOpen]);
+  }, [itemToEdit, isOpen, defaultCategory]);
 
   const resetForm = () => {
     setName('');
     setBrand('');
-    setCategory('上装');
+    setCategory(defaultCategory ?? '上装');
     setSeason('春秋');
+    setLength('');
     setRating(5);
     setStory('');
     setPurchaseYear(new Date().getFullYear());
@@ -131,6 +135,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
           brand: brand || deleteField(),
           category,
           season,
+          ...(category === '下装' && length ? { length } : { length: deleteField() }),
           rating,
           story,
           imageUrl,
@@ -145,6 +150,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
           ...(brand ? { brand } : {}),
           category,
           season,
+          ...(category === '下装' && length ? { length } : {}),
           rating,
           story,
           imageUrl,
@@ -350,6 +356,21 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit }: Props) {
                 {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+
+            {category === '下装' && (
+              <div>
+                <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">裤长</label>
+                <select
+                  value={length}
+                  onChange={(e) => setLength(e.target.value as PantsLength | '')}
+                  className="w-full px-4 py-2 bg-white border border-graphite/20 focus:border-ink outline-none transition-colors text-sm"
+                >
+                  <option value="">未指定</option>
+                  <option value="长裤">长裤</option>
+                  <option value="短裤">短裤</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">购买年份</label>

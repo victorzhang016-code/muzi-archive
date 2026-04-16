@@ -265,6 +265,9 @@ export function ItemDetail() {
         <div className="grid grid-cols-2 gap-x-8 gap-y-1">
           <p><span style={{ color: theme.textMuted }}>CAT. </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.category}</span></p>
           <p><span style={{ color: theme.textMuted }}>SEASON </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.season}</span></p>
+          {item.length && (
+            <p><span style={{ color: theme.textMuted }}>LENGTH </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.length}</span></p>
+          )}
           <p><span style={{ color: theme.textMuted }}>RATING </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.rating}/10</span></p>
           <p><span style={{ color: theme.textMuted }}>DATE </span><span style={{ color: theme.textSecondary }} className="font-medium">{dateStr}</span></p>
           {item.brand && (

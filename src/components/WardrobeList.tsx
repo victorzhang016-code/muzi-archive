@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { collection, query, where, deleteDoc, doc, writeBatch, getDocs, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { WardrobeItem, Category, Season } from '../types';
@@ -13,9 +13,18 @@ import { sfx } from '../lib/sounds';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
 
+function normalizeBrand(b: string): string {
+  return b.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+function extractBrands(raw: string): string[] {
+  return raw.split(/\s+[xX×]\s+/).map(normalizeBrand).filter(Boolean);
+}
+
 export function WardrobeList() {
   const { items, loading } = useWardrobe();
+  const scrollYRef = useRef(0);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
+  const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<WardrobeItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -54,10 +63,63 @@ export function WardrobeList() {
     setSubFilterLength('全部');
   }, [filterCategory]);
 
+  // 滚动位置保存（离开时）/ 恢复（回来时）
+  useEffect(() => {
+    const onScroll = () => { scrollYRef.current = window.scrollY; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      sessionStorage.setItem('wardrobe-list-scroll', String(scrollYRef.current));
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem('wardrobe-list-scroll');
+    if (!saved) return;
+    sessionStorage.removeItem('wardrobe-list-scroll');
+    const y = Number(saved);
+    if (y > 0) requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }));
+  }, [loading]);
+
   // Collect available years from items
   const availableYears = Array.from(
     new Set(items.map(i => i.purchaseYear).filter((y): y is number => !!y))
   ).sort((a, b) => b - a);
+
+  // 品牌索引（全量 items，不受筛选影响）
+  const brandIndex = useMemo(() => {
+    const map = new Map<string, { display: string; count: number }>();
+    for (const item of items) {
+      if (!item.brand) continue;
+      const tokens = extractBrands(item.brand);
+      for (const token of tokens) {
+        const existing = map.get(token);
+        if (existing) {
+          existing.count++;
+        } else {
+          const rawPart = item.brand.split(/\s+[xX×]\s+/).find(p => normalizeBrand(p) === token) ?? item.brand;
+          map.set(token, { display: rawPart.trim(), count: 1 });
+        }
+      }
+    }
+    return Array.from(map.entries())
+      .sort(([, a], [, b]) => b.count - a.count || a.display.localeCompare(b.display))
+      .map(([key, val]) => ({ key, ...val }));
+  }, [items]);
+
+  // 当前品牌筛选下的统计（跨分类）
+  const brandStats = useMemo(() => {
+    if (!filterBrand) return null;
+    const matching = items.filter(i => i.brand && extractBrands(i.brand).includes(filterBrand));
+    return {
+      total: matching.length,
+      上装: matching.filter(i => i.category === '上装').length,
+      下装: matching.filter(i => i.category === '下装').length,
+      鞋子: matching.filter(i => i.category === '鞋子').length,
+      配饰: matching.filter(i => i.category === '配饰').length,
+    };
+  }, [filterBrand, items]);
 
   const handleDelete = async (item: WardrobeItem) => {
     try {
@@ -234,12 +296,15 @@ export function WardrobeList() {
     }
 
     if (filterCategory === '下装' && subFilterLength !== '全部') {
-      const isShorts = item.name.includes('短裤');
-      if (subFilterLength === '短裤' && !isShorts) return false;
-      if (subFilterLength === '长裤' && isShorts) return false;
+      if (subFilterLength === '短裤' && item.length !== '短裤') return false;
+      if (subFilterLength === '长裤' && item.length !== '长裤') return false;
     }
 
     if (filterYear !== '全部' && item.purchaseYear !== filterYear) return false;
+
+    if (filterBrand !== null) {
+      if (!item.brand || !extractBrands(item.brand).includes(filterBrand)) return false;
+    }
 
     return true;
   });
@@ -259,6 +324,21 @@ export function WardrobeList() {
 
     return getOrderIndex(a) - getOrderIndex(b);
   });
+
+  // 当前筛选结果的统计概述（plain derived，与 sortedItems 同步）
+  let filteredStats: { total: number; cats: Record<string, number>; seasons: Record<string, number>; years: Record<number, number> } | null = null;
+  if (sortedItems.length > 0) {
+    const cats: Record<string, number> = {};
+    const seasons: Record<string, number> = {};
+    const years: Record<number, number> = {};
+    for (const item of sortedItems) {
+      cats[item.category] = (cats[item.category] ?? 0) + 1;
+      const s = item.displaySeason ?? item.season;
+      seasons[s] = (seasons[s] ?? 0) + 1;
+      if (item.purchaseYear) years[item.purchaseYear] = (years[item.purchaseYear] ?? 0) + 1;
+    }
+    filteredStats = { total: sortedItems.length, cats, seasons, years };
+  }
 
   if (loading) {
     return (
@@ -524,6 +604,87 @@ export function WardrobeList() {
             ))}
           </div>
         )}
+        {/* Brand filter pills */}
+        {brandIndex.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Brand</span>
+            {filterBrand !== null && (
+              <button
+                onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
+                className="px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30"
+              >
+                全部
+              </button>
+            )}
+            {brandIndex.map(({ key, display, count }) => (
+              <button
+                key={key}
+                onClick={() => { sfx.filterClick(); setFilterBrand(filterBrand === key ? null : key); }}
+                className={cn(
+                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  filterBrand === key
+                    ? "bg-ink/10 text-ink border-ink/30"
+                    : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
+                )}
+              >
+                {display}
+                <span className={cn("ml-1.5 text-[10px] font-normal", filterBrand === key ? "text-ink/50" : "text-graphite/40")}>{count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 品牌维度统计（品牌筛选激活时） */}
+        {brandStats && (
+          <div className="px-4 py-3 bg-tag/70 border border-graphite/20 font-tag text-[11px] tracking-wider text-ink/70">
+            <span>该品牌共 <strong className="text-ink">{brandStats.total}</strong> 件单品</span>
+            {brandStats.上装 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>上装 {brandStats.上装}</span></>}
+            {brandStats.下装 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>下装 {brandStats.下装}</span></>}
+            {brandStats.鞋子 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>鞋子 {brandStats.鞋子}</span></>}
+            {brandStats.配饰 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>配饰 {brandStats.配饰}</span></>}
+          </div>
+        )}
+
+        {/* 筛选结果统计概述 */}
+        {filteredStats && (
+          <div className="px-4 py-3 border border-dashed border-graphite/20 font-tag text-[10px] tracking-wider text-graphite/60 space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-ink/50 font-semibold">共 {filteredStats.total} 件</span>
+              {(Object.entries(filteredStats.cats) as [string, number][])
+                .sort(([, a], [, b]) => b - a)
+                .map(([cat, n]) => (
+                  <span key={cat} className="flex items-center gap-1">
+                    <span className="text-graphite/30">·</span>
+                    <span>{cat} {n}</span>
+                  </span>
+                ))}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="uppercase tracking-widest text-graphite/35">Season</span>
+              {(Object.entries(filteredStats.seasons) as [string, number][])
+                .sort(([, a], [, b]) => b - a)
+                .map(([s, n]) => (
+                  <span key={s} className="flex items-center gap-1">
+                    <span className="text-graphite/30">·</span>
+                    <span>{s} {n}</span>
+                  </span>
+                ))}
+            </div>
+            {Object.keys(filteredStats.years).length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="uppercase tracking-widest text-graphite/35">Year</span>
+                {(Object.entries(filteredStats.years) as [string, number][])
+                  .sort(([a], [b]) => Number(b) - Number(a))
+                  .map(([y, n]) => (
+                    <span key={y} className="flex items-center gap-1">
+                      <span className="text-graphite/30">·</span>
+                      <span>{y} × {n}</span>
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Masonry Grid ─────────────────────────────────── */}
@@ -575,6 +736,7 @@ export function WardrobeList() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         itemToEdit={itemToEdit}
+        defaultCategory={itemToEdit ? undefined : (filterCategory !== '全部' ? filterCategory as Category : undefined)}
       />
     </div>
   );
