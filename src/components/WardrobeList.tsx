@@ -25,6 +25,7 @@ export function WardrobeList() {
   const scrollYRef = useRef(0);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
+  const [brandStatsOpen, setBrandStatsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<WardrobeItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -325,20 +326,39 @@ export function WardrobeList() {
     return getOrderIndex(a) - getOrderIndex(b);
   });
 
-  // 当前筛选结果的统计概述（plain derived，与 sortedItems 同步）
-  let filteredStats: { total: number; cats: Record<string, number>; seasons: Record<string, number>; years: Record<number, number> } | null = null;
-  if (sortedItems.length > 0) {
-    const cats: Record<string, number> = {};
-    const seasons: Record<string, number> = {};
-    const years: Record<number, number> = {};
-    for (const item of sortedItems) {
-      cats[item.category] = (cats[item.category] ?? 0) + 1;
-      const s = item.displaySeason ?? item.season;
-      seasons[s] = (seasons[s] ?? 0) + 1;
-      if (item.purchaseYear) years[item.purchaseYear] = (years[item.purchaseYear] ?? 0) + 1;
+  // 筛选结果描述句
+  const summaryText = (() => {
+    const n = sortedItems.length;
+    if (n === 0) return null;
+
+    const brandDisplay = filterBrand
+      ? (brandIndex.find(b => b.key === filterBrand)?.display ?? filterBrand)
+      : null;
+
+    // 构建描述
+    if (brandDisplay && filterCategory !== '全部') {
+      return `${brandDisplay} 的${filterCategory}，一共 ${n} 件`;
     }
-    filteredStats = { total: sortedItems.length, cats, seasons, years };
-  }
+    if (brandDisplay) {
+      return `${brandDisplay}，一共 ${n} 件单品`;
+    }
+    if (filterCategory !== '全部') {
+      if (subFilterLength !== '全部') {
+        return `一共 ${n} 件${subFilterLength}`;
+      }
+      if (subFilterSeason !== '全部') {
+        return `${subFilterSeason}${filterCategory}，一共 ${n} 件`;
+      }
+      if (filterYear !== '全部') {
+        return `${filterYear} 年入手的${filterCategory}，共 ${n} 件`;
+      }
+      return `一共 ${n} 件${filterCategory}`;
+    }
+    if (filterYear !== '全部') {
+      return `${filterYear} 年入手，一共 ${n} 件单品`;
+    }
+    return `一共 ${n} 件单品`;
+  })();
 
   if (loading) {
     return (
@@ -634,58 +654,38 @@ export function WardrobeList() {
           </div>
         )}
 
-        {/* 品牌维度统计（品牌筛选激活时） */}
+        {/* 品牌维度统计（可折叠，品牌筛选激活时） */}
         {brandStats && (
-          <div className="px-4 py-3 bg-tag/70 border border-graphite/20 font-tag text-[11px] tracking-wider text-ink/70">
-            <span>该品牌共 <strong className="text-ink">{brandStats.total}</strong> 件单品</span>
-            {brandStats.上装 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>上装 {brandStats.上装}</span></>}
-            {brandStats.下装 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>下装 {brandStats.下装}</span></>}
-            {brandStats.鞋子 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>鞋子 {brandStats.鞋子}</span></>}
-            {brandStats.配饰 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>配饰 {brandStats.配饰}</span></>}
-          </div>
-        )}
-
-        {/* 筛选结果统计概述 */}
-        {filteredStats && (
-          <div className="px-4 py-3 border border-dashed border-graphite/20 font-tag text-[10px] tracking-wider text-graphite/60 space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-ink/50 font-semibold">共 {filteredStats.total} 件</span>
-              {(Object.entries(filteredStats.cats) as [string, number][])
-                .sort(([, a], [, b]) => b - a)
-                .map(([cat, n]) => (
-                  <span key={cat} className="flex items-center gap-1">
-                    <span className="text-graphite/30">·</span>
-                    <span>{cat} {n}</span>
-                  </span>
-                ))}
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="uppercase tracking-widest text-graphite/35">Season</span>
-              {(Object.entries(filteredStats.seasons) as [string, number][])
-                .sort(([, a], [, b]) => b - a)
-                .map(([s, n]) => (
-                  <span key={s} className="flex items-center gap-1">
-                    <span className="text-graphite/30">·</span>
-                    <span>{s} {n}</span>
-                  </span>
-                ))}
-            </div>
-            {Object.keys(filteredStats.years).length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="uppercase tracking-widest text-graphite/35">Year</span>
-                {(Object.entries(filteredStats.years) as [string, number][])
-                  .sort(([a], [b]) => Number(b) - Number(a))
-                  .map(([y, n]) => (
-                    <span key={y} className="flex items-center gap-1">
-                      <span className="text-graphite/30">·</span>
-                      <span>{y} × {n}</span>
-                    </span>
-                  ))}
+          <div>
+            <button
+              onClick={() => setBrandStatsOpen(v => !v)}
+              className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors"
+            >
+              <span>{brandStatsOpen ? '▾' : '▸'}</span>
+              <span>品牌详情</span>
+            </button>
+            {brandStatsOpen && (
+              <div className="mt-2 px-4 py-3 bg-tag/70 border border-graphite/20 font-tag text-[11px] tracking-wider text-ink/70">
+                <span>该品牌共 <strong className="text-ink">{brandStats.total}</strong> 件单品</span>
+                {brandStats.上装 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>上装 {brandStats.上装}</span></>}
+                {brandStats.下装 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>下装 {brandStats.下装}</span></>}
+                {brandStats.鞋子 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>鞋子 {brandStats.鞋子}</span></>}
+                {brandStats.配饰 > 0 && <><span className="mx-2 text-graphite/30">·</span><span>配饰 {brandStats.配饰}</span></>}
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* ── 筛选结果描述句 ─────────────────────────────────── */}
+      {summaryText && (
+        <p
+          className="font-story text-2xl sm:text-3xl text-ink font-semibold tracking-tight"
+          style={{ fontStyle: 'italic' }}
+        >
+          {summaryText}
+        </p>
+      )}
 
       {/* ── Masonry Grid ─────────────────────────────────── */}
       <div>
