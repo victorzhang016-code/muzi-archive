@@ -8,8 +8,12 @@ import { MigrateData } from './components/MigrateData';
 import { WardrobeProvider } from './contexts/WardrobeContext';
 import { Shirt, Loader2, ExternalLink } from 'lucide-react';
 
-// Google OAuth 不支持在微信、微博等 WebView 内登录
-const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview/i.test(navigator.userAgent);
+// Google OAuth 不支持在各类 App 内置浏览器中登录
+const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|FBAN|FBAV|Instagram|Twitter|Snapchat|Pinterest|LinkedInApp/i.test(navigator.userAgent)
+  // Android WebView 特征
+  || /Android.*Version\/\d+\.\d+.*Chrome\/\d+/i.test(navigator.userAgent)
+  // iOS WebView（没有 Safari 标识）
+  || (/iPhone|iPad/.test(navigator.userAgent) && !/Safari\//.test(navigator.userAgent) && /AppleWebKit/.test(navigator.userAgent));
 
 function LoginPage() {
   const { login } = useAuth();
@@ -42,10 +46,10 @@ function LoginPage() {
           <div className="w-full max-w-xs flex flex-col items-center gap-4">
             <div className="w-full rounded-2xl border border-dashed border-graphite/30 bg-white/50 px-5 py-5 text-center">
               <ExternalLink className="w-6 h-6 text-graphite mx-auto mb-3" />
-              <p className="text-sm font-story text-ink font-medium mb-1">请在浏览器中打开</p>
+              <p className="text-sm font-story text-ink font-medium mb-1">请在系统浏览器中打开</p>
               <p className="text-xs text-graphite leading-relaxed">
-                微信内置浏览器不支持 Google 登录。<br />
-                请点击右上角 <span className="font-medium">···</span> → 在浏览器中打开
+                当前环境不支持 Google 登录。<br />
+                请复制链接，粘贴到 <span className="font-medium">Safari 或 Chrome</span> 中打开
               </p>
             </div>
           </div>
