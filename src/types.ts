@@ -3,9 +3,9 @@ import { Timestamp } from 'firebase/firestore';
 export type Category = '上装' | '下装' | '鞋子' | '配饰';
 export type Season = '春秋' | '春季' | '秋季' | '夏季' | '冬季' | '四季' | '无';
 export type PantsLength = '长裤' | '短裤' | '裙子';
-export type TopType = '短袖' | '长袖' | '夹克' | '毛衣' | '衬衫' | '羽绒服' | '外套' | '卫衣' | '连衣裙' | '大衣';
+export type TopType = '短袖' | '长袖' | '夹克' | '毛衣' | '衬衫' | '羽绒服' | '外套' | '卫衣' | '连衣裙' | '大衣' | '西服';
 
-export const TOP_TYPES: TopType[] = ['短袖', '长袖', '夹克', '毛衣', '衬衫', '羽绒服', '外套', '卫衣', '连衣裙', '大衣'];
+export const TOP_TYPES: TopType[] = ['短袖', '长袖', '夹克', '毛衣', '衬衫', '羽绒服', '外套', '卫衣', '连衣裙', '大衣', '西服'];
 export const BOTTOM_TYPES: PantsLength[] = ['长裤', '短裤', '裙子'];
 
 export interface WardrobeItem {
