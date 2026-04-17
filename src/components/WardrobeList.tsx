@@ -299,7 +299,7 @@ export function WardrobeList() {
   });
 
   const filteredItems = mappedItems.filter(item => {
-    if (filterCategory !== '全部' && item.category !== filterCategory) return false;
+    if (sortOrder !== 'category' && filterCategory !== '全部' && item.category !== filterCategory) return false;
 
     if (filterCategory === '上装' && subFilterSeason !== '全部') {
       if (item.displaySeason !== subFilterSeason) return false;

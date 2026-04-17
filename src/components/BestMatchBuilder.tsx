@@ -17,6 +17,10 @@ import {
   SCENE_TAGS,
   SceneTag,
   WardrobeItem,
+  TopType,
+  TOP_TYPES,
+  AccessoryType,
+  ACCESSORY_TYPES,
 } from '../types';
 import { getTagTheme } from '../lib/tagThemes';
 import { TagBundle } from './TagBundle';
@@ -60,6 +64,8 @@ export function BestMatchBuilder() {
   // Picker filters (scoped to active category)
   const [filterSeason, setFilterSeason] = useState<'全部' | Season>('全部');
   const [filterLength, setFilterLength] = useState<'全部' | '长裤' | '短裤' | '裙子'>('全部');
+  const [filterTopType, setFilterTopType] = useState<'全部' | TopType>('全部');
+  const [filterAccessoryType, setFilterAccessoryType] = useState<'全部' | AccessoryType>('全部');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc'>('default');
@@ -168,8 +174,14 @@ export function BestMatchBuilder() {
     if (activeCategory === '上装' && filterSeason !== '全部') {
       arr = arr.filter((i) => i.season === filterSeason);
     }
+    if (activeCategory === '上装' && filterTopType !== '全部') {
+      arr = arr.filter((i) => i.topType === filterTopType);
+    }
     if (activeCategory === '下装' && filterLength !== '全部') {
       arr = arr.filter((i) => i.length === filterLength);
+    }
+    if (activeCategory === '配饰' && filterAccessoryType !== '全部') {
+      arr = arr.filter((i) => i.accessoryType === filterAccessoryType);
     }
     if (filterYear !== '全部') {
       arr = arr.filter((i) => i.purchaseYear === filterYear);
@@ -181,12 +193,14 @@ export function BestMatchBuilder() {
     if (sortOrder === 'ratingDesc') sorted.sort((a, b) => b.rating - a.rating);
     else if (sortOrder === 'ratingAsc') sorted.sort((a, b) => a.rating - b.rating);
     return sorted;
-  }, [categoryItems, filterSeason, filterLength, filterYear, filterBrand, sortOrder, activeCategory]);
+  }, [categoryItems, filterSeason, filterTopType, filterLength, filterAccessoryType, filterYear, filterBrand, sortOrder, activeCategory]);
 
   // Reset filters & exit variant mode when switching category
   useEffect(() => {
     setFilterSeason('全部');
+    setFilterTopType('全部');
     setFilterLength('全部');
+    setFilterAccessoryType('全部');
     setFilterYear('全部');
     setFilterBrand(null);
     setSortOrder('default');
@@ -620,6 +634,70 @@ export function BestMatchBuilder() {
                     )}
                   >
                     {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* TopType (上装 only) */}
+            {activeCategory === '上装' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 mr-1">Type</span>
+                <button
+                  onClick={() => { sfx.filterClick(); setFilterTopType('全部'); }}
+                  className={cn(
+                    'px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap',
+                    filterTopType === '全部'
+                      ? 'bg-ink/10 text-ink border-ink/30'
+                      : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                  )}
+                >
+                  全部
+                </button>
+                {TOP_TYPES.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { sfx.filterClick(); setFilterTopType(t); }}
+                    className={cn(
+                      'px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap',
+                      filterTopType === t
+                        ? 'bg-ink/10 text-ink border-ink/30'
+                        : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* AccessoryType (配饰 only) */}
+            {activeCategory === '配饰' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 mr-1">Type</span>
+                <button
+                  onClick={() => { sfx.filterClick(); setFilterAccessoryType('全部'); }}
+                  className={cn(
+                    'px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap',
+                    filterAccessoryType === '全部'
+                      ? 'bg-ink/10 text-ink border-ink/30'
+                      : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                  )}
+                >
+                  全部
+                </button>
+                {ACCESSORY_TYPES.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { sfx.filterClick(); setFilterAccessoryType(t); }}
+                    className={cn(
+                      'px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap',
+                      filterAccessoryType === t
+                        ? 'bg-ink/10 text-ink border-ink/30'
+                        : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                    )}
+                  >
+                    {t}
                   </button>
                 ))}
               </div>
