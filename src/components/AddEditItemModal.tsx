@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Upload, Loader2, Crop as CropIcon } from 'lucide-react';
-import { WardrobeItem, NewWardrobeItem, Category, Season, PantsLength, TopType, TOP_TYPES, BOTTOM_TYPES } from '../types';
+import { WardrobeItem, NewWardrobeItem, Category, Season, PantsLength, TopType, TOP_TYPES, BOTTOM_TYPES, AccessoryType, ACCESSORY_TYPES } from '../types';
 import { auth, db } from '../firebase';
 import { collection, addDoc, updateDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
@@ -26,6 +26,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
   const [season, setSeason] = useState<Season>('春秋');
   const [length, setLength] = useState<PantsLength | ''>('');
   const [topType, setTopType] = useState<TopType | ''>('');
+  const [accessoryType, setAccessoryType] = useState<AccessoryType | ''>('');
   const [rating, setRating] = useState<number>(5);
   const [story, setStory] = useState('');
   const [purchaseYear, setPurchaseYear] = useState<number | ''>(new Date().getFullYear());
@@ -48,6 +49,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
       setSeason(itemToEdit.season);
       setLength(itemToEdit.length ?? '');
       setTopType(itemToEdit.topType ?? '');
+      setAccessoryType(itemToEdit.accessoryType ?? '');
       setRating(itemToEdit.rating);
       setStory(itemToEdit.story);
       setPurchaseYear(itemToEdit.purchaseYear ?? '');
@@ -140,6 +142,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
           season,
           ...(category === '下装' && length ? { length } : { length: deleteField() }),
           ...(category === '上装' && topType ? { topType } : { topType: deleteField() }),
+          ...(category === '配饰' && accessoryType ? { accessoryType } : { accessoryType: deleteField() }),
           rating,
           story,
           imageUrl,
@@ -156,6 +159,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
           season,
           ...(category === '下装' && length ? { length } : {}),
           ...(category === '上装' && topType ? { topType } : {}),
+          ...(category === '配饰' && accessoryType ? { accessoryType } : {}),
           rating,
           story,
           imageUrl,
@@ -386,6 +390,20 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
                 >
                   <option value="">未指定</option>
                   {TOP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            )}
+
+            {category === '配饰' && (
+              <div>
+                <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">类型</label>
+                <select
+                  value={accessoryType}
+                  onChange={(e) => setAccessoryType(e.target.value as AccessoryType | '')}
+                  className="w-full px-4 py-2 bg-white border border-graphite/20 focus:border-ink outline-none transition-colors text-sm"
+                >
+                  <option value="">未指定</option>
+                  {ACCESSORY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             )}
