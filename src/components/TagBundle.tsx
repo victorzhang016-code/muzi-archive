@@ -152,13 +152,13 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
         {/* Name row — the dominant bottom element, always visible in peek */}
         <div
           className="relative z-10 px-2.5 flex-1 flex flex-col justify-start"
-          style={{ marginTop: isDetail ? 9 : 6, paddingBottom: isDetail ? 10 : 16 }}
+          style={{ marginTop: isDetail ? 9 : 6, paddingBottom: isDetail ? 16 : 9 }}
         >
           <p
-            className="font-story font-bold leading-tight line-clamp-2"
+            className="font-story font-bold leading-tight line-clamp-2 break-words"
             style={{
               color: theme.textPrimary,
-              fontSize: isDetail ? 14 : 11.5,
+              fontSize: isDetail ? 16 : 11.5,
               letterSpacing: '-0.005em',
             }}
           >
@@ -169,17 +169,29 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
               className="font-tag uppercase mt-1 truncate"
               style={{
                 color: theme.textMuted,
-                fontSize: isDetail ? 7 : 6,
+                fontSize: isDetail ? 8 : 6,
                 letterSpacing: '0.15em',
               }}
             >
               {item.brand}
             </p>
           )}
+          {isDetail && (item.topType || item.season) && (
+            <p
+              className="font-tag uppercase mt-1.5 truncate"
+              style={{
+                color: theme.textMuted,
+                fontSize: 7,
+                letterSpacing: '0.12em',
+              }}
+            >
+              {[item.topType, item.season].filter(Boolean).join(' · ')}
+            </p>
+          )}
         </div>
 
         {/* Variant badge — bottom-right corner */}
-        {variantCount && variantCount > 0 && (
+        {(variantCount ?? 0) > 0 && (
           <div
             className="absolute z-20 flex items-center gap-0.5 px-1.5 py-0.5 font-tag font-bold"
             style={{
@@ -233,19 +245,19 @@ const DIMS: Record<BundleSize, {
 }> = {
   mini: {
     tagWidth: 124,
-    tagHeight: 244,
+    tagHeight: 215,
     gap: 14,
     lateralRange: 10,
     rotationRange: 2.5,
     holeInset: 7,
     hookTopPadding: 26,
-    peek: 42,
+    peek: 40,
     stackRotationRange: 1.5,
   },
   detail: {
     tagWidth: 200,
-    tagHeight: 304,
-    gap: 18,
+    tagHeight: 380,
+    gap: 22,
     lateralRange: 14,
     rotationRange: 3,
     holeInset: 10,
