@@ -152,7 +152,7 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
         {/* Name row — the dominant bottom element, always visible in peek */}
         <div
           className="relative z-10 px-2.5 flex-1 flex flex-col justify-start"
-          style={{ marginTop: isDetail ? 9 : 6, paddingBottom: isDetail ? 8 : 6 }}
+          style={{ marginTop: isDetail ? 9 : 6, paddingBottom: isDetail ? 10 : 16 }}
         >
           <p
             className="font-story font-bold leading-tight line-clamp-2"
@@ -233,13 +233,13 @@ const DIMS: Record<BundleSize, {
 }> = {
   mini: {
     tagWidth: 124,
-    tagHeight: 196,
+    tagHeight: 244,
     gap: 14,
     lateralRange: 10,
     rotationRange: 2.5,
     holeInset: 7,
     hookTopPadding: 26,
-    peek: 62,
+    peek: 42,
     stackRotationRange: 1.5,
   },
   detail: {

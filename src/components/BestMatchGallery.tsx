@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { motion } from 'motion/react';
 import { ArrowLeft, Plus, Loader2, Sparkles } from 'lucide-react';
 import { useBestMatches, bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { useWardrobe } from '../contexts/WardrobeContext';
@@ -12,6 +13,7 @@ const AESTHETIC_THRESHOLD = 10;
 export function BestMatchGallery() {
   const navigate = useNavigate();
   const { matches, loading } = useBestMatches();
+  const [exitingId, setExitingId] = useState<string | null>(null);
   const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
 
   const itemMap = useMemo(() => {
@@ -125,7 +127,12 @@ export function BestMatchGallery() {
               match={match}
               index={idx}
               itemMap={itemMap}
-              onOpen={() => { sfx.cardClick(); navigate(`/best-match/${match.id}`); }}
+              exiting={exitingId !== null && exitingId !== match.id}
+              onOpen={() => {
+                sfx.cardClick();
+                setExitingId(match.id);
+                window.setTimeout(() => navigate(`/best-match/${match.id}`), 180);
+              }}
             />
           ))}
         </div>
@@ -138,27 +145,38 @@ interface MatchCardProps {
   match: BestMatch;
   index: number;
   itemMap: Map<string, WardrobeItem>;
+  exiting: boolean;
   onOpen: () => void;
 }
 
-function MatchCard({ match, index, itemMap, onOpen }: MatchCardProps) {
+function MatchCard({ match, index, itemMap, exiting, onOpen }: MatchCardProps) {
   const entries = useMemo(() => bundleEntriesFromMatch(match, itemMap), [match, itemMap]);
   const totalCount = entries.length + entries.reduce((sum, e) => sum + (e.variantCount ?? 0), 0);
 
   return (
-    <button
+    <motion.button
       onClick={onOpen}
       onMouseEnter={() => sfx.cardHover()}
-      className="animate-tag-in flex flex-col items-start gap-3 group text-left"
-      style={{ animationDelay: `${Math.min(index * 28, 220)}ms` }}
+      className="flex flex-col items-start gap-3 group text-left"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: exiting ? 0 : 1, y: 0 }}
+      transition={{
+        opacity: { duration: exiting ? 0.15 : 0.35, ease: 'easeOut' },
+        y: { duration: 0.4, delay: Math.min(index * 0.05, 0.22), ease: [0.22, 1, 0.36, 1] },
+      }}
+      whileTap={{ scale: 0.97 }}
     >
-      <div className="rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
+      <motion.div
+        className="w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 transition-colors"
+        whileHover={{ y: -4 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      >
         {entries.length > 0 ? (
           <TagBundle entries={entries} size="mini" variant="stacked" />
         ) : (
           <p className="font-tag text-xs text-graphite/45 py-12">No items</p>
         )}
-      </div>
+      </motion.div>
       {match.name && (
         <h3 className="font-story font-bold text-base text-ink max-w-[220px] line-clamp-2">
           {match.name}
@@ -184,6 +202,6 @@ function MatchCard({ match, index, itemMap, onOpen }: MatchCardProps) {
           {match.story}
         </p>
       )}
-    </button>
+    </motion.button>
   );
 }

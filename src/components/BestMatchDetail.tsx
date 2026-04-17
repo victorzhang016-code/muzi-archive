@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useNavigate, useParams } from 'react-router';
 import { doc, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ArrowLeft, Edit2, Trash2, Loader2, Image as ImageIcon, GitBranch } from 'lucide-react';
@@ -233,11 +234,18 @@ export function BestMatchDetail() {
           )}
         </aside>
 
-        {/* RIGHT — everything else */}
-        <div className="space-y-6">
+        {/* RIGHT — everything else, stagger fade-in */}
+        <motion.div
+          className="space-y-6"
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08, delayChildren: 0.18 } } }}
+        >
           {/* Name */}
           {match.name && (
-            <div>
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }}
+            >
               <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-1">Title</p>
               <h1
                 className="text-[2rem] sm:text-[2.6rem] leading-tight text-ink"
@@ -245,12 +253,15 @@ export function BestMatchDetail() {
               >
                 {match.name}
               </h1>
-            </div>
+            </motion.div>
           )}
 
           {/* Scene tags */}
           {(match.sceneTags?.length ?? 0) > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <motion.div
+              className="flex flex-wrap gap-2"
+              variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }}
+            >
               {match.sceneTags!.map((tag) => (
                 <span
                   key={tag}
@@ -259,21 +270,25 @@ export function BestMatchDetail() {
                   {tag}
                 </span>
               ))}
-            </div>
+            </motion.div>
           )}
 
           {/* Story */}
           {match.story && (
-            <div>
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }}
+            >
               <div className="w-6 h-[1.5px] mb-3 bg-stamp/60" />
               <p className="font-story text-[15px] leading-[1.9] text-ink/85 whitespace-pre-wrap">
                 {match.story}
               </p>
-            </div>
+            </motion.div>
           )}
 
           {/* Photo */}
-          <div>
+          <motion.div
+            variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }}
+          >
             {match.photoBase64 ? (
               <div className="border border-graphite/20 p-2 bg-white/40 max-w-[240px]">
                 <img
@@ -314,10 +329,13 @@ export function BestMatchDetail() {
               onChange={handlePhotoUpload}
               className="hidden"
             />
-          </div>
+          </motion.div>
 
           {/* Constituent list */}
-          <div className="pt-3">
+          <motion.div
+            className="pt-3"
+            variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }}
+          >
             <div className="flex items-center gap-2 mb-3">
               <div className="w-3 h-px bg-graphite/60" />
               <span className="font-tag text-[8px] tracking-[0.3em] font-bold text-graphite/60">
@@ -411,11 +429,12 @@ export function BestMatchDetail() {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
 
           {/* Composition (wash-label style) */}
-          <div
+          <motion.div
             className="px-5 py-4"
+            variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }}
             style={{
               background: 'rgba(0,0,0,0.04)',
               borderStyle: 'solid',
@@ -439,8 +458,8 @@ export function BestMatchDetail() {
               )}
               <p className="col-span-2"><span className="text-graphite/55">DATE </span><span className="text-ink font-medium">{dateStr}</span></p>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

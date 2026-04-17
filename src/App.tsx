@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router';
+import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthButton, useAuth } from './components/Auth';
 import { WardrobeList } from './components/WardrobeList';
@@ -81,6 +82,37 @@ function LoginPage() {
   );
 }
 
+const PAGE_EASE = [0.22, 1, 0.36, 1] as const;
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: PAGE_EASE } },
+  exit:    { opacity: 0, y: -4, transition: { duration: 0.1, ease: 'easeIn' as const } },
+};
+
+function PageRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location.pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
+        <Routes location={location}>
+          <Route path="/" element={<WardrobeList />} />
+          <Route path="/item/:id" element={<ItemDetail />} />
+          <Route path="/migrate" element={<MigrateData />} />
+          <Route path="/best-match" element={<BestMatchGallery />} />
+          <Route path="/best-match/new" element={<BestMatchBuilder />} />
+          <Route path="/best-match/:id" element={<BestMatchDetail />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -112,14 +144,7 @@ function AppRoutes() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
         <WardrobeProvider uid={user.uid}>
           <BestMatchProvider uid={user.uid}>
-            <Routes>
-              <Route path="/" element={<WardrobeList />} />
-              <Route path="/item/:id" element={<ItemDetail />} />
-              <Route path="/migrate" element={<MigrateData />} />
-              <Route path="/best-match" element={<BestMatchGallery />} />
-              <Route path="/best-match/new" element={<BestMatchBuilder />} />
-              <Route path="/best-match/:id" element={<BestMatchDetail />} />
-            </Routes>
+            <PageRoutes />
           </BestMatchProvider>
         </WardrobeProvider>
       </main>
