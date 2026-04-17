@@ -3,6 +3,7 @@ import type { WardrobeItem } from '../types';
 import { getTagTheme, hashId } from '../lib/tagThemes';
 
 type BundleSize = 'mini' | 'detail';
+type BundleVariant = 'stacked' | 'strung';
 
 /** A single hung tag in the bundle. May represent a slot with variants. */
 export interface BundleEntry {
@@ -202,6 +203,7 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
 interface TagBundleProps {
   entries: BundleEntry[];
   size?: BundleSize;
+  variant?: BundleVariant;
   className?: string;
   /** When provided, every tag becomes clickable and routes to that item. */
   onItemClick?: (item: WardrobeItem) => void;
@@ -215,6 +217,8 @@ const DIMS: Record<BundleSize, {
   rotationRange: number;
   holeInset: number;
   hookTopPadding: number;
+  peek: number;
+  stackRotationRange: number;
 }> = {
   mini: {
     tagWidth: 124,
@@ -224,6 +228,8 @@ const DIMS: Record<BundleSize, {
     rotationRange: 2.5,
     holeInset: 7,
     hookTopPadding: 26,
+    peek: 28,
+    stackRotationRange: 1.5,
   },
   detail: {
     tagWidth: 200,
@@ -233,6 +239,8 @@ const DIMS: Record<BundleSize, {
     rotationRange: 3,
     holeInset: 10,
     hookTopPadding: 36,
+    peek: 42,
+    stackRotationRange: 2,
   },
 };
 
@@ -243,15 +251,92 @@ function pseudoRandom(id: string, range: number, salt = 0): number {
 }
 
 /**
- * 棉线成串吊牌 — 几个吊牌用手绘感棉线连接起来的视觉，像挂在衣架上的样品串。
- * Victor 的 Margiela 风审美隐喻。Slots with variants get a "+N" badge.
+ * 吊牌串 —
+ *  - `stacked` (默认 mini)：一叠吊牌，第一张在最上面（前）盖住下面的，后面的只露出顶部 peek px
+ *  - `strung` (默认 detail)：几个吊牌用手绘感棉线连接起来，像挂在衣架上的样品串
+ * Slots with variants get a "+N" badge.
  */
-export function TagBundle({ entries, size = 'mini', className, onItemClick }: TagBundleProps) {
+export function TagBundle({
+  entries,
+  size = 'mini',
+  variant,
+  className,
+  onItemClick,
+}: TagBundleProps) {
   const dims = DIMS[size];
+  const resolvedVariant: BundleVariant = variant ?? (size === 'mini' ? 'stacked' : 'strung');
 
+  if (entries.length === 0) {
+    return (
+      <div className={className} style={{ height: dims.tagHeight + dims.hookTopPadding }}>
+        <p className="text-center font-tag text-[10px] uppercase tracking-[0.2em] text-graphite/50 mt-6">
+          Empty bundle
+        </p>
+      </div>
+    );
+  }
+
+  if (resolvedVariant === 'stacked') {
+    return <StackedBundle entries={entries} size={size} dims={dims} className={className} onItemClick={onItemClick} />;
+  }
+
+  return <StrungBundle entries={entries} size={size} dims={dims} className={className} onItemClick={onItemClick} />;
+}
+
+interface VariantProps {
+  entries: BundleEntry[];
+  size: BundleSize;
+  dims: (typeof DIMS)[BundleSize];
+  className?: string;
+  onItemClick?: (item: WardrobeItem) => void;
+}
+
+/**
+ * 叠起来的吊牌——像一摞样品卡。第一张完全露出（在前），后面每张向上偏移 peek px 露出顶端一条。
+ * 不画棉线/挂钩。左对齐（转换发生在 gallery 容器）。
+ */
+function StackedBundle({ entries, size, dims, className, onItemClick }: VariantProps) {
   const layout = useMemo(() => {
-    if (entries.length === 0) return null;
+    const n = entries.length;
+    const placements = entries.map((entry, idx) => {
+      const rotation = pseudoRandom(entry.item.id, dims.stackRotationRange, idx + 3);
+      const top = (n - 1 - idx) * dims.peek;
+      const zIndex = 100 + (n - idx);
+      return { entry, rotation, top, zIndex };
+    });
+    const containerWidth = dims.tagWidth + 10;
+    const containerHeight = (n - 1) * dims.peek + dims.tagHeight + 6;
+    return { placements, containerWidth, containerHeight };
+  }, [entries, dims]);
 
+  return (
+    <div
+      className={`relative ${className ?? ''}`}
+      style={{ width: layout.containerWidth, height: layout.containerHeight }}
+    >
+      {layout.placements.map((p) => (
+        <div
+          key={p.entry.item.id}
+          className="absolute left-0"
+          style={{ top: p.top, zIndex: p.zIndex }}
+        >
+          <MiniTag
+            entry={p.entry}
+            width={dims.tagWidth}
+            height={dims.tagHeight}
+            rotation={p.rotation}
+            lateralOffset={0}
+            size={size}
+            onClick={onItemClick}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StrungBundle({ entries, size, dims, className, onItemClick }: VariantProps) {
+  const layout = useMemo(() => {
     const perTagPlacement = entries.map((entry, idx) => {
       const lateralOffset = pseudoRandom(entry.item.id, dims.lateralRange, idx);
       const rotation = pseudoRandom(entry.item.id, dims.rotationRange, idx + 1);
@@ -285,16 +370,6 @@ export function TagBundle({ entries, size = 'mini', className, onItemClick }: Ta
 
     return { perTagPlacement, containerWidth, containerHeight, hookX, hookY, path };
   }, [entries, dims]);
-
-  if (!layout) {
-    return (
-      <div className={className} style={{ height: dims.tagHeight + dims.hookTopPadding }}>
-        <p className="text-center font-tag text-[10px] uppercase tracking-[0.2em] text-graphite/50 mt-6">
-          Empty bundle
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div

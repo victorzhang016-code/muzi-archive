@@ -123,9 +123,9 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick }:
               <span className="font-tag text-[7px] uppercase tracking-[0.1em] leading-none" style={{ color: theme.textMuted }}>
                 {item.season}
               </span>
-              {item.length && (
+              {(item.topType || item.length) && (
                 <span className="font-tag text-[7px] uppercase tracking-[0.1em] leading-none" style={{ color: theme.textMuted }}>
-                  {item.length}
+                  {item.topType ?? item.length}
                 </span>
               )}
               {item.purchaseYear && (

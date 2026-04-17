@@ -149,18 +149,18 @@ function MatchCard({ match, index, itemMap, onOpen }: MatchCardProps) {
     <button
       onClick={onOpen}
       onMouseEnter={() => sfx.cardHover()}
-      className="animate-tag-in flex flex-col items-center gap-3 group"
+      className="animate-tag-in flex flex-col items-start gap-3 group text-left"
       style={{ animationDelay: `${Math.min(index * 28, 220)}ms` }}
     >
       <div className="rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
         {entries.length > 0 ? (
-          <TagBundle entries={entries} size="mini" />
+          <TagBundle entries={entries} size="mini" variant="stacked" />
         ) : (
           <p className="font-tag text-xs text-graphite/45 py-12">No items</p>
         )}
       </div>
       {match.name && (
-        <h3 className="font-story font-bold text-base text-ink text-center max-w-[220px] line-clamp-2">
+        <h3 className="font-story font-bold text-base text-ink max-w-[220px] line-clamp-2">
           {match.name}
         </h3>
       )}
@@ -168,7 +168,7 @@ function MatchCard({ match, index, itemMap, onOpen }: MatchCardProps) {
         {entries.length} 主件 · {totalCount} 件含变体
       </p>
       {(match.sceneTags?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap justify-center gap-1.5 max-w-full">
+        <div className="flex flex-wrap gap-1.5 max-w-full">
           {match.sceneTags!.map((tag) => (
             <span
               key={tag}
@@ -180,7 +180,7 @@ function MatchCard({ match, index, itemMap, onOpen }: MatchCardProps) {
         </div>
       )}
       {match.story && (
-        <p className="font-story italic text-[12px] text-graphite/70 text-center max-w-[240px] line-clamp-2">
+        <p className="font-story italic text-[12px] text-graphite/70 max-w-[240px] line-clamp-2">
           {match.story}
         </p>
       )}

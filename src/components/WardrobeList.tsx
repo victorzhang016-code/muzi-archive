@@ -36,7 +36,7 @@ export function WardrobeList() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [splitSpringAutumn, setSplitSpringAutumn] = useState(false);
   const [subFilterSeason, setSubFilterSeason] = useState<'全部' | Season>('全部');
-  const [subFilterLength, setSubFilterLength] = useState<'全部' | '长裤' | '短裤'>('全部');
+  const [subFilterLength, setSubFilterLength] = useState<'全部' | '长裤' | '短裤' | '裙子'>('全部');
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc' | 'yearDesc' | 'yearAsc'>('default');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [shareEnabled, setShareEnabled] = useState(false);
@@ -302,8 +302,7 @@ export function WardrobeList() {
     }
 
     if (filterCategory === '下装' && subFilterLength !== '全部') {
-      if (subFilterLength === '短裤' && item.length !== '短裤') return false;
-      if (subFilterLength === '长裤' && item.length !== '长裤') return false;
+      if (item.length !== subFilterLength) return false;
     }
 
     if (filterYear !== '全部' && item.purchaseYear !== filterYear) return false;
@@ -613,8 +612,8 @@ export function WardrobeList() {
 
         {filterCategory === '下装' && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Length</span>
-            {['全部', '长裤', '短裤'].map(length => (
+            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Type</span>
+            {['全部', '长裤', '短裤', '裙子'].map(length => (
               <button
                 key={length}
                 onClick={() => { sfx.filterClick(); setSubFilterLength(length as any); }}

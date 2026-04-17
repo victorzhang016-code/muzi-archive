@@ -179,9 +179,9 @@ export function BestMatchDetail() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
-      {/* Top nav */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-6xl mx-auto pb-12">
+      {/* Top nav — full width */}
+      <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => { sfx.filterClick(); navigate('/best-match'); }}
           className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
@@ -205,226 +205,234 @@ export function BestMatchDetail() {
         </div>
       </div>
 
-      {/* Name */}
-      {match.name && (
-        <div className="text-center mb-6">
-          <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-2">Title</p>
-          <h1
-            className="text-[2.4rem] sm:text-[3rem] leading-tight text-ink"
-            style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, letterSpacing: '0.02em' }}
-          >
-            {match.name}
-          </h1>
-        </div>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,320px)_1fr] gap-8 lg:gap-10 items-start">
+        {/* LEFT — the bundle, sticky */}
+        <aside className="lg:sticky lg:top-6">
+          {entries.length > 0 ? (
+            <div className="flex lg:justify-start justify-center">
+              <TagBundle
+                entries={entries}
+                size="detail"
+                variant="strung"
+                onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
+              />
+            </div>
+          ) : (
+            <p className="font-story italic text-graphite/50 py-16 text-center">
+              搭配里的衣物已被删除
+            </p>
+          )}
+        </aside>
 
-      {/* The bundle — clickable tags route to ItemDetail */}
-      <div className="flex justify-center mb-10">
-        {entries.length > 0 ? (
-          <TagBundle
-            entries={entries}
-            size="detail"
-            onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
-          />
-        ) : (
-          <p className="font-story italic text-graphite/50 py-16">
-            搭配里的衣物已被删除
-          </p>
-        )}
-      </div>
+        {/* RIGHT — everything else */}
+        <div className="space-y-6">
+          {/* Name */}
+          {match.name && (
+            <div>
+              <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-1">Title</p>
+              <h1
+                className="text-[2rem] sm:text-[2.6rem] leading-tight text-ink"
+                style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, letterSpacing: '0.02em' }}
+              >
+                {match.name}
+              </h1>
+            </div>
+          )}
 
-      {/* Scene tags */}
-      {(match.sceneTags?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap justify-center gap-2 mb-6">
-          {match.sceneTags!.map((tag) => (
-            <span
-              key={tag}
-              className="px-3 py-1 font-tag text-[11px] uppercase tracking-wider text-ink border border-ink/30 bg-ink/5"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+          {/* Scene tags */}
+          {(match.sceneTags?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {match.sceneTags!.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 font-tag text-[11px] uppercase tracking-wider text-ink border border-ink/30 bg-ink/5"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
-      {/* Story */}
-      {match.story && (
-        <div className="mb-10 px-2">
-          <div className="w-6 h-[1.5px] mb-4 bg-stamp/60 mx-auto" />
-          <p className="font-story text-[15px] leading-[2] text-ink/85 whitespace-pre-wrap text-center max-w-xl mx-auto">
-            {match.story}
-          </p>
-        </div>
-      )}
+          {/* Story */}
+          {match.story && (
+            <div>
+              <div className="w-6 h-[1.5px] mb-3 bg-stamp/60" />
+              <p className="font-story text-[15px] leading-[1.9] text-ink/85 whitespace-pre-wrap">
+                {match.story}
+              </p>
+            </div>
+          )}
 
-      {/* Photo — direct upload if missing */}
-      <div className="mt-8 mb-10 flex flex-col items-center">
-        {match.photoBase64 ? (
-          <div className="border border-graphite/20 p-2 bg-white/40 max-w-xs w-full">
-            <img
-              src={match.photoBase64}
-              alt="outfit"
-              className="w-full"
-              style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}
-            />
-            <div className="flex items-center justify-between mt-2 px-1">
-              <span className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50">
-                Polaroid · Reference
-              </span>
+          {/* Photo */}
+          <div>
+            {match.photoBase64 ? (
+              <div className="border border-graphite/20 p-2 bg-white/40 max-w-[240px]">
+                <img
+                  src={match.photoBase64}
+                  alt="outfit"
+                  className="w-full"
+                  style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}
+                />
+                <div className="flex items-center justify-between mt-2 px-1">
+                  <span className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50">
+                    Polaroid
+                  </span>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={photoUploading}
+                    className="font-tag text-[9px] uppercase tracking-wider text-graphite hover:text-ink disabled:opacity-40 transition-colors"
+                  >
+                    {photoUploading ? '上传中…' : '更换'}
+                  </button>
+                </div>
+              </div>
+            ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={photoUploading}
-                className="font-tag text-[9px] uppercase tracking-wider text-graphite hover:text-ink disabled:opacity-40 transition-colors"
+                className="flex flex-col items-center gap-2 px-6 py-5 border border-dashed border-graphite/30 hover:border-graphite/60 transition-colors text-graphite/55 hover:text-ink disabled:opacity-40"
               >
-                {photoUploading ? '上传中…' : '更换'}
+                {photoUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+                <span className="font-tag text-[10px] uppercase tracking-wider">
+                  {photoUploading ? '上传中…' : '上传整套 Look 照片'}
+                </span>
               </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+          </div>
+
+          {/* Constituent list */}
+          <div className="pt-3">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-3 h-px bg-graphite/60" />
+              <span className="font-tag text-[8px] tracking-[0.3em] font-bold text-graphite/60">
+                CONSTITUENTS · {entries.length} 主件{totalVariants > 0 ? ` · ${totalVariants} 变体` : ''}
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {SLOT_LABELS.map(({ key, label }) => {
+                const slots = match.items[key];
+                if (slots.length === 0) return null;
+                return (
+                  <div key={key} className="border-l-2 border-graphite/15 pl-3">
+                    <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/55 mb-1.5">
+                      {label} · {slots.length}
+                    </p>
+                    <div className="space-y-1.5">
+                      {slots.map((slot) => {
+                        const primary = itemMap.get(slot.primary);
+                        if (!primary) return (
+                          <p key={slot.primary} className="font-story italic text-xs text-graphite/40">
+                            已删除的衣物
+                          </p>
+                        );
+                        const theme = getTagTheme(primary.id);
+                        return (
+                          <div key={slot.primary}>
+                            <button
+                              onClick={() => { sfx.cardClick(); navigate(`/item/${primary.id}`); }}
+                              onMouseEnter={() => sfx.cardHover()}
+                              className="group flex items-center gap-3 w-full text-left hover:bg-tag/40 px-2 py-1 -mx-2 transition-colors"
+                            >
+                              <div
+                                className="w-1 h-7 shrink-0"
+                                style={{ backgroundColor: theme.accentColor }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-story font-semibold text-sm text-ink truncate group-hover:text-stamp transition-colors">
+                                  {primary.name || '未命名'}
+                                </p>
+                                {primary.brand && (
+                                  <p className="font-tag text-[9px] uppercase tracking-wider text-graphite/55 truncate">
+                                    {primary.brand}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/40 group-hover:text-graphite transition-colors">
+                                →
+                              </span>
+                            </button>
+
+                            {slot.variants && slot.variants.length > 0 && (
+                              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-dashed border-graphite/20 pl-3">
+                                {slot.variants.map((vid) => {
+                                  const v = itemMap.get(vid);
+                                  if (!v) return (
+                                    <p key={vid} className="font-story italic text-xs text-graphite/40">
+                                      已删除的变体
+                                    </p>
+                                  );
+                                  return (
+                                    <button
+                                      key={vid}
+                                      onClick={() => { sfx.cardClick(); navigate(`/item/${vid}`); }}
+                                      onMouseEnter={() => sfx.cardHover()}
+                                      className={cn(
+                                        'group flex items-center gap-2 w-full text-left px-2 py-0.5 -mx-2 transition-colors hover:bg-tag/40'
+                                      )}
+                                    >
+                                      <GitBranch className="w-3 h-3 text-graphite/50 shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-story text-xs text-ink/75 truncate group-hover:text-stamp transition-colors">
+                                          {v.name || '未命名'}
+                                          {v.brand && (
+                                            <span className="ml-2 font-tag uppercase text-[9px] tracking-wider text-graphite/45">
+                                              {v.brand}
+                                            </span>
+                                          )}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={photoUploading}
-            className="flex flex-col items-center gap-2 px-8 py-6 border border-dashed border-graphite/30 hover:border-graphite/60 transition-colors text-graphite/55 hover:text-ink disabled:opacity-40"
+
+          {/* Composition (wash-label style) */}
+          <div
+            className="px-5 py-4"
+            style={{
+              background: 'rgba(0,0,0,0.04)',
+              borderStyle: 'solid',
+              borderWidth: '1px',
+              borderColor: 'rgba(0,0,0,0.10)',
+            }}
           >
-            {photoUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
-            <span className="font-tag text-[10px] uppercase tracking-wider">
-              {photoUploading ? '上传中…' : '上传整套 Look 照片'}
-            </span>
-          </button>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handlePhotoUpload}
-          className="hidden"
-        />
-      </div>
-
-      {/* Constituent list — explicit, named, scannable */}
-      <div className="mt-12 space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-3 h-px bg-graphite/60" />
-          <span className="font-tag text-[8px] tracking-[0.3em] font-bold text-graphite/60">
-            CONSTITUENTS · {entries.length} 主件{totalVariants > 0 ? ` · ${totalVariants} 变体` : ''}
-          </span>
-        </div>
-
-        {SLOT_LABELS.map(({ key, label }) => {
-          const slots = match.items[key];
-          if (slots.length === 0) return null;
-          return (
-            <div key={key} className="border-l-2 border-graphite/15 pl-4">
-              <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/55 mb-2">
-                {label} · {slots.length}
-              </p>
-              <div className="space-y-2">
-                {slots.map((slot) => {
-                  const primary = itemMap.get(slot.primary);
-                  if (!primary) return (
-                    <p key={slot.primary} className="font-story italic text-xs text-graphite/40">
-                      已删除的衣物
-                    </p>
-                  );
-                  const theme = getTagTheme(primary.id);
-                  return (
-                    <div key={slot.primary}>
-                      <button
-                        onClick={() => { sfx.cardClick(); navigate(`/item/${primary.id}`); }}
-                        onMouseEnter={() => sfx.cardHover()}
-                        className="group flex items-center gap-3 w-full text-left hover:bg-tag/40 px-2 py-1.5 -mx-2 transition-colors"
-                      >
-                        <div
-                          className="w-1 h-8 shrink-0"
-                          style={{ backgroundColor: theme.accentColor }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-story font-semibold text-sm text-ink truncate group-hover:text-stamp transition-colors">
-                            {primary.name || '未命名'}
-                          </p>
-                          {primary.brand && (
-                            <p className="font-tag text-[9px] uppercase tracking-wider text-graphite/55 truncate">
-                              {primary.brand}
-                            </p>
-                          )}
-                        </div>
-                        <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/40 group-hover:text-graphite transition-colors">
-                          →
-                        </span>
-                      </button>
-
-                      {/* Variants under primary */}
-                      {slot.variants && slot.variants.length > 0 && (
-                        <div className="ml-4 mt-1 space-y-1 border-l border-dashed border-graphite/20 pl-3">
-                          {slot.variants.map((vid) => {
-                            const v = itemMap.get(vid);
-                            if (!v) return (
-                              <p key={vid} className="font-story italic text-xs text-graphite/40">
-                                已删除的变体
-                              </p>
-                            );
-                            return (
-                              <button
-                                key={vid}
-                                onClick={() => { sfx.cardClick(); navigate(`/item/${vid}`); }}
-                                onMouseEnter={() => sfx.cardHover()}
-                                className={cn(
-                                  'group flex items-center gap-2 w-full text-left px-2 py-1 -mx-2 transition-colors hover:bg-tag/40'
-                                )}
-                              >
-                                <GitBranch className="w-3 h-3 text-graphite/50 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-story text-xs text-ink/75 truncate group-hover:text-stamp transition-colors">
-                                    {v.name || '未命名'}
-                                    {v.brand && (
-                                      <span className="ml-2 font-tag uppercase text-[9px] tracking-wider text-graphite/45">
-                                        {v.brand}
-                                      </span>
-                                    )}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-px bg-graphite/60" />
+              <span className="font-tag text-[7px] tracking-[0.3em] font-bold text-graphite/60">
+                COMPOSITION
+              </span>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Care label style summary */}
-      <div
-        className="px-6 py-5 mt-10"
-        style={{
-          background: 'rgba(0,0,0,0.04)',
-          borderStyle: 'solid',
-          borderWidth: '1px',
-          borderColor: 'rgba(0,0,0,0.10)',
-        }}
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-3 h-px bg-graphite/60" />
-          <span className="font-tag text-[7px] tracking-[0.3em] font-bold text-graphite/60">
-            COMPOSITION
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 font-tag text-[11px] tracking-[0.06em]">
-          <p><span className="text-graphite/55">TOPS </span><span className="text-ink font-medium">{counts.tops}</span></p>
-          <p><span className="text-graphite/55">BOTTOMS </span><span className="text-ink font-medium">{counts.bottoms}</span></p>
-          <p><span className="text-graphite/55">SHOES </span><span className="text-ink font-medium">{counts.shoes}</span></p>
-          <p><span className="text-graphite/55">ACCESSORIES </span><span className="text-ink font-medium">{counts.accessories}</span></p>
-          {totalVariants > 0 && (
-            <p className="col-span-2"><span className="text-graphite/55">VARIANTS </span><span className="text-ink font-medium">{totalVariants}</span></p>
-          )}
-          <p className="col-span-2"><span className="text-graphite/55">DATE </span><span className="text-ink font-medium">{dateStr}</span></p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 font-tag text-[11px] tracking-[0.06em]">
+              <p><span className="text-graphite/55">TOPS </span><span className="text-ink font-medium">{counts.tops}</span></p>
+              <p><span className="text-graphite/55">BOTTOMS </span><span className="text-ink font-medium">{counts.bottoms}</span></p>
+              <p><span className="text-graphite/55">SHOES </span><span className="text-ink font-medium">{counts.shoes}</span></p>
+              <p><span className="text-graphite/55">ACCESSORIES </span><span className="text-ink font-medium">{counts.accessories}</span></p>
+              {totalVariants > 0 && (
+                <p className="col-span-2"><span className="text-graphite/55">VARIANTS </span><span className="text-ink font-medium">{totalVariants}</span></p>
+              )}
+              <p className="col-span-2"><span className="text-graphite/55">DATE </span><span className="text-ink font-medium">{dateStr}</span></p>
+            </div>
+          </div>
         </div>
       </div>
-
     </div>
   );
 }

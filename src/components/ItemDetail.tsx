@@ -96,7 +96,7 @@ export function ItemDetail() {
   return (
     <div
       className="min-h-[70vh] cursor-pointer"
-      onClick={() => { sfx.filterClick(); navigate('/'); }}
+      onClick={() => { sfx.filterClick(); navigate(-1); }}
       title="点击空白处返回"
     >
     <div
@@ -107,11 +107,11 @@ export function ItemDetail() {
       {/* Back nav */}
       <div className="flex items-center justify-between mb-8">
         <button
-          onClick={() => { sfx.filterClick(); navigate('/'); }}
+          onClick={() => { sfx.filterClick(); navigate(-1); }}
           className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors font-medium"
         >
           <ArrowLeft className="w-3 h-3" />
-          <span>Archive</span>
+          <span>返回</span>
         </button>
         <div className="flex items-center gap-2">
           <button
@@ -281,8 +281,11 @@ export function ItemDetail() {
         <div className="grid grid-cols-2 gap-x-8 gap-y-1">
           <p><span style={{ color: theme.textMuted }}>CAT. </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.category}</span></p>
           <p><span style={{ color: theme.textMuted }}>SEASON </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.season}</span></p>
+          {item.topType && (
+            <p><span style={{ color: theme.textMuted }}>TYPE </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.topType}</span></p>
+          )}
           {item.length && (
-            <p><span style={{ color: theme.textMuted }}>LENGTH </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.length}</span></p>
+            <p><span style={{ color: theme.textMuted }}>TYPE </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.length}</span></p>
           )}
           <p><span style={{ color: theme.textMuted }}>RATING </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.rating}/10</span></p>
           <p><span style={{ color: theme.textMuted }}>DATE </span><span style={{ color: theme.textSecondary }} className="font-medium">{dateStr}</span></p>

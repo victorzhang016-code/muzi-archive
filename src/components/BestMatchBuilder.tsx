@@ -59,7 +59,7 @@ export function BestMatchBuilder() {
 
   // Picker filters (scoped to active category)
   const [filterSeason, setFilterSeason] = useState<'全部' | Season>('全部');
-  const [filterLength, setFilterLength] = useState<'全部' | '长裤' | '短裤'>('全部');
+  const [filterLength, setFilterLength] = useState<'全部' | '长裤' | '短裤' | '裙子'>('全部');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc'>('default');
@@ -349,7 +349,7 @@ export function BestMatchBuilder() {
   }
 
   const seasonOptions: ('全部' | Season)[] = ['全部', '春秋', '春季', '秋季', '夏季', '冬季', '四季'];
-  const lengthOptions: ('全部' | '长裤' | '短裤')[] = ['全部', '长裤', '短裤'];
+  const lengthOptions: ('全部' | '长裤' | '短裤' | '裙子')[] = ['全部', '长裤', '短裤', '裙子'];
 
   return (
     <div className="space-y-8 pb-24">
@@ -625,10 +625,10 @@ export function BestMatchBuilder() {
               </div>
             )}
 
-            {/* Length (下装 only) */}
+            {/* Type (下装 only) */}
             {activeCategory === '下装' && (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 mr-1">Length</span>
+                <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 mr-1">Type</span>
                 {lengthOptions.map((l) => (
                   <button
                     key={l}

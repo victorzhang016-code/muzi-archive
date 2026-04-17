@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Upload, Loader2, Crop as CropIcon } from 'lucide-react';
-import { WardrobeItem, NewWardrobeItem, Category, Season, PantsLength } from '../types';
+import { WardrobeItem, NewWardrobeItem, Category, Season, PantsLength, TopType, TOP_TYPES, BOTTOM_TYPES } from '../types';
 import { auth, db } from '../firebase';
 import { collection, addDoc, updateDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
@@ -25,6 +25,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
   const [category, setCategory] = useState<Category>('上装');
   const [season, setSeason] = useState<Season>('春秋');
   const [length, setLength] = useState<PantsLength | ''>('');
+  const [topType, setTopType] = useState<TopType | ''>('');
   const [rating, setRating] = useState<number>(5);
   const [story, setStory] = useState('');
   const [purchaseYear, setPurchaseYear] = useState<number | ''>(new Date().getFullYear());
@@ -46,6 +47,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
       setCategory(itemToEdit.category);
       setSeason(itemToEdit.season);
       setLength(itemToEdit.length ?? '');
+      setTopType(itemToEdit.topType ?? '');
       setRating(itemToEdit.rating);
       setStory(itemToEdit.story);
       setPurchaseYear(itemToEdit.purchaseYear ?? '');
@@ -62,6 +64,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
     setCategory(defaultCategory ?? '上装');
     setSeason('春秋');
     setLength('');
+    setTopType('');
     setRating(5);
     setStory('');
     setPurchaseYear(new Date().getFullYear());
@@ -136,6 +139,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
           category,
           season,
           ...(category === '下装' && length ? { length } : { length: deleteField() }),
+          ...(category === '上装' && topType ? { topType } : { topType: deleteField() }),
           rating,
           story,
           imageUrl,
@@ -151,6 +155,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
           category,
           season,
           ...(category === '下装' && length ? { length } : {}),
+          ...(category === '上装' && topType ? { topType } : {}),
           rating,
           story,
           imageUrl,
@@ -359,15 +364,28 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
 
             {category === '下装' && (
               <div>
-                <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">裤长</label>
+                <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">类型</label>
                 <select
                   value={length}
                   onChange={(e) => setLength(e.target.value as PantsLength | '')}
                   className="w-full px-4 py-2 bg-white border border-graphite/20 focus:border-ink outline-none transition-colors text-sm"
                 >
                   <option value="">未指定</option>
-                  <option value="长裤">长裤</option>
-                  <option value="短裤">短裤</option>
+                  {BOTTOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            )}
+
+            {category === '上装' && (
+              <div>
+                <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">类型</label>
+                <select
+                  value={topType}
+                  onChange={(e) => setTopType(e.target.value as TopType | '')}
+                  className="w-full px-4 py-2 bg-white border border-graphite/20 focus:border-ink outline-none transition-colors text-sm"
+                >
+                  <option value="">未指定</option>
+                  {TOP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             )}
