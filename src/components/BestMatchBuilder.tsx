@@ -2,34 +2,42 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { collection, addDoc, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { ArrowLeft, Plus, X, Loader2, Image as ImageIcon, Check } from 'lucide-react';
+import { ArrowLeft, X, Loader2, Image as ImageIcon, Check, GitBranch, ArrowUpDown } from 'lucide-react';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { cn } from '../lib/utils';
 import { compressToBase64 } from '../lib/cropImage';
 import {
-  BestMatch,
   BestMatchItems,
+  BestMatchSlot,
   BEST_MATCH_CAPS,
   Category,
+  Season,
   SCENE_TAGS,
   SceneTag,
   WardrobeItem,
 } from '../types';
 import { getTagTheme } from '../lib/tagThemes';
 import { TagBundle } from './TagBundle';
+import type { BundleEntry } from './TagBundle';
+import { emptyBestMatchItems, flattenItems } from '../contexts/BestMatchContext';
 
 type SlotKey = keyof BestMatchItems;
 
-const SLOT_CONFIG: { key: SlotKey; label: string; category: Category; placeholder: string }[] = [
-  { key: 'tops', label: '上装', category: '上装', placeholder: '+ 加上装' },
-  { key: 'bottoms', label: '下装', category: '下装', placeholder: '+ 加下装' },
-  { key: 'shoes', label: '鞋子', category: '鞋子', placeholder: '+ 加鞋' },
-  { key: 'accessories', label: '配饰', category: '配饰', placeholder: '+ 加配饰' },
+const SLOT_CONFIG: { key: SlotKey; label: string; category: Category }[] = [
+  { key: 'tops', label: '上装', category: '上装' },
+  { key: 'bottoms', label: '下装', category: '下装' },
+  { key: 'shoes', label: '鞋子', category: '鞋子' },
+  { key: 'accessories', label: '配饰', category: '配饰' },
 ];
 
-const EMPTY_ITEMS: BestMatchItems = { tops: [], bottoms: [], shoes: [], accessories: [] };
+function normalizeBrand(b: string): string {
+  return b.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+function extractBrands(raw: string): string[] {
+  return raw.split(/\s+[xX×]\s+/).map(normalizeBrand).filter(Boolean);
+}
 
 export function BestMatchBuilder() {
   const navigate = useNavigate();
@@ -37,15 +45,25 @@ export function BestMatchBuilder() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
-  const [selected, setSelected] = useState<BestMatchItems>(EMPTY_ITEMS);
+  const [selected, setSelected] = useState<BestMatchItems>(emptyBestMatchItems());
+  const [name, setName] = useState('');
+  const [story, setStory] = useState('');
   const [sceneTags, setSceneTags] = useState<SceneTag[]>([]);
-  const [note, setNote] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<Category>('上装');
+  const [variantSlot, setVariantSlot] = useState<{ category: SlotKey; primaryId: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(!!editId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Picker filters (scoped to active category)
+  const [filterSeason, setFilterSeason] = useState<'全部' | Season>('全部');
+  const [filterLength, setFilterLength] = useState<'全部' | '长裤' | '短裤'>('全部');
+  const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
+  const [filterBrand, setFilterBrand] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc'>('default');
+  const [brandFilterOpen, setBrandFilterOpen] = useState(false);
 
   useEffect(() => {
     if (!editId || !auth.currentUser) return;
@@ -53,10 +71,35 @@ export function BestMatchBuilder() {
       try {
         const snap = await getDoc(doc(db, 'best_matches', editId));
         if (snap.exists()) {
-          const data = snap.data() as BestMatch;
-          setSelected(data.items);
+          const data = snap.data() as any;
+          // Normalize legacy v1 string[] data into v2 slot[] shape for editing
+          const normalizeSlots = (raw: any): BestMatchSlot[] => {
+            if (!Array.isArray(raw)) return [];
+            const out: BestMatchSlot[] = [];
+            for (const entry of raw) {
+              if (typeof entry === 'string') {
+                out.push({ primary: entry });
+              } else if (entry && typeof entry === 'object' && typeof entry.primary === 'string') {
+                const variants = Array.isArray(entry.variants)
+                  ? (entry.variants as unknown[]).filter((v): v is string => typeof v === 'string')
+                  : undefined;
+                out.push(variants && variants.length > 0
+                  ? { primary: entry.primary, variants }
+                  : { primary: entry.primary });
+              }
+            }
+            return out;
+          };
+          const rawItems = data.items ?? {};
+          setSelected({
+            tops: normalizeSlots(rawItems.tops),
+            bottoms: normalizeSlots(rawItems.bottoms),
+            shoes: normalizeSlots(rawItems.shoes),
+            accessories: normalizeSlots(rawItems.accessories),
+          });
+          setName(data.name ?? '');
+          setStory(data.story ?? data.note ?? '');
           setSceneTags(data.sceneTags ?? []);
-          setNote(data.note ?? '');
           setPhotoBase64(data.photoBase64 ?? null);
         }
       } catch (err) {
@@ -73,25 +116,82 @@ export function BestMatchBuilder() {
     return m;
   }, [allItems]);
 
-  const selectedOrdered = useMemo(() => {
-    const ordered: WardrobeItem[] = [];
+  const previewEntries = useMemo<BundleEntry[]>(() => {
+    const out: BundleEntry[] = [];
     (['tops', 'bottoms', 'shoes', 'accessories'] as SlotKey[]).forEach((k) => {
-      selected[k].forEach((id) => {
-        const it = itemMap.get(id);
-        if (it) ordered.push(it);
+      selected[k].forEach((slot) => {
+        const item = itemMap.get(slot.primary);
+        if (item) out.push({ item, variantCount: slot.variants?.length ?? 0 });
       });
     });
-    return ordered;
+    return out;
   }, [selected, itemMap]);
 
-  const totalCount = selectedOrdered.length;
+  const primaryCount = previewEntries.length;
+  const variantCount = previewEntries.reduce((sum, e) => sum + (e.variantCount ?? 0), 0);
   const hasRequired = selected.tops.length >= 1 && selected.bottoms.length >= 1;
-  const canSave = hasRequired && totalCount >= 2;
+  const canSave = hasRequired;
 
   const categoryItems = useMemo(
     () => allItems.filter((i) => i.category === activeCategory),
     [allItems, activeCategory]
   );
+
+  const availableYears = useMemo(() => {
+    return Array.from(
+      new Set(categoryItems.map((i) => i.purchaseYear).filter((y): y is number => !!y))
+    ).sort((a, b) => b - a);
+  }, [categoryItems]);
+
+  const brandIndex = useMemo(() => {
+    const map = new Map<string, { display: string; count: number }>();
+    for (const item of categoryItems) {
+      if (!item.brand) continue;
+      const tokens = extractBrands(item.brand);
+      for (const token of tokens) {
+        const existing = map.get(token);
+        if (existing) {
+          existing.count++;
+        } else {
+          const rawPart = item.brand.split(/\s+[xX×]\s+/).find((p) => normalizeBrand(p) === token) ?? item.brand;
+          map.set(token, { display: rawPart.trim(), count: 1 });
+        }
+      }
+    }
+    return Array.from(map.entries())
+      .sort(([, a], [, b]) => b.count - a.count || a.display.localeCompare(b.display))
+      .map(([key, val]) => ({ key, ...val }));
+  }, [categoryItems]);
+
+  const filteredCategoryItems = useMemo(() => {
+    let arr = categoryItems;
+    if (activeCategory === '上装' && filterSeason !== '全部') {
+      arr = arr.filter((i) => i.season === filterSeason);
+    }
+    if (activeCategory === '下装' && filterLength !== '全部') {
+      arr = arr.filter((i) => i.length === filterLength);
+    }
+    if (filterYear !== '全部') {
+      arr = arr.filter((i) => i.purchaseYear === filterYear);
+    }
+    if (filterBrand !== null) {
+      arr = arr.filter((i) => i.brand && extractBrands(i.brand).includes(filterBrand));
+    }
+    const sorted = [...arr];
+    if (sortOrder === 'ratingDesc') sorted.sort((a, b) => b.rating - a.rating);
+    else if (sortOrder === 'ratingAsc') sorted.sort((a, b) => a.rating - b.rating);
+    return sorted;
+  }, [categoryItems, filterSeason, filterLength, filterYear, filterBrand, sortOrder, activeCategory]);
+
+  // Reset filters & exit variant mode when switching category
+  useEffect(() => {
+    setFilterSeason('全部');
+    setFilterLength('全部');
+    setFilterYear('全部');
+    setFilterBrand(null);
+    setSortOrder('default');
+    setBrandFilterOpen(false);
+  }, [activeCategory]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -101,32 +201,106 @@ export function BestMatchBuilder() {
 
   const toggleItem = (item: WardrobeItem) => {
     const slotKey = categoryToSlot(item.category);
-    const current = selected[slotKey];
-    if (current.includes(item.id)) {
+    const slots = selected[slotKey];
+
+    // 加变体模式
+    if (variantSlot && variantSlot.category === slotKey) {
+      const isPrimary = slots.some((s) => s.primary === item.id);
+      if (isPrimary) {
+        showToast('这件是主件了，不能再做自己的变体');
+        setVariantSlot(null);
+        return;
+      }
+      const targetIdx = slots.findIndex((s) => s.primary === variantSlot.primaryId);
+      if (targetIdx === -1) {
+        setVariantSlot(null);
+        return;
+      }
+      const target = slots[targetIdx];
+      if (target.variants?.includes(item.id)) {
+        showToast('已经是这件的变体了');
+        return;
+      }
+      const newSlots = [...slots];
+      newSlots[targetIdx] = { ...target, variants: [...(target.variants ?? []), item.id] };
+      setSelected({ ...selected, [slotKey]: newSlots });
+      setVariantSlot(null);
+      sfx.cardClick();
+      return;
+    }
+
+    // Toggle primary or remove existing variant
+    const primaryIdx = slots.findIndex((s) => s.primary === item.id);
+    if (primaryIdx >= 0) {
       sfx.filterClick();
-      setSelected({ ...selected, [slotKey]: current.filter((id) => id !== item.id) });
+      setSelected({ ...selected, [slotKey]: slots.filter((_, i) => i !== primaryIdx) });
+      return;
+    }
+    const asVariantIdx = slots.findIndex((s) => s.variants?.includes(item.id));
+    if (asVariantIdx >= 0) {
+      sfx.filterClick();
+      const newSlots = [...slots];
+      const target = newSlots[asVariantIdx];
+      newSlots[asVariantIdx] = { ...target, variants: target.variants!.filter((v) => v !== item.id) };
+      setSelected({ ...selected, [slotKey]: newSlots });
       return;
     }
     const cap = BEST_MATCH_CAPS[slotKey];
-    if (current.length >= cap) {
-      showToast(`${categoryLabel(slotKey)}最多 ${cap} 件`);
+    if (slots.length >= cap) {
+      showToast(`${categoryLabel(slotKey)}主件最多 ${cap} 件`);
       return;
     }
     sfx.cardClick();
-    setSelected({ ...selected, [slotKey]: [...current, item.id] });
+    setSelected({ ...selected, [slotKey]: [...slots, { primary: item.id }] });
+  };
+
+  const removeVariant = (slotKey: SlotKey, primaryId: string, variantId: string) => {
+    const slots = selected[slotKey];
+    const idx = slots.findIndex((s) => s.primary === primaryId);
+    if (idx === -1) return;
+    sfx.filterClick();
+    const newSlots = [...slots];
+    const target = newSlots[idx];
+    const newVariants = (target.variants ?? []).filter((v) => v !== variantId);
+    newSlots[idx] = newVariants.length > 0 ? { ...target, variants: newVariants } : { primary: target.primary };
+    setSelected({ ...selected, [slotKey]: newSlots });
+  };
+
+  const removeSlot = (slotKey: SlotKey, primaryId: string) => {
+    sfx.filterClick();
+    setSelected({
+      ...selected,
+      [slotKey]: selected[slotKey].filter((s) => s.primary !== primaryId),
+    });
+    if (variantSlot?.primaryId === primaryId) setVariantSlot(null);
+  };
+
+  const startAddVariant = (slotKey: SlotKey, primaryId: string) => {
+    sfx.cardClick();
+    if (variantSlot?.primaryId === primaryId) {
+      setVariantSlot(null);
+      return;
+    }
+    setVariantSlot({ category: slotKey, primaryId });
+    // jump picker to that category so user can pick variant
+    const cat = SLOT_CONFIG.find((s) => s.key === slotKey)?.category;
+    if (cat) setActiveCategory(cat);
   };
 
   const handleSave = async () => {
     if (!auth.currentUser || !canSave || saving) return;
     setSaving(true);
     try {
+      const allItemIds = flattenItems(selected);
       const payload: Record<string, any> = {
         userId: auth.currentUser.uid,
         items: selected,
+        allItemIds,
         updatedAt: serverTimestamp(),
       };
+      if (name.trim()) payload.name = name.trim();
+      if (story.trim()) payload.story = story.trim();
       if (sceneTags.length > 0) payload.sceneTags = sceneTags;
-      if (note.trim()) payload.note = note.trim();
       if (photoBase64) payload.photoBase64 = photoBase64;
 
       if (editId) {
@@ -163,6 +337,8 @@ export function BestMatchBuilder() {
   };
 
   const softHint = hasRequired && (selected.shoes.length === 0 || selected.accessories.length === 0);
+  const activeSlotKey = categoryToSlot(activeCategory);
+  const currentSlots = selected[activeSlotKey];
 
   if (wardrobeLoading || loadingEdit) {
     return (
@@ -171,6 +347,9 @@ export function BestMatchBuilder() {
       </div>
     );
   }
+
+  const seasonOptions: ('全部' | Season)[] = ['全部', '春秋', '春季', '秋季', '夏季', '冬季', '四季'];
+  const lengthOptions: ('全部' | '长裤' | '短裤')[] = ['全部', '长裤', '短裤'];
 
   return (
     <div className="space-y-8 pb-24">
@@ -203,34 +382,85 @@ export function BestMatchBuilder() {
         </button>
       </div>
 
-      {/* Preview — live TagBundle */}
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-8 items-start">
-        <aside className="lg:sticky lg:top-24">
-          <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-3 text-center">
-            Preview · {totalCount} 件
-          </p>
-          <div className="rounded-xl bg-white/30 border border-dashed border-graphite/20 p-4 flex justify-center min-h-[200px]">
-            {selectedOrdered.length > 0 ? (
-              <TagBundle items={selectedOrdered} size="mini" />
-            ) : (
-              <p className="font-tag text-xs text-graphite/45 self-center">
-                选择衣物开始搭配
+      {/* Name + main layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
+        {/* Aside: Preview + Photo */}
+        <aside className="lg:sticky lg:top-24 space-y-5">
+          <div>
+            <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-3 text-center">
+              Preview · {primaryCount} 主件{variantCount > 0 ? ` · ${variantCount} 变体` : ''}
+            </p>
+            <div className="rounded-xl bg-white/30 border border-dashed border-graphite/20 p-4 flex justify-center min-h-[200px]">
+              {previewEntries.length > 0 ? (
+                <TagBundle entries={previewEntries} size="mini" />
+              ) : (
+                <p className="font-tag text-xs text-graphite/45 self-center">
+                  选择衣物开始搭配
+                </p>
+              )}
+            </div>
+            {softHint && (
+              <p className="mt-3 text-center font-story italic text-[11px] text-graphite/60">
+                {selected.shoes.length === 0 && selected.accessories.length === 0
+                  ? '建议加上鞋和配饰，搭配档案会更完整'
+                  : selected.shoes.length === 0
+                    ? '加一双鞋？档案会更完整'
+                    : '加点配饰？档案会更完整'}
               </p>
             )}
           </div>
-          {softHint && (
-            <p className="mt-3 text-center font-story italic text-[11px] text-graphite/60">
-              {selected.shoes.length === 0 && selected.accessories.length === 0
-                ? '建议加上鞋和配饰，搭配档案会更完整'
-                : selected.shoes.length === 0
-                  ? '加一双鞋？档案会更完整'
-                  : '加点配饰？档案会更完整'}
+
+          {/* Photo upload — moved up, near preview */}
+          <div>
+            <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-2 text-center">
+              整套 Look 照片（可选）
             </p>
-          )}
+            <div className="flex justify-center">
+              {photoBase64 ? (
+                <div className="relative w-32 h-32">
+                  <img src={photoBase64} alt="outfit" className="w-full h-full object-cover border border-graphite/20" />
+                  <button
+                    onClick={() => setPhotoBase64(null)}
+                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-ink flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-32 h-32 border border-dashed border-graphite/30 flex flex-col items-center justify-center gap-1 text-graphite/50 hover:text-ink hover:border-graphite/60 transition-colors"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                  <span className="font-tag text-[9px] uppercase tracking-wider">Upload</span>
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </div>
+          </div>
         </aside>
 
-        {/* Slot summary + picker */}
+        {/* Main: name, slot tabs, selected slots, filters, grid */}
         <div className="space-y-6">
+          {/* Name input */}
+          <div>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 32))}
+              placeholder="给这套搭配起个名字…"
+              className="w-full bg-transparent border-b border-graphite/25 pb-2 font-story font-bold text-xl text-ink placeholder:text-graphite/40 outline-none focus:border-ink/60 transition-colors"
+              maxLength={32}
+            />
+          </div>
+
+          {/* Slot tabs */}
           <div className="grid grid-cols-4 gap-2">
             {SLOT_CONFIG.map((slot) => {
               const count = selected[slot.key].length;
@@ -266,49 +496,230 @@ export function BestMatchBuilder() {
             })}
           </div>
 
-          {/* Selected items chips (current category) */}
-          {selected[categoryToSlot(activeCategory)].length > 0 && (
+          {/* Selected slots in current category — primaries with variants */}
+          {currentSlots.length > 0 && (
             <div>
               <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50 mb-2">
                 已选 · {activeCategory}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {selected[categoryToSlot(activeCategory)].map((id) => {
-                  const item = itemMap.get(id);
-                  if (!item) return null;
-                  const theme = getTagTheme(item.id);
+              <div className="space-y-2.5">
+                {currentSlots.map((slot) => {
+                  const primary = itemMap.get(slot.primary);
+                  if (!primary) return null;
+                  const theme = getTagTheme(primary.id);
+                  const isAddingHere = variantSlot?.primaryId === slot.primary;
                   return (
-                    <button
-                      key={id}
-                      onClick={() => toggleItem(item)}
-                      className="flex items-center gap-2 pl-2 pr-1 py-1 border bg-tag"
-                      style={{ borderColor: theme.accentColor }}
-                    >
-                      <span className="font-story text-xs text-ink truncate max-w-[140px]">
-                        {item.name || '未命名'}
-                      </span>
-                      <X className="w-3 h-3 text-graphite" />
-                    </button>
+                    <div key={slot.primary} className="flex flex-wrap items-center gap-2">
+                      {/* Primary chip */}
+                      <button
+                        onClick={() => removeSlot(activeSlotKey, slot.primary)}
+                        className="flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 border-2 bg-tag font-semibold"
+                        style={{ borderColor: theme.accentColor }}
+                      >
+                        <span className="font-story text-sm text-ink truncate max-w-[160px]">
+                          {primary.name || '未命名'}
+                        </span>
+                        <X className="w-3.5 h-3.5 text-graphite" />
+                      </button>
+                      <span className="font-tag text-[10px] text-graphite/40 uppercase tracking-wider">→</span>
+                      {/* Variants */}
+                      {slot.variants?.map((vid) => {
+                        const v = itemMap.get(vid);
+                        if (!v) return null;
+                        const vTheme = getTagTheme(v.id);
+                        return (
+                          <button
+                            key={vid}
+                            onClick={() => removeVariant(activeSlotKey, slot.primary, vid)}
+                            className="flex items-center gap-1.5 pl-2 pr-1 py-1 border bg-tag/60"
+                            style={{ borderColor: vTheme.accentColor + '80' }}
+                          >
+                            <GitBranch className="w-3 h-3 text-graphite/60" />
+                            <span className="font-story text-xs text-ink/80 truncate max-w-[120px]">
+                              {v.name || '未命名'}
+                            </span>
+                            <X className="w-3 h-3 text-graphite" />
+                          </button>
+                        );
+                      })}
+                      {/* Add variant button */}
+                      <button
+                        onClick={() => startAddVariant(activeSlotKey, slot.primary)}
+                        className={cn(
+                          'flex items-center gap-1 px-2 py-1 border border-dashed font-tag text-[10px] uppercase tracking-wider transition-colors',
+                          isAddingHere
+                            ? 'border-ink bg-ink text-white'
+                            : 'border-graphite/40 text-graphite/60 hover:text-ink hover:border-graphite/70'
+                        )}
+                      >
+                        <GitBranch className="w-3 h-3" />
+                        {isAddingHere ? '取消' : '加变体'}
+                      </button>
+                    </div>
                   );
                 })}
               </div>
+              {variantSlot && (
+                <p className="font-story italic text-xs text-stamp mt-3">
+                  ↓ 在下方选一件作为变体（同品类）
+                </p>
+              )}
             </div>
           )}
+
+          {/* Filters bar */}
+          <div className="space-y-2.5">
+            {/* Sort + Year row */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-tag/70 border border-graphite/30">
+                <ArrowUpDown className="w-3.5 h-3.5 text-graphite/60 shrink-0" />
+                <select
+                  value={sortOrder}
+                  onChange={(e) => { sfx.toggle(); setSortOrder(e.target.value as any); }}
+                  className="bg-transparent font-tag text-[11px] uppercase tracking-wider text-ink/75 outline-none cursor-pointer hover:text-ink transition-colors"
+                >
+                  <option value="default">默认</option>
+                  <option value="ratingDesc">评分 ↓</option>
+                  <option value="ratingAsc">评分 ↑</option>
+                </select>
+              </div>
+              {availableYears.length > 0 && (
+                <>
+                  <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 ml-1">Year</span>
+                  {(['全部', ...availableYears] as (number | '全部')[]).map((y) => (
+                    <button
+                      key={y}
+                      onClick={() => { sfx.filterClick(); setFilterYear(y); }}
+                      className={cn(
+                        'px-2.5 py-1 font-tag text-[10px] tracking-wider font-semibold border transition-all whitespace-nowrap',
+                        filterYear === y
+                          ? 'bg-ink text-white border-ink'
+                          : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                      )}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Season (上装 only) */}
+            {activeCategory === '上装' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 mr-1">Season</span>
+                {seasonOptions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => { sfx.filterClick(); setFilterSeason(s); }}
+                    className={cn(
+                      'px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap',
+                      filterSeason === s
+                        ? 'bg-ink/10 text-ink border-ink/30'
+                        : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Length (下装 only) */}
+            {activeCategory === '下装' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 mr-1">Length</span>
+                {lengthOptions.map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => { sfx.filterClick(); setFilterLength(l); }}
+                    className={cn(
+                      'px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap',
+                      filterLength === l
+                        ? 'bg-ink/10 text-ink border-ink/30'
+                        : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                    )}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Brand */}
+            {brandIndex.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setBrandFilterOpen((v) => !v)}
+                    className="flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors shrink-0"
+                  >
+                    <span>{brandFilterOpen ? '▾' : '▸'}</span>
+                    <span>Brand</span>
+                  </button>
+                  {filterBrand !== null && !brandFilterOpen && (() => {
+                    const b = brandIndex.find((b) => b.key === filterBrand);
+                    return b ? (
+                      <button
+                        onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
+                        className="px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30 flex items-center gap-1.5"
+                      >
+                        {b.display}
+                        <span className="text-ink/40 text-[10px]">✕</span>
+                      </button>
+                    ) : null;
+                  })()}
+                </div>
+                {brandFilterOpen && (
+                  <div className="flex flex-wrap items-center gap-1.5 pl-4">
+                    {filterBrand !== null && (
+                      <button
+                        onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
+                        className="px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30"
+                      >
+                        全部
+                      </button>
+                    )}
+                    {brandIndex.map(({ key, display, count }) => (
+                      <button
+                        key={key}
+                        onClick={() => { sfx.filterClick(); setFilterBrand(filterBrand === key ? null : key); }}
+                        className={cn(
+                          'px-2.5 py-1 font-tag text-[10px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap',
+                          filterBrand === key
+                            ? 'bg-ink/10 text-ink border-ink/30'
+                            : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'
+                        )}
+                      >
+                        {display}
+                        <span className={cn('ml-1 text-[10px] font-normal', filterBrand === key ? 'text-ink/50' : 'text-graphite/40')}>
+                          {count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Wardrobe grid for active category */}
           <div>
             <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50 mb-3">
-              选 · {activeCategory}（{categoryItems.length}）
+              选 · {activeCategory}（{filteredCategoryItems.length} / {categoryItems.length}）
+              {variantSlot && ' · 选变体中'}
             </p>
-            {categoryItems.length === 0 ? (
+            {filteredCategoryItems.length === 0 ? (
               <p className="font-story italic text-sm text-graphite/50 py-8 text-center border border-dashed border-graphite/20">
-                该品类衣柜还没有衣物
+                {categoryItems.length === 0 ? '该品类衣柜还没有衣物' : '当前筛选下没有衣物'}
               </p>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                {categoryItems.map((item) => {
-                  const slotKey = categoryToSlot(item.category);
-                  const isSelected = selected[slotKey].includes(item.id);
+                {filteredCategoryItems.map((item) => {
+                  const slots = selected[activeSlotKey];
+                  const isPrimary = slots.some((s) => s.primary === item.id);
+                  const isVariant = slots.some((s) => s.variants?.includes(item.id));
+                  const isSelected = isPrimary || isVariant;
                   const theme = getTagTheme(item.id);
                   return (
                     <button
@@ -317,9 +728,11 @@ export function BestMatchBuilder() {
                       onClick={() => toggleItem(item)}
                       className={cn(
                         'relative aspect-[3/4] overflow-hidden border transition-all',
-                        isSelected
+                        isPrimary
                           ? 'ring-2 ring-ink ring-offset-2 ring-offset-kraft'
-                          : 'hover:-translate-y-0.5'
+                          : isVariant
+                            ? 'ring-2 ring-stamp/60 ring-offset-2 ring-offset-kraft'
+                            : 'hover:-translate-y-0.5'
                       )}
                       style={{
                         backgroundColor: theme.bgColor,
@@ -343,16 +756,17 @@ export function BestMatchBuilder() {
                           </span>
                         </div>
                       )}
-                      <div
-                        className="absolute inset-x-0 bottom-0 px-1.5 py-1 backdrop-blur-sm bg-black/40"
-                      >
+                      <div className="absolute inset-x-0 bottom-0 px-1.5 py-1 backdrop-blur-sm bg-black/40">
                         <p className="font-story text-[10px] text-white truncate leading-tight">
                           {item.name || '未命名'}
                         </p>
                       </div>
                       {isSelected && (
-                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-ink flex items-center justify-center">
-                          <Check className="w-3 h-3 text-white" />
+                        <div className={cn(
+                          'absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center',
+                          isPrimary ? 'bg-ink' : 'bg-stamp'
+                        )}>
+                          {isPrimary ? <Check className="w-3 h-3 text-white" /> : <GitBranch className="w-3 h-3 text-white" />}
                         </div>
                       )}
                     </button>
@@ -364,7 +778,7 @@ export function BestMatchBuilder() {
         </div>
       </div>
 
-      {/* Meta row — scene tags + note + optional photo */}
+      {/* Bottom: scene tags + story */}
       <div className="space-y-5 border-t border-dashed border-graphite/25 pt-6">
         <div>
           <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50 mb-2">
@@ -396,50 +810,16 @@ export function BestMatchBuilder() {
 
         <div>
           <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50 mb-2">
-            Note 备注（可选 · 最多 64 字）
+            搭配故事（可选 · 最多 500 字）
           </p>
           <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value.slice(0, 64))}
-            placeholder="一句话记录这套搭配的感觉…"
-            rows={2}
-            className="w-full px-3 py-2 bg-tag/40 border border-graphite/20 font-story text-sm text-ink placeholder:text-graphite/40 outline-none focus:border-ink/50 resize-none"
+            value={story}
+            onChange={(e) => setStory(e.target.value.slice(0, 500))}
+            placeholder="为什么是这套？灵感是什么？想穿去哪？记下来…"
+            rows={6}
+            className="w-full px-3 py-2.5 bg-tag/40 border border-graphite/20 font-story text-sm text-ink placeholder:text-graphite/40 outline-none focus:border-ink/50 resize-none leading-relaxed"
           />
-          <p className="text-right font-tag text-[10px] text-graphite/40 mt-1">{note.length} / 64</p>
-        </div>
-
-        <div>
-          <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50 mb-2">
-            Photo 照片（可选）
-          </p>
-          <div className="flex items-start gap-3">
-            {photoBase64 ? (
-              <div className="relative w-24 h-24">
-                <img src={photoBase64} alt="outfit photo" className="w-full h-full object-cover border border-graphite/20" />
-                <button
-                  onClick={() => setPhotoBase64(null)}
-                  className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-ink flex items-center justify-center"
-                >
-                  <X className="w-3 h-3 text-white" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-24 h-24 border border-dashed border-graphite/30 flex flex-col items-center justify-center gap-1 text-graphite/50 hover:text-ink hover:border-graphite/60 transition-colors"
-              >
-                <ImageIcon className="w-4 h-4" />
-                <span className="font-tag text-[9px] uppercase tracking-wider">Upload</span>
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="hidden"
-            />
-          </div>
+          <p className="text-right font-tag text-[10px] text-graphite/40 mt-1">{story.length} / 500</p>
         </div>
       </div>
 
@@ -470,3 +850,4 @@ function categoryLabel(slot: SlotKey): string {
     case 'accessories': return '配饰';
   }
 }
+

@@ -1,14 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { doc, onSnapshot, deleteDoc } from 'firebase/firestore';
-import { ArrowLeft, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { doc, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { ArrowLeft, Edit2, Trash2, Loader2, Image as ImageIcon, GitBranch } from 'lucide-react';
 import { db, auth } from '../firebase';
-import { BestMatch, WardrobeItem } from '../types';
+import { BestMatch, BestMatchItems, WardrobeItem } from '../types';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { TagBundle } from './TagBundle';
-import { bestMatchItemIds } from '../contexts/BestMatchContext';
+import type { BundleEntry } from './TagBundle';
+import { compressToBase64 } from '../lib/cropImage';
+import { getTagTheme } from '../lib/tagThemes';
+import { cn } from '../lib/utils';
+
+type SlotKey = keyof BestMatchItems;
+const SLOT_LABELS: { key: SlotKey; label: string }[] = [
+  { key: 'tops', label: '上装' },
+  { key: 'bottoms', label: '下装' },
+  { key: 'shoes', label: '鞋子' },
+  { key: 'accessories', label: '配饰' },
+];
 
 export function BestMatchDetail() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +27,8 @@ export function BestMatchDetail() {
   const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
   const [match, setMatch] = useState<BestMatch | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id || !auth.currentUser) return;
@@ -24,7 +37,42 @@ export function BestMatchDetail() {
       ref,
       (snap) => {
         if (snap.exists()) {
-          setMatch({ id: snap.id, ...snap.data() } as BestMatch);
+          // Defer normalization to context's helpers — but we read raw here.
+          // Use bundleEntriesFromMatch downstream which handles slot shape.
+          const data = snap.data() as any;
+          const rawItems = data.items ?? {};
+          const normalizeSlots = (raw: any) => {
+            if (!Array.isArray(raw)) return [];
+            return raw.map((entry: any) => {
+              if (typeof entry === 'string') return { primary: entry };
+              if (entry && typeof entry === 'object' && typeof entry.primary === 'string') {
+                const variants = Array.isArray(entry.variants)
+                  ? entry.variants.filter((v: unknown) => typeof v === 'string')
+                  : undefined;
+                return variants && variants.length > 0
+                  ? { primary: entry.primary, variants }
+                  : { primary: entry.primary };
+              }
+              return null;
+            }).filter(Boolean);
+          };
+          setMatch({
+            id: snap.id,
+            userId: data.userId,
+            items: {
+              tops: normalizeSlots(rawItems.tops),
+              bottoms: normalizeSlots(rawItems.bottoms),
+              shoes: normalizeSlots(rawItems.shoes),
+              accessories: normalizeSlots(rawItems.accessories),
+            },
+            allItemIds: data.allItemIds ?? [],
+            name: data.name ?? undefined,
+            story: data.story ?? data.note ?? undefined,
+            sceneTags: data.sceneTags,
+            photoBase64: data.photoBase64,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          } as BestMatch);
         } else {
           setMatch(null);
         }
@@ -44,11 +92,16 @@ export function BestMatchDetail() {
     return m;
   }, [wardrobe]);
 
-  const orderedItems = useMemo(() => {
+  const entries = useMemo<BundleEntry[]>(() => {
     if (!match) return [];
-    return bestMatchItemIds(match)
-      .map((iid) => itemMap.get(iid))
-      .filter((i): i is WardrobeItem => !!i);
+    const out: BundleEntry[] = [];
+    (['tops', 'bottoms', 'shoes', 'accessories'] as SlotKey[]).forEach((k) => {
+      match.items[k].forEach((slot) => {
+        const item = itemMap.get(slot.primary);
+        if (item) out.push({ item, variantCount: slot.variants?.length ?? 0 });
+      });
+    });
+    return out;
   }, [match, itemMap]);
 
   const handleDelete = async () => {
@@ -60,6 +113,29 @@ export function BestMatchDetail() {
       navigate('/best-match');
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `best_matches/${match.id}`);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !match) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('图片不能超过 5MB');
+      e.target.value = '';
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const base64 = await compressToBase64(file, 720, 0.78);
+      await updateDoc(doc(db, 'best_matches', match.id), {
+        photoBase64: base64,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `best_matches/${match.id}`);
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -97,6 +173,11 @@ export function BestMatchDetail() {
     accessories: match.items.accessories.length,
   };
 
+  const totalVariants = (['tops', 'bottoms', 'shoes', 'accessories'] as SlotKey[]).reduce(
+    (sum, k) => sum + match.items[k].reduce((s, slot) => s + (slot.variants?.length ?? 0), 0),
+    0
+  );
+
   return (
     <div className="max-w-2xl mx-auto pb-24">
       {/* Top nav */}
@@ -124,10 +205,27 @@ export function BestMatchDetail() {
         </div>
       </div>
 
-      {/* The bundle */}
+      {/* Name */}
+      {match.name && (
+        <div className="text-center mb-6">
+          <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-2">Title</p>
+          <h1
+            className="text-[2.4rem] sm:text-[3rem] leading-tight text-ink"
+            style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, letterSpacing: '0.02em' }}
+          >
+            {match.name}
+          </h1>
+        </div>
+      )}
+
+      {/* The bundle — clickable tags route to ItemDetail */}
       <div className="flex justify-center mb-10">
-        {orderedItems.length > 0 ? (
-          <TagBundle items={orderedItems} size="detail" />
+        {entries.length > 0 ? (
+          <TagBundle
+            entries={entries}
+            size="detail"
+            onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
+          />
         ) : (
           <p className="font-story italic text-graphite/50 py-16">
             搭配里的衣物已被删除
@@ -149,31 +247,155 @@ export function BestMatchDetail() {
         </div>
       )}
 
-      {/* Note */}
-      {match.note && (
-        <div className="text-center mb-8">
-          <p className="font-story italic text-[15px] text-ink/85 leading-relaxed">
-            "{match.note}"
+      {/* Story */}
+      {match.story && (
+        <div className="mb-10 px-2">
+          <div className="w-6 h-[1.5px] mb-4 bg-stamp/60 mx-auto" />
+          <p className="font-story text-[15px] leading-[2] text-ink/85 whitespace-pre-wrap text-center max-w-xl mx-auto">
+            {match.story}
           </p>
         </div>
       )}
 
-      {/* Photo */}
-      {match.photoBase64 && (
-        <div className="mt-8 mb-8 flex justify-center">
-          <div className="border border-graphite/20 p-2 bg-white/40 max-w-xs">
+      {/* Photo — direct upload if missing */}
+      <div className="mt-8 mb-10 flex flex-col items-center">
+        {match.photoBase64 ? (
+          <div className="border border-graphite/20 p-2 bg-white/40 max-w-xs w-full">
             <img
               src={match.photoBase64}
-              alt="outfit photo"
+              alt="outfit"
               className="w-full"
               style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}
             />
-            <p className="text-center font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50 mt-2 mb-1">
-              Polaroid · Reference
-            </p>
+            <div className="flex items-center justify-between mt-2 px-1">
+              <span className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50">
+                Polaroid · Reference
+              </span>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={photoUploading}
+                className="font-tag text-[9px] uppercase tracking-wider text-graphite hover:text-ink disabled:opacity-40 transition-colors"
+              >
+                {photoUploading ? '上传中…' : '更换'}
+              </button>
+            </div>
           </div>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={photoUploading}
+            className="flex flex-col items-center gap-2 px-8 py-6 border border-dashed border-graphite/30 hover:border-graphite/60 transition-colors text-graphite/55 hover:text-ink disabled:opacity-40"
+          >
+            {photoUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+            <span className="font-tag text-[10px] uppercase tracking-wider">
+              {photoUploading ? '上传中…' : '上传整套 Look 照片'}
+            </span>
+          </button>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          className="hidden"
+        />
+      </div>
+
+      {/* Constituent list — explicit, named, scannable */}
+      <div className="mt-12 space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-3 h-px bg-graphite/60" />
+          <span className="font-tag text-[8px] tracking-[0.3em] font-bold text-graphite/60">
+            CONSTITUENTS · {entries.length} 主件{totalVariants > 0 ? ` · ${totalVariants} 变体` : ''}
+          </span>
         </div>
-      )}
+
+        {SLOT_LABELS.map(({ key, label }) => {
+          const slots = match.items[key];
+          if (slots.length === 0) return null;
+          return (
+            <div key={key} className="border-l-2 border-graphite/15 pl-4">
+              <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/55 mb-2">
+                {label} · {slots.length}
+              </p>
+              <div className="space-y-2">
+                {slots.map((slot) => {
+                  const primary = itemMap.get(slot.primary);
+                  if (!primary) return (
+                    <p key={slot.primary} className="font-story italic text-xs text-graphite/40">
+                      已删除的衣物
+                    </p>
+                  );
+                  const theme = getTagTheme(primary.id);
+                  return (
+                    <div key={slot.primary}>
+                      <button
+                        onClick={() => { sfx.cardClick(); navigate(`/item/${primary.id}`); }}
+                        onMouseEnter={() => sfx.cardHover()}
+                        className="group flex items-center gap-3 w-full text-left hover:bg-tag/40 px-2 py-1.5 -mx-2 transition-colors"
+                      >
+                        <div
+                          className="w-1 h-8 shrink-0"
+                          style={{ backgroundColor: theme.accentColor }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-story font-semibold text-sm text-ink truncate group-hover:text-stamp transition-colors">
+                            {primary.name || '未命名'}
+                          </p>
+                          {primary.brand && (
+                            <p className="font-tag text-[9px] uppercase tracking-wider text-graphite/55 truncate">
+                              {primary.brand}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/40 group-hover:text-graphite transition-colors">
+                          →
+                        </span>
+                      </button>
+
+                      {/* Variants under primary */}
+                      {slot.variants && slot.variants.length > 0 && (
+                        <div className="ml-4 mt-1 space-y-1 border-l border-dashed border-graphite/20 pl-3">
+                          {slot.variants.map((vid) => {
+                            const v = itemMap.get(vid);
+                            if (!v) return (
+                              <p key={vid} className="font-story italic text-xs text-graphite/40">
+                                已删除的变体
+                              </p>
+                            );
+                            return (
+                              <button
+                                key={vid}
+                                onClick={() => { sfx.cardClick(); navigate(`/item/${vid}`); }}
+                                onMouseEnter={() => sfx.cardHover()}
+                                className={cn(
+                                  'group flex items-center gap-2 w-full text-left px-2 py-1 -mx-2 transition-colors hover:bg-tag/40'
+                                )}
+                              >
+                                <GitBranch className="w-3 h-3 text-graphite/50 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-story text-xs text-ink/75 truncate group-hover:text-stamp transition-colors">
+                                    {v.name || '未命名'}
+                                    {v.brand && (
+                                      <span className="ml-2 font-tag uppercase text-[9px] tracking-wider text-graphite/45">
+                                        {v.brand}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Care label style summary */}
       <div
@@ -196,9 +418,13 @@ export function BestMatchDetail() {
           <p><span className="text-graphite/55">BOTTOMS </span><span className="text-ink font-medium">{counts.bottoms}</span></p>
           <p><span className="text-graphite/55">SHOES </span><span className="text-ink font-medium">{counts.shoes}</span></p>
           <p><span className="text-graphite/55">ACCESSORIES </span><span className="text-ink font-medium">{counts.accessories}</span></p>
+          {totalVariants > 0 && (
+            <p className="col-span-2"><span className="text-graphite/55">VARIANTS </span><span className="text-ink font-medium">{totalVariants}</span></p>
+          )}
           <p className="col-span-2"><span className="text-graphite/55">DATE </span><span className="text-ink font-medium">{dateStr}</span></p>
         </div>
       </div>
+
     </div>
   );
 }

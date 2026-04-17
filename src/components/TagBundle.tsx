@@ -4,28 +4,39 @@ import { getTagTheme, hashId } from '../lib/tagThemes';
 
 type BundleSize = 'mini' | 'detail';
 
-interface MiniTagProps {
+/** A single hung tag in the bundle. May represent a slot with variants. */
+export interface BundleEntry {
   item: WardrobeItem;
+  /** how many alternate variants this slot has — drawn as a small badge */
+  variantCount?: number;
+}
+
+interface MiniTagProps {
+  entry: BundleEntry;
   width: number;
   height: number;
   rotation: number;
   lateralOffset: number;
   size: BundleSize;
+  onClick?: (item: WardrobeItem) => void;
 }
 
-function MiniTag({ item, width, height, rotation, lateralOffset, size }: MiniTagProps) {
+function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick }: MiniTagProps) {
+  const { item, variantCount } = entry;
   const theme = getTagTheme(item.id);
   const isDetail = size === 'detail';
+  const interactive = !!onClick;
 
   return (
     <div
-      className="relative shrink-0"
+      className={`relative shrink-0 ${interactive ? 'cursor-pointer' : ''}`}
       style={{
         width,
         height,
         transform: `translateX(${lateralOffset}px) rotate(${rotation}deg)`,
         transformOrigin: 'top center',
       }}
+      onClick={interactive ? (e) => { e.stopPropagation(); onClick!(item); } : undefined}
     >
       <div
         className="relative w-full h-full overflow-hidden tag-shadow"
@@ -136,16 +147,17 @@ function MiniTag({ item, width, height, rotation, lateralOffset, size }: MiniTag
           </div>
         </div>
 
-        {/* Name */}
+        {/* Name — now bigger and bolder so it's the dominant tag element */}
         <div
           className="relative z-10 px-2.5"
-          style={{ marginTop: isDetail ? 8 : 6 }}
+          style={{ marginTop: isDetail ? 10 : 7 }}
         >
           <p
             className="font-story font-bold leading-tight line-clamp-2"
             style={{
               color: theme.textPrimary,
-              fontSize: isDetail ? 12 : 10,
+              fontSize: isDetail ? 14 : 11.5,
+              letterSpacing: '-0.005em',
             }}
           >
             {item.name || '未命名'}
@@ -163,15 +175,36 @@ function MiniTag({ item, width, height, rotation, lateralOffset, size }: MiniTag
             </p>
           )}
         </div>
+
+        {/* Variant badge — bottom-right corner */}
+        {variantCount && variantCount > 0 && (
+          <div
+            className="absolute z-20 flex items-center gap-0.5 px-1.5 py-0.5 font-tag font-bold"
+            style={{
+              bottom: 6,
+              right: 6,
+              fontSize: isDetail ? 9 : 8,
+              letterSpacing: '0.05em',
+              backgroundColor: theme.accentColor,
+              color: theme.isLight ? '#FFFFFF' : '#1A1A1A',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.18)',
+            }}
+            title={`${variantCount} 个变体`}
+          >
+            +{variantCount}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 interface TagBundleProps {
-  items: WardrobeItem[];
+  entries: BundleEntry[];
   size?: BundleSize;
   className?: string;
+  /** When provided, every tag becomes clickable and routes to that item. */
+  onItemClick?: (item: WardrobeItem) => void;
 }
 
 const DIMS: Record<BundleSize, {
@@ -184,8 +217,8 @@ const DIMS: Record<BundleSize, {
   hookTopPadding: number;
 }> = {
   mini: {
-    tagWidth: 112,
-    tagHeight: 148,
+    tagWidth: 124,
+    tagHeight: 168,
     gap: 14,
     lateralRange: 10,
     rotationRange: 2.5,
@@ -193,8 +226,8 @@ const DIMS: Record<BundleSize, {
     hookTopPadding: 26,
   },
   detail: {
-    tagWidth: 180,
-    tagHeight: 232,
+    tagWidth: 200,
+    tagHeight: 264,
     gap: 18,
     lateralRange: 14,
     rotationRange: 3,
@@ -205,65 +238,53 @@ const DIMS: Record<BundleSize, {
 
 function pseudoRandom(id: string, range: number, salt = 0): number {
   const h = hashId(id);
-  const norm = ((h >> (salt * 3)) % 1000) / 1000; // 0..1
-  return (norm * 2 - 1) * range; // -range..+range
+  const norm = ((h >> (salt * 3)) % 1000) / 1000;
+  return (norm * 2 - 1) * range;
 }
 
 /**
  * 棉线成串吊牌 — 几个吊牌用手绘感棉线连接起来的视觉，像挂在衣架上的样品串。
- * Victor 的 Margiela 风审美隐喻。
+ * Victor 的 Margiela 风审美隐喻。Slots with variants get a "+N" badge.
  */
-export function TagBundle({ items, size = 'mini', className }: TagBundleProps) {
+export function TagBundle({ entries, size = 'mini', className, onItemClick }: TagBundleProps) {
   const dims = DIMS[size];
 
   const layout = useMemo(() => {
-    if (items.length === 0) return null;
+    if (entries.length === 0) return null;
 
-    const perTagPlacement = items.map((item, idx) => {
-      const lateralOffset = pseudoRandom(item.id, dims.lateralRange, idx);
-      const rotation = pseudoRandom(item.id, dims.rotationRange, idx + 1);
+    const perTagPlacement = entries.map((entry, idx) => {
+      const lateralOffset = pseudoRandom(entry.item.id, dims.lateralRange, idx);
+      const rotation = pseudoRandom(entry.item.id, dims.rotationRange, idx + 1);
       const tagTop = dims.hookTopPadding + idx * (dims.tagHeight + dims.gap);
-      return { item, lateralOffset, rotation, tagTop };
+      return { entry, lateralOffset, rotation, tagTop };
     });
 
-    // Container bounding
     const containerWidth = dims.tagWidth + dims.lateralRange * 2 + 20;
     const lastPlacement = perTagPlacement[perTagPlacement.length - 1];
     const containerHeight = lastPlacement.tagTop + dims.tagHeight + 10;
 
-    // Hook point at top center
     const hookX = containerWidth / 2;
     const hookY = 6;
 
-    // Hole absolute coordinates (within container)
     const holes = perTagPlacement.map((p) => ({
       x: containerWidth / 2 + p.lateralOffset,
       y: p.tagTop + dims.holeInset,
     }));
 
-    // Build SVG path: hook → hole0 → hole1 → ... with quadratic bezier for hand-drawn wobble
     let path = `M ${hookX.toFixed(2)} ${hookY.toFixed(2)}`;
     let prev = { x: hookX, y: hookY };
     holes.forEach((hole, i) => {
-      // Control point: midpoint with offset for wobble
       const midX = (prev.x + hole.x) / 2;
       const midY = (prev.y + hole.y) / 2;
-      const wobble = pseudoRandom(items[i].id, 8, i + 2);
+      const wobble = pseudoRandom(entries[i].item.id, 8, i + 2);
       const ctrlX = midX + wobble;
       const ctrlY = midY;
       path += ` Q ${ctrlX.toFixed(2)} ${ctrlY.toFixed(2)} ${hole.x.toFixed(2)} ${hole.y.toFixed(2)}`;
       prev = hole;
     });
 
-    return {
-      perTagPlacement,
-      containerWidth,
-      containerHeight,
-      hookX,
-      hookY,
-      path,
-    };
-  }, [items, dims]);
+    return { perTagPlacement, containerWidth, containerHeight, hookX, hookY, path };
+  }, [entries, dims]);
 
   if (!layout) {
     return (
@@ -284,7 +305,6 @@ export function TagBundle({ items, size = 'mini', className }: TagBundleProps) {
         margin: '0 auto',
       }}
     >
-      {/* String (SVG) — behind tags so it emerges from holes */}
       <svg
         className="absolute inset-0 pointer-events-none"
         width={layout.containerWidth}
@@ -292,7 +312,6 @@ export function TagBundle({ items, size = 'mini', className }: TagBundleProps) {
         viewBox={`0 0 ${layout.containerWidth} ${layout.containerHeight}`}
         style={{ zIndex: 2 }}
       >
-        {/* Hook anchor — small ring at top */}
         <circle
           cx={layout.hookX}
           cy={layout.hookY}
@@ -301,7 +320,6 @@ export function TagBundle({ items, size = 'mini', className }: TagBundleProps) {
           stroke="#6B6A65"
           strokeWidth={1.2}
         />
-        {/* The cotton string */}
         <path
           d={layout.path}
           fill="none"
@@ -311,7 +329,6 @@ export function TagBundle({ items, size = 'mini', className }: TagBundleProps) {
           strokeLinejoin="round"
           opacity={0.85}
         />
-        {/* Soft shadow beneath string for depth */}
         <path
           d={layout.path}
           fill="none"
@@ -324,10 +341,9 @@ export function TagBundle({ items, size = 'mini', className }: TagBundleProps) {
         />
       </svg>
 
-      {/* Tags — positioned absolute so SVG can thread through them */}
       {layout.perTagPlacement.map((p) => (
         <div
-          key={p.item.id}
+          key={p.entry.item.id}
           className="absolute left-1/2"
           style={{
             top: p.tagTop,
@@ -336,12 +352,13 @@ export function TagBundle({ items, size = 'mini', className }: TagBundleProps) {
           }}
         >
           <MiniTag
-            item={p.item}
+            entry={p.entry}
             width={dims.tagWidth}
             height={dims.tagHeight}
             rotation={p.rotation}
             lateralOffset={p.lateralOffset}
             size={size}
+            onClick={onItemClick}
           />
         </div>
       ))}

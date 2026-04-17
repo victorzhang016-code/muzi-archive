@@ -10,7 +10,7 @@ import { sfx } from '../lib/sounds';
 import { MargielaRating } from './MargielaRating';
 import { cn } from '../lib/utils';
 import { getTagTheme, getTagRotation } from '../lib/tagThemes';
-import { useBestMatches, matchesContainingItem } from '../contexts/BestMatchContext';
+import { useBestMatches, matchesContainingItem, bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { TagBundle } from './TagBundle';
 
@@ -311,19 +311,27 @@ export function ItemDetail() {
           </h3>
           <div className="flex gap-5 overflow-x-auto hide-scrollbar pb-3 -mx-2 px-2">
             {relatedMatches.map((m) => {
-              const ids = [...m.items.tops, ...m.items.bottoms, ...m.items.shoes, ...m.items.accessories];
-              const orderedItems = ids
-                .map((iid) => wardrobeMap.get(iid))
-                .filter((i): i is WardrobeItem => !!i);
+              const entries = bundleEntriesFromMatch(m, wardrobeMap);
               return (
-                <button
+                <div
                   key={m.id}
                   onMouseEnter={() => sfx.cardHover()}
                   onClick={() => { sfx.cardClick(); navigate(`/best-match/${m.id}`); }}
-                  className="shrink-0 rounded-xl bg-white/30 border border-dashed border-graphite/20 hover:border-graphite/45 hover:-translate-y-1 transition-all p-3"
+                  className="shrink-0 rounded-xl bg-white/30 border border-dashed border-graphite/20 hover:border-graphite/45 hover:-translate-y-1 transition-all p-3 cursor-pointer"
                 >
-                  {orderedItems.length > 0 && <TagBundle items={orderedItems} size="mini" />}
-                </button>
+                  {entries.length > 0 && (
+                    <TagBundle
+                      entries={entries}
+                      size="mini"
+                      onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
+                    />
+                  )}
+                  {m.name && (
+                    <p className="font-story font-bold text-sm text-ink mt-2 text-center max-w-[220px] line-clamp-1">
+                      {m.name}
+                    </p>
+                  )}
+                </div>
               );
             })}
           </div>

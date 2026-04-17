@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Loader2, Sparkles } from 'lucide-react';
-import { useBestMatches, bestMatchItemIds } from '../contexts/BestMatchContext';
+import { useBestMatches, bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { sfx } from '../lib/sounds';
 import { TagBundle } from './TagBundle';
@@ -33,7 +33,6 @@ export function BestMatchGallery() {
 
   return (
     <div className="space-y-10">
-      {/* Header */}
       <div className="flex flex-col gap-5">
         <div className="border-b border-dashed border-graphite/25 pb-5">
           <button
@@ -68,7 +67,6 @@ export function BestMatchGallery() {
           </div>
         </div>
 
-        {/* Aesthetic profile placeholder card */}
         <div className="border border-dashed border-graphite/30 bg-tag/40 px-5 py-5 flex items-center gap-4">
           <div className="w-10 h-10 border border-graphite/30 flex items-center justify-center shrink-0">
             <Sparkles className="w-4 h-4 text-graphite" />
@@ -106,7 +104,6 @@ export function BestMatchGallery() {
         </div>
       </div>
 
-      {/* Grid */}
       {matches.length === 0 ? (
         <div className="text-center py-32">
           <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/35 mb-6">— No Looks Yet —</p>
@@ -145,26 +142,31 @@ interface MatchCardProps {
 }
 
 function MatchCard({ match, index, itemMap, onOpen }: MatchCardProps) {
-  const items = useMemo(() => {
-    return bestMatchItemIds(match)
-      .map((id) => itemMap.get(id))
-      .filter((i): i is WardrobeItem => !!i);
-  }, [match, itemMap]);
+  const entries = useMemo(() => bundleEntriesFromMatch(match, itemMap), [match, itemMap]);
+  const totalCount = entries.length + entries.reduce((sum, e) => sum + (e.variantCount ?? 0), 0);
 
   return (
     <button
       onClick={onOpen}
       onMouseEnter={() => sfx.cardHover()}
-      className="animate-tag-in flex flex-col items-center gap-4 group"
+      className="animate-tag-in flex flex-col items-center gap-3 group"
       style={{ animationDelay: `${Math.min(index * 28, 220)}ms` }}
     >
       <div className="rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
-        {items.length > 0 ? (
-          <TagBundle items={items} size="mini" />
+        {entries.length > 0 ? (
+          <TagBundle entries={entries} size="mini" />
         ) : (
           <p className="font-tag text-xs text-graphite/45 py-12">No items</p>
         )}
       </div>
+      {match.name && (
+        <h3 className="font-story font-bold text-base text-ink text-center max-w-[220px] line-clamp-2">
+          {match.name}
+        </h3>
+      )}
+      <p className="font-tag text-[10px] uppercase tracking-[0.2em] text-graphite/50">
+        {entries.length} 主件 · {totalCount} 件含变体
+      </p>
       {(match.sceneTags?.length ?? 0) > 0 && (
         <div className="flex flex-wrap justify-center gap-1.5 max-w-full">
           {match.sceneTags!.map((tag) => (
@@ -177,9 +179,9 @@ function MatchCard({ match, index, itemMap, onOpen }: MatchCardProps) {
           ))}
         </div>
       )}
-      {match.note && (
+      {match.story && (
         <p className="font-story italic text-[12px] text-graphite/70 text-center max-w-[240px] line-clamp-2">
-          {match.note}
+          {match.story}
         </p>
       )}
     </button>

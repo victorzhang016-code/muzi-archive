@@ -36,19 +36,33 @@ export const BEST_MATCH_CAPS = {
   accessories: 5,
 } as const;
 
+/**
+ * A single slot in a best match — one primary garment, optionally with a list
+ * of variant alternatives ("白衬衫，可换成黑衬衫"). Variants are first-class
+ * citizens for radiation/discovery: they count as "appearing in" the outfit.
+ */
+export interface BestMatchSlot {
+  primary: string;
+  variants?: string[];
+}
+
 export interface BestMatchItems {
-  tops: string[];
-  bottoms: string[];
-  shoes: string[];
-  accessories: string[];
+  tops: BestMatchSlot[];
+  bottoms: BestMatchSlot[];
+  shoes: BestMatchSlot[];
+  accessories: BestMatchSlot[];
 }
 
 export interface BestMatch {
   id: string;
   userId: string;
   items: BestMatchItems;
+  /** Flattened mirror of every primary + variant id across all slots — enables
+   *  array-contains queries for the v2 single-item radiation graph. */
+  allItemIds: string[];
+  name?: string;
+  story?: string;
   sceneTags?: SceneTag[];
-  note?: string;
   photoBase64?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
