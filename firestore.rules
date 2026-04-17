@@ -33,5 +33,18 @@ service cloud.firestore {
       allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']);
       allow delete: if isDocOwner();
     }
+
+    // Best Match — 用户记录的"心中最佳搭配"
+    match /best_matches/{matchId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']);
+      allow delete: if isDocOwner();
+    }
+
+    // 审美档案缓存 — 文档 ID 即 userId
+    match /aesthetic_profiles/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { doc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -10,6 +10,9 @@ import { sfx } from '../lib/sounds';
 import { MargielaRating } from './MargielaRating';
 import { cn } from '../lib/utils';
 import { getTagTheme, getTagRotation } from '../lib/tagThemes';
+import { useBestMatches, matchesContainingItem } from '../contexts/BestMatchContext';
+import { useWardrobe } from '../contexts/WardrobeContext';
+import { TagBundle } from './TagBundle';
 
 export function ItemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +20,19 @@ export function ItemDetail() {
   const [item, setItem] = useState<WardrobeItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { matches } = useBestMatches();
+  const { items: wardrobe } = useWardrobe();
+
+  const relatedMatches = useMemo(
+    () => (id ? matchesContainingItem(matches, id) : []),
+    [matches, id]
+  );
+
+  const wardrobeMap = useMemo(() => {
+    const m = new Map<string, WardrobeItem>();
+    wardrobe.forEach((i) => m.set(i.id, i));
+    return m;
+  }, [wardrobe]);
 
   useEffect(() => {
     if (!id || !auth.currentUser) return;
@@ -283,6 +299,36 @@ export function ItemDetail() {
           ))}
         </div>
       </div>
+
+      {/* ── 出现在 N 套搭配里 ── */}
+      {relatedMatches.length > 0 && (
+        <div className="mt-12 pt-8 border-t border-dashed border-graphite/25">
+          <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-1">
+            Appears In
+          </p>
+          <h3 className="font-story text-lg text-ink mb-5">
+            出现在 <strong>{relatedMatches.length}</strong> 套搭配里
+          </h3>
+          <div className="flex gap-5 overflow-x-auto hide-scrollbar pb-3 -mx-2 px-2">
+            {relatedMatches.map((m) => {
+              const ids = [...m.items.tops, ...m.items.bottoms, ...m.items.shoes, ...m.items.accessories];
+              const orderedItems = ids
+                .map((iid) => wardrobeMap.get(iid))
+                .filter((i): i is WardrobeItem => !!i);
+              return (
+                <button
+                  key={m.id}
+                  onMouseEnter={() => sfx.cardHover()}
+                  onClick={() => { sfx.cardClick(); navigate(`/best-match/${m.id}`); }}
+                  className="shrink-0 rounded-xl bg-white/30 border border-dashed border-graphite/20 hover:border-graphite/45 hover:-translate-y-1 transition-all p-3"
+                >
+                  {orderedItems.length > 0 && <TagBundle items={orderedItems} size="mini" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <AddEditItemModal
         isOpen={isEditModalOpen}

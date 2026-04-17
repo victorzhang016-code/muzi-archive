@@ -5,11 +5,13 @@ import { WardrobeItem, Category, Season } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
-import { Plus, Loader2, Database, ArrowUpDown, Trash2, Share2, Copy, Check } from 'lucide-react';
+import { Plus, Loader2, Database, ArrowUpDown, Trash2, Share2, Copy, Check, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SEED_DATA } from '../data/seedData';
 import { useWardrobe } from '../contexts/WardrobeContext';
+import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
+import { useNavigate } from 'react-router';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
 
@@ -22,6 +24,8 @@ function extractBrands(raw: string): string[] {
 
 export function WardrobeList() {
   const { items, loading } = useWardrobe();
+  const { matches } = useBestMatches();
+  const navigate = useNavigate();
   const scrollYRef = useRef(0);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
@@ -419,6 +423,28 @@ export function WardrobeList() {
             </div>
           </div>
         </div>
+
+        {/* Best Match entry */}
+        <button
+          onMouseEnter={() => sfx.cardHover()}
+          onClick={() => { sfx.cardClick(); navigate('/best-match'); }}
+          className="group flex items-center gap-3 px-4 py-3 bg-tag/60 border border-dashed border-graphite/30 hover:border-graphite/55 hover:bg-tag transition-all text-left"
+        >
+          <div className="w-9 h-9 border border-graphite/30 flex items-center justify-center shrink-0 group-hover:border-ink/60 transition-colors">
+            <Sparkles className="w-4 h-4 text-graphite group-hover:text-ink transition-colors" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/60 mb-0.5">
+              Best Match · {matches.length}
+            </p>
+            <p className="font-story text-sm text-ink">
+              {matches.length === 0 ? '建立心中的最佳搭配' : '查看 / 添加搭配档案'}
+            </p>
+          </div>
+          <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/50 group-hover:text-ink transition-colors shrink-0">
+            →
+          </span>
+        </button>
 
         {/* Actions row */}
         <div className="flex flex-col items-stretch sm:items-end gap-2">

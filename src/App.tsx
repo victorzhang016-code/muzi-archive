@@ -5,7 +5,11 @@ import { WardrobeList } from './components/WardrobeList';
 import { ItemDetail } from './components/ItemDetail';
 import { ShareView } from './components/ShareView';
 import { MigrateData } from './components/MigrateData';
+import { BestMatchGallery } from './components/BestMatchGallery';
+import { BestMatchBuilder } from './components/BestMatchBuilder';
+import { BestMatchDetail } from './components/BestMatchDetail';
 import { WardrobeProvider } from './contexts/WardrobeContext';
+import { BestMatchProvider } from './contexts/BestMatchContext';
 import { Shirt, Loader2, ExternalLink } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
@@ -107,11 +111,16 @@ function AppRoutes() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
         <WardrobeProvider uid={user.uid}>
-          <Routes>
-            <Route path="/" element={<WardrobeList />} />
-            <Route path="/item/:id" element={<ItemDetail />} />
-            <Route path="/migrate" element={<MigrateData />} />
-          </Routes>
+          <BestMatchProvider uid={user.uid}>
+            <Routes>
+              <Route path="/" element={<WardrobeList />} />
+              <Route path="/item/:id" element={<ItemDetail />} />
+              <Route path="/migrate" element={<MigrateData />} />
+              <Route path="/best-match" element={<BestMatchGallery />} />
+              <Route path="/best-match/new" element={<BestMatchBuilder />} />
+              <Route path="/best-match/:id" element={<BestMatchDetail />} />
+            </Routes>
+          </BestMatchProvider>
         </WardrobeProvider>
       </main>
     </div>
