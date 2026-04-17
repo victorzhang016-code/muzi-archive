@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { collection, query, where, deleteDoc, doc, writeBatch, getDocs, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { WardrobeItem, Category, Season } from '../types';
+import { WardrobeItem, Category, Season, TopType, TOP_TYPES, AccessoryType, ACCESSORY_TYPES } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
@@ -37,6 +37,8 @@ export function WardrobeList() {
   const [splitSpringAutumn, setSplitSpringAutumn] = useState(false);
   const [subFilterSeason, setSubFilterSeason] = useState<'全部' | Season>('全部');
   const [subFilterLength, setSubFilterLength] = useState<'全部' | '长裤' | '短裤' | '裙子'>('全部');
+  const [subFilterTopType, setSubFilterTopType] = useState<'全部' | TopType>('全部');
+  const [subFilterAccessoryType, setSubFilterAccessoryType] = useState<'全部' | AccessoryType>('全部');
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc' | 'yearDesc' | 'yearAsc'>('default');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [shareEnabled, setShareEnabled] = useState(false);
@@ -67,6 +69,8 @@ export function WardrobeList() {
   useEffect(() => {
     setSubFilterSeason('全部');
     setSubFilterLength('全部');
+    setSubFilterTopType('全部');
+    setSubFilterAccessoryType('全部');
   }, [filterCategory]);
 
   // 滚动位置保存（离开时）/ 恢复（回来时）
@@ -301,8 +305,16 @@ export function WardrobeList() {
       if (item.displaySeason !== subFilterSeason) return false;
     }
 
+    if (filterCategory === '上装' && subFilterTopType !== '全部') {
+      if (item.topType !== subFilterTopType) return false;
+    }
+
     if (filterCategory === '下装' && subFilterLength !== '全部') {
       if (item.length !== subFilterLength) return false;
+    }
+
+    if (filterCategory === '配饰' && subFilterAccessoryType !== '全部') {
+      if (item.accessoryType !== subFilterAccessoryType) return false;
     }
 
     if (filterYear !== '全部' && item.purchaseYear !== filterYear) return false;
@@ -350,8 +362,16 @@ export function WardrobeList() {
       if (subFilterLength !== '全部') {
         return `一共 ${n} 件${subFilterLength}`;
       }
+      if (subFilterTopType !== '全部') {
+        return subFilterSeason !== '全部'
+          ? `${subFilterSeason} ${subFilterTopType}，一共 ${n} 件`
+          : `一共 ${n} 件${subFilterTopType}`;
+      }
       if (subFilterSeason !== '全部') {
         return `${subFilterSeason}${filterCategory}，一共 ${n} 件`;
+      }
+      if (subFilterAccessoryType !== '全部') {
+        return `一共 ${n} 件${subFilterAccessoryType}`;
       }
       if (filterYear !== '全部') {
         return `${filterYear} 年入手的${filterCategory}，共 ${n} 件`;
@@ -592,6 +612,26 @@ export function WardrobeList() {
         {/* Sub-filters */}
         {filterCategory === '上装' && (
           <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Type</span>
+            {(['全部', ...TOP_TYPES] as ('全部' | TopType)[]).map(t => (
+              <button
+                key={t}
+                onClick={() => { sfx.filterClick(); setSubFilterTopType(t); }}
+                className={cn(
+                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  subFilterTopType === t
+                    ? "bg-ink/10 text-ink border-ink/30"
+                    : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {filterCategory === '上装' && (
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Season</span>
             {['全部', ...(splitSpringAutumn ? ['春秋', '春季', '秋季'] : ['春秋']), '夏季', '冬季', '四季'].map(season => (
               <button
@@ -605,6 +645,26 @@ export function WardrobeList() {
                 )}
               >
                 {season}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {filterCategory === '配饰' && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Type</span>
+            {(['全部', ...ACCESSORY_TYPES] as ('全部' | AccessoryType)[]).map(t => (
+              <button
+                key={t}
+                onClick={() => { sfx.filterClick(); setSubFilterAccessoryType(t); }}
+                className={cn(
+                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  subFilterAccessoryType === t
+                    ? "bg-ink/10 text-ink border-ink/30"
+                    : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
+                )}
+              >
+                {t}
               </button>
             ))}
           </div>
