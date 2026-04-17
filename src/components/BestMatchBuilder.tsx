@@ -370,7 +370,7 @@ export function BestMatchBuilder() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-dashed border-graphite/25 pb-5">
         <button
-          onClick={() => { sfx.filterClick(); navigate(-1); }}
+          onClick={() => { sfx.filterClick(); navigate(editId ? `/best-match/${editId}` : '/best-match'); }}
           className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
         >
           <ArrowLeft className="w-3 h-3" />

@@ -96,7 +96,7 @@ export function ItemDetail() {
   return (
     <div
       className="min-h-[70vh] cursor-pointer"
-      onClick={() => { sfx.filterClick(); navigate(-1); }}
+      onClick={() => { sfx.filterClick(); navigate('/'); }}
       title="点击空白处返回"
     >
     <div
@@ -107,7 +107,7 @@ export function ItemDetail() {
       {/* Back nav */}
       <div className="flex items-center justify-between mb-8">
         <button
-          onClick={() => { sfx.filterClick(); navigate(-1); }}
+          onClick={() => { sfx.filterClick(); navigate('/'); }}
           className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors font-medium"
         >
           <ArrowLeft className="w-3 h-3" />

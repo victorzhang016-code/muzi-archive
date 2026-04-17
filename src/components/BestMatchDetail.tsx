@@ -36,7 +36,7 @@ export function BestMatchDetail() {
   const closeWithAnimation = () => {
     sfx.filterClick();
     setBundleVisible(false);
-    window.setTimeout(() => navigate(-1), 420);
+    window.setTimeout(() => navigate('/best-match'), 420);
   };
 
   useEffect(() => {

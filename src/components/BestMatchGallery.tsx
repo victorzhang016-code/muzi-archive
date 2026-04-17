@@ -38,7 +38,7 @@ export function BestMatchGallery() {
       <div className="flex flex-col gap-5">
         <div className="border-b border-dashed border-graphite/25 pb-5">
           <button
-            onClick={() => { sfx.filterClick(); navigate(-1); }}
+            onClick={() => { sfx.filterClick(); navigate('/'); }}
             className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors mb-4"
           >
             <ArrowLeft className="w-3 h-3" />
