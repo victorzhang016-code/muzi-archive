@@ -30,12 +30,13 @@ export function BestMatchDetail() {
   const [loading, setLoading] = useState(true);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [bundleVisible, setBundleVisible] = useState(true);
+  const [slotDisplay, setSlotDisplay] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const closeWithAnimation = (dest: string) => {
+  const closeWithAnimation = () => {
     sfx.filterClick();
     setBundleVisible(false);
-    window.setTimeout(() => navigate(dest), 420);
+    window.setTimeout(() => navigate(-1), 420);
   };
 
   useEffect(() => {
@@ -105,12 +106,13 @@ export function BestMatchDetail() {
     const out: BundleEntry[] = [];
     (['tops', 'bottoms', 'shoes', 'accessories'] as SlotKey[]).forEach((k) => {
       match.items[k].forEach((slot) => {
-        const item = itemMap.get(slot.primary);
+        const displayId = slotDisplay[slot.primary] ?? slot.primary;
+        const item = itemMap.get(displayId);
         if (item) out.push({ item, variantCount: slot.variants?.length ?? 0 });
       });
     });
     return out;
-  }, [match, itemMap]);
+  }, [match, itemMap, slotDisplay]);
 
   const handleDelete = async () => {
     if (!match) return;
@@ -191,7 +193,7 @@ export function BestMatchDetail() {
       {/* Top nav — full width */}
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => closeWithAnimation('/best-match')}
+          onClick={() => closeWithAnimation()}
           className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
         >
           <ArrowLeft className="w-3 h-3" />
@@ -214,24 +216,26 @@ export function BestMatchDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,320px)_1fr] gap-8 lg:gap-10 items-start">
-        {/* LEFT — the bundle, with fan-out on mount + collapse on exit; scroll page if tall */}
-        <aside>
-          {entries.length > 0 ? (
-            <div className="flex lg:justify-start justify-center">
-              <TagBundle
-                entries={entries}
-                size="detail"
-                variant="strung"
-                animateIn
-                collapsed={!bundleVisible}
-                onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
-              />
-            </div>
-          ) : (
-            <p className="font-story italic text-graphite/50 py-16 text-center">
-              搭配里的衣物已被删除
-            </p>
-          )}
+        {/* LEFT — sticky on desktop, scrollable when bundle is tall */}
+        <aside className="lg:sticky lg:top-24">
+          <div className="lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pb-4 hide-scrollbar">
+            {entries.length > 0 ? (
+              <div className="flex lg:justify-start justify-center">
+                <TagBundle
+                  entries={entries}
+                  size="detail"
+                  variant="strung"
+                  animateIn
+                  collapsed={!bundleVisible}
+                  onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
+                />
+              </div>
+            ) : (
+              <p className="font-story italic text-graphite/50 py-16 text-center">
+                搭配里的衣物已被删除
+              </p>
+            )}
+          </div>
         </aside>
 
         {/* RIGHT — everything else, stagger fade-in */}
@@ -360,67 +364,80 @@ export function BestMatchDetail() {
                             已删除的衣物
                           </p>
                         );
-                        const theme = getTagTheme(primary.id);
-                        return (
-                          <div key={slot.primary}>
-                            <button
-                              onClick={() => { sfx.cardClick(); navigate(`/item/${primary.id}`); }}
-                              onMouseEnter={() => sfx.cardHover()}
-                              className="group flex items-center gap-3 w-full text-left hover:bg-tag/40 px-2 py-1 -mx-2 transition-colors"
-                            >
-                              <div
-                                className="w-1 h-7 shrink-0"
-                                style={{ backgroundColor: theme.accentColor }}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-story font-semibold text-sm text-ink truncate group-hover:text-stamp transition-colors">
-                                  {primary.name || '未命名'}
-                                </p>
-                                {primary.brand && (
-                                  <p className="font-tag text-[9px] uppercase tracking-wider text-graphite/55 truncate">
-                                    {primary.brand}
-                                  </p>
-                                )}
-                              </div>
-                              <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/40 group-hover:text-graphite transition-colors">
-                                →
-                              </span>
-                            </button>
+                        const hasVariants = (slot.variants?.length ?? 0) > 0;
+                        const activeId = slotDisplay[slot.primary] ?? slot.primary;
+                        const allIds = [slot.primary, ...(slot.variants ?? [])];
 
-                            {slot.variants && slot.variants.length > 0 && (
-                              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-dashed border-graphite/20 pl-3">
-                                {slot.variants.map((vid) => {
-                                  const v = itemMap.get(vid);
-                                  if (!v) return (
-                                    <p key={vid} className="font-story italic text-xs text-graphite/40">
-                                      已删除的变体
-                                    </p>
-                                  );
-                                  return (
+                        const switchTo = (targetId: string) => {
+                          sfx.filterClick();
+                          setSlotDisplay(prev => ({ ...prev, [slot.primary]: targetId }));
+                        };
+
+                        return (
+                          <div key={slot.primary} className="space-y-0.5">
+                            {allIds.map((itemId, itemIdx) => {
+                              const item = itemMap.get(itemId);
+                              if (!item) return (
+                                <p key={itemId} className="font-story italic text-xs text-graphite/40 px-2">
+                                  {itemIdx === 0 ? '已删除的衣物' : '已删除的变体'}
+                                </p>
+                              );
+                              const theme = getTagTheme(item.id);
+                              const isActive = activeId === itemId;
+                              const isPrimary = itemIdx === 0;
+
+                              return (
+                                <div key={itemId} className={cn(
+                                  "flex items-center gap-2 px-2 py-1 -mx-2 transition-colors",
+                                  isActive ? "bg-ink/5" : "hover:bg-tag/40"
+                                )}>
+                                  {/* Switch indicator */}
+                                  {hasVariants && (
                                     <button
-                                      key={vid}
-                                      onClick={() => { sfx.cardClick(); navigate(`/item/${vid}`); }}
-                                      onMouseEnter={() => sfx.cardHover()}
-                                      className={cn(
-                                        'group flex items-center gap-2 w-full text-left px-2 py-0.5 -mx-2 transition-colors hover:bg-tag/40'
-                                      )}
+                                      onClick={() => switchTo(itemId)}
+                                      title={isActive ? '当前展示中' : '切换到此版本'}
+                                      className="shrink-0 w-4 h-4 flex items-center justify-center transition-colors"
                                     >
-                                      <GitBranch className="w-3 h-3 text-graphite/50 shrink-0" />
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-story text-xs text-ink/75 truncate group-hover:text-stamp transition-colors">
-                                          {v.name || '未命名'}
-                                          {v.brand && (
-                                            <span className="ml-2 font-tag uppercase text-[9px] tracking-wider text-graphite/45">
-                                              {v.brand}
-                                            </span>
-                                          )}
-                                        </p>
-                                      </div>
+                                      <div className={cn(
+                                        "rounded-full transition-all",
+                                        isActive
+                                          ? "w-2.5 h-2.5 border-2"
+                                          : "w-2 h-2 border opacity-35 hover:opacity-70"
+                                      )}
+                                        style={{ borderColor: isActive ? theme.accentColor : undefined }}
+                                      />
                                     </button>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                  )}
+                                  {!hasVariants && (
+                                    <div className="w-1 h-7 shrink-0" style={{ backgroundColor: theme.accentColor }} />
+                                  )}
+
+                                  {/* Item name row */}
+                                  <button
+                                    onClick={() => { sfx.cardClick(); navigate(`/item/${item.id}`); }}
+                                    onMouseEnter={() => sfx.cardHover()}
+                                    className="group flex-1 flex items-center gap-2 min-w-0 text-left"
+                                  >
+                                    {!isPrimary && <GitBranch className="w-3 h-3 text-graphite/40 shrink-0" />}
+                                    <div className="flex-1 min-w-0">
+                                      <p className={cn(
+                                        "font-story text-sm truncate group-hover:text-stamp transition-colors",
+                                        isPrimary ? "font-semibold text-ink" : "text-ink/70",
+                                        isActive && "text-ink"
+                                      )}>
+                                        {item.name || '未命名'}
+                                      </p>
+                                      {item.brand && (
+                                        <p className="font-tag text-[9px] uppercase tracking-wider text-graphite/50 truncate">
+                                          {item.brand}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <span className="font-tag text-[10px] text-graphite/35 group-hover:text-graphite transition-colors shrink-0">→</span>
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })}

@@ -39,7 +39,7 @@ export function WardrobeList() {
   const [subFilterLength, setSubFilterLength] = useState<'全部' | '长裤' | '短裤' | '裙子'>('全部');
   const [subFilterTopType, setSubFilterTopType] = useState<'全部' | TopType>('全部');
   const [subFilterAccessoryType, setSubFilterAccessoryType] = useState<'全部' | AccessoryType>('全部');
-  const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc' | 'yearDesc' | 'yearAsc'>('default');
+  const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc' | 'yearDesc' | 'yearAsc' | 'season' | 'brand' | 'category'>('default');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [shareEnabled, setShareEnabled] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
@@ -326,11 +326,21 @@ export function WardrobeList() {
     return true;
   });
 
+  const SEASON_ORDER: Record<string, number> = { '夏季': 0, '春季': 1, '春秋': 2, '秋季': 3, '冬季': 4, '四季': 5, '无': 6 };
+  const CATEGORY_ORDER: Record<string, number> = { '上装': 0, '下装': 1, '鞋子': 2, '配饰': 3 };
+
   const sortedItems = [...filteredItems].sort((a, b) => {
     if (sortOrder === 'ratingDesc') return b.rating - a.rating;
     if (sortOrder === 'ratingAsc') return a.rating - b.rating;
     if (sortOrder === 'yearDesc') return (b.purchaseYear ?? 0) - (a.purchaseYear ?? 0);
     if (sortOrder === 'yearAsc') return (a.purchaseYear ?? 9999) - (b.purchaseYear ?? 9999);
+    if (sortOrder === 'season') return (SEASON_ORDER[a.season] ?? 7) - (SEASON_ORDER[b.season] ?? 7);
+    if (sortOrder === 'brand') {
+      const ba = a.brand?.toLowerCase() ?? 'zzz';
+      const bb = b.brand?.toLowerCase() ?? 'zzz';
+      return ba.localeCompare(bb, 'zh');
+    }
+    if (sortOrder === 'category') return (CATEGORY_ORDER[a.category] ?? 4) - (CATEGORY_ORDER[b.category] ?? 4);
 
     const getOrderIndex = (item: WardrobeItem) => {
       if (item.orderIndex !== undefined) return item.orderIndex;
@@ -437,6 +447,9 @@ export function WardrobeList() {
                   <option value="ratingAsc">评分 ↑</option>
                   <option value="yearDesc">年份 ↓</option>
                   <option value="yearAsc">年份 ↑</option>
+                  <option value="season">季节</option>
+                  <option value="brand">品牌</option>
+                  <option value="category">品类</option>
                 </select>
               </div>
             </div>
