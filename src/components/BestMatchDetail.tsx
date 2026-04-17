@@ -28,7 +28,14 @@ export function BestMatchDetail() {
   const [match, setMatch] = useState<BestMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [bundleVisible, setBundleVisible] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const closeWithAnimation = (dest: string) => {
+    sfx.filterClick();
+    setBundleVisible(false);
+    window.setTimeout(() => navigate(dest), 420);
+  };
 
   useEffect(() => {
     if (!id || !auth.currentUser) return;
@@ -183,7 +190,7 @@ export function BestMatchDetail() {
       {/* Top nav — full width */}
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => { sfx.filterClick(); navigate('/best-match'); }}
+          onClick={() => closeWithAnimation('/best-match')}
           className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
         >
           <ArrowLeft className="w-3 h-3" />
@@ -206,14 +213,16 @@ export function BestMatchDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,320px)_1fr] gap-8 lg:gap-10 items-start">
-        {/* LEFT — the bundle, sticky */}
-        <aside className="lg:sticky lg:top-6">
+        {/* LEFT — the bundle, with fan-out on mount + collapse on exit; scroll page if tall */}
+        <aside>
           {entries.length > 0 ? (
             <div className="flex lg:justify-start justify-center">
               <TagBundle
                 entries={entries}
                 size="detail"
                 variant="strung"
+                animateIn
+                collapsed={!bundleVisible}
                 onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
               />
             </div>

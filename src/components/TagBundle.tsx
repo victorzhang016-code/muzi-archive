@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { motion } from 'motion/react';
 import type { WardrobeItem } from '../types';
 import { getTagTheme, hashId } from '../lib/tagThemes';
 
@@ -40,7 +41,7 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
       onClick={interactive ? (e) => { e.stopPropagation(); onClick!(item); } : undefined}
     >
       <div
-        className="relative w-full h-full overflow-hidden tag-shadow"
+        className="relative w-full h-full overflow-hidden tag-shadow flex flex-col"
         style={{
           backgroundColor: theme.bgColor,
           borderStyle: 'solid',
@@ -83,7 +84,7 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
         />
 
         {/* ID strip */}
-        <div className="relative z-10 flex items-start justify-between px-2.5 pt-2">
+        <div className="relative z-10 flex items-start justify-between px-2.5 pt-2 shrink-0">
           <span
             className="font-tag uppercase leading-none"
             style={{
@@ -108,8 +109,8 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
 
         {/* Image or placeholder */}
         <div
-          className="relative z-10 mx-2"
-          style={{ marginTop: isDetail ? 16 : 12 }}
+          className="relative z-10 mx-2 shrink-0"
+          style={{ marginTop: isDetail ? 14 : 10 }}
         >
           <div
             className="w-full overflow-hidden"
@@ -148,10 +149,10 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
           </div>
         </div>
 
-        {/* Name — now bigger and bolder so it's the dominant tag element */}
+        {/* Name row — the dominant bottom element, always visible in peek */}
         <div
-          className="relative z-10 px-2.5"
-          style={{ marginTop: isDetail ? 10 : 7 }}
+          className="relative z-10 px-2.5 flex-1 flex flex-col justify-start"
+          style={{ marginTop: isDetail ? 9 : 6, paddingBottom: isDetail ? 8 : 6 }}
         >
           <p
             className="font-story font-bold leading-tight line-clamp-2"
@@ -207,6 +208,16 @@ interface TagBundleProps {
   className?: string;
   /** When provided, every tag becomes clickable and routes to that item. */
   onItemClick?: (item: WardrobeItem) => void;
+  /**
+   * When true (strung only), tags mount at stacked positions and tween out to
+   * strung positions — a fan-out animation. Used on BestMatchDetail entry.
+   */
+  animateIn?: boolean;
+  /**
+   * When true (strung only), tags animate back toward stacked positions —
+   * used to play a collapse animation before navigating away from detail.
+   */
+  collapsed?: boolean;
 }
 
 const DIMS: Record<BundleSize, {
@@ -222,24 +233,24 @@ const DIMS: Record<BundleSize, {
 }> = {
   mini: {
     tagWidth: 124,
-    tagHeight: 168,
+    tagHeight: 196,
     gap: 14,
     lateralRange: 10,
     rotationRange: 2.5,
     holeInset: 7,
     hookTopPadding: 26,
-    peek: 28,
+    peek: 62,
     stackRotationRange: 1.5,
   },
   detail: {
     tagWidth: 200,
-    tagHeight: 264,
+    tagHeight: 304,
     gap: 18,
     lateralRange: 14,
     rotationRange: 3,
     holeInset: 10,
     hookTopPadding: 36,
-    peek: 42,
+    peek: 92,
     stackRotationRange: 2,
   },
 };
@@ -252,8 +263,8 @@ function pseudoRandom(id: string, range: number, salt = 0): number {
 
 /**
  * 吊牌串 —
- *  - `stacked` (默认 mini)：一叠吊牌，第一张在最上面（前）盖住下面的，后面的只露出顶部 peek px
- *  - `strung` (默认 detail)：几个吊牌用手绘感棉线连接起来，像挂在衣架上的样品串
+ *  - `stacked`: 第一张在最顶端（前），后面每张向下偏移，露出图片下边 + 名字
+ *  - `strung`: 几个吊牌用手绘感棉线连接起来，像挂在衣架上的样品串
  * Slots with variants get a "+N" badge.
  */
 export function TagBundle({
@@ -262,6 +273,8 @@ export function TagBundle({
   variant,
   className,
   onItemClick,
+  animateIn,
+  collapsed,
 }: TagBundleProps) {
   const dims = DIMS[size];
   const resolvedVariant: BundleVariant = variant ?? (size === 'mini' ? 'stacked' : 'strung');
@@ -280,7 +293,17 @@ export function TagBundle({
     return <StackedBundle entries={entries} size={size} dims={dims} className={className} onItemClick={onItemClick} />;
   }
 
-  return <StrungBundle entries={entries} size={size} dims={dims} className={className} onItemClick={onItemClick} />;
+  return (
+    <StrungBundle
+      entries={entries}
+      size={size}
+      dims={dims}
+      className={className}
+      onItemClick={onItemClick}
+      animateIn={!!animateIn}
+      collapsed={!!collapsed}
+    />
+  );
 }
 
 interface VariantProps {
@@ -292,15 +315,17 @@ interface VariantProps {
 }
 
 /**
- * 叠起来的吊牌——像一摞样品卡。第一张完全露出（在前），后面每张向上偏移 peek px 露出顶端一条。
- * 不画棉线/挂钩。左对齐（转换发生在 gallery 容器）。
+ * 叠起来的吊牌 —— 第一张在最顶端（最高 z-index，完全露出），后面每张向下偏移
+ * `peek` 像素，只露出下边的一段（图片下沿 + 名字），像一摞样品卡被按住顶端。
  */
 function StackedBundle({ entries, size, dims, className, onItemClick }: VariantProps) {
   const layout = useMemo(() => {
     const n = entries.length;
     const placements = entries.map((entry, idx) => {
       const rotation = pseudoRandom(entry.item.id, dims.stackRotationRange, idx + 3);
-      const top = (n - 1 - idx) * dims.peek;
+      // 第一张 (idx=0) 在 top=0 最顶层；后续逐张向下 peek 像素
+      const top = idx * dims.peek;
+      // 第一张 z 最高（压在最上面）
       const zIndex = 100 + (n - idx);
       return { entry, rotation, top, zIndex };
     });
@@ -335,13 +360,20 @@ function StackedBundle({ entries, size, dims, className, onItemClick }: VariantP
   );
 }
 
-function StrungBundle({ entries, size, dims, className, onItemClick }: VariantProps) {
+interface StrungProps extends VariantProps {
+  animateIn: boolean;
+  collapsed: boolean;
+}
+
+function StrungBundle({ entries, size, dims, className, onItemClick, animateIn, collapsed }: StrungProps) {
   const layout = useMemo(() => {
     const perTagPlacement = entries.map((entry, idx) => {
       const lateralOffset = pseudoRandom(entry.item.id, dims.lateralRange, idx);
       const rotation = pseudoRandom(entry.item.id, dims.rotationRange, idx + 1);
+      const stackRotation = pseudoRandom(entry.item.id, dims.stackRotationRange, idx + 3);
       const tagTop = dims.hookTopPadding + idx * (dims.tagHeight + dims.gap);
-      return { entry, lateralOffset, rotation, tagTop };
+      const stackTop = idx * dims.peek + dims.hookTopPadding;
+      return { entry, lateralOffset, rotation, stackRotation, tagTop, stackTop };
     });
 
     const containerWidth = dims.tagWidth + dims.lateralRange * 2 + 20;
@@ -380,12 +412,15 @@ function StrungBundle({ entries, size, dims, className, onItemClick }: VariantPr
         margin: '0 auto',
       }}
     >
-      <svg
+      <motion.svg
         className="absolute inset-0 pointer-events-none"
         width={layout.containerWidth}
         height={layout.containerHeight}
         viewBox={`0 0 ${layout.containerWidth} ${layout.containerHeight}`}
         style={{ zIndex: 2 }}
+        initial={animateIn ? { opacity: 0 } : false}
+        animate={{ opacity: collapsed ? 0 : 1 }}
+        transition={{ duration: collapsed ? 0.2 : 0.45, delay: collapsed ? 0 : (animateIn ? 0.15 : 0) }}
       >
         <circle
           cx={layout.hookX}
@@ -414,29 +449,49 @@ function StrungBundle({ entries, size, dims, className, onItemClick }: VariantPr
           style={{ transform: 'translateY(1px)' }}
           opacity={0.4}
         />
-      </svg>
+      </motion.svg>
 
-      {layout.perTagPlacement.map((p) => (
-        <div
-          key={p.entry.item.id}
-          className="absolute left-1/2"
-          style={{
-            top: p.tagTop,
-            transform: `translateX(-50%)`,
-            zIndex: 3,
-          }}
-        >
-          <MiniTag
-            entry={p.entry}
-            width={dims.tagWidth}
-            height={dims.tagHeight}
-            rotation={p.rotation}
-            lateralOffset={p.lateralOffset}
-            size={size}
-            onClick={onItemClick}
-          />
-        </div>
-      ))}
+      {layout.perTagPlacement.map((p, idx) => {
+        const centerX = layout.containerWidth / 2;
+        const leftStacked = centerX - dims.tagWidth / 2;
+        const leftFinal = centerX + p.lateralOffset - dims.tagWidth / 2;
+
+        const stackedState = { top: p.stackTop, left: leftStacked, rotate: p.stackRotation };
+        const strungState = { top: p.tagTop, left: leftFinal, rotate: p.rotation };
+
+        const initial = animateIn ? stackedState : false;
+        const animate = collapsed ? stackedState : strungState;
+
+        return (
+          <motion.div
+            key={p.entry.item.id}
+            className="absolute"
+            style={{
+              zIndex: 3 + (collapsed ? (entries.length - idx) : idx),
+              transformOrigin: 'top center',
+            }}
+            initial={initial}
+            animate={animate}
+            transition={{
+              duration: collapsed ? 0.4 : 0.55,
+              delay: collapsed
+                ? (entries.length - 1 - idx) * 0.04
+                : (animateIn ? idx * 0.06 : 0),
+              ease: [0.22, 1, 0.36, 1],
+            }}
+          >
+            <MiniTag
+              entry={p.entry}
+              width={dims.tagWidth}
+              height={dims.tagHeight}
+              rotation={0}
+              lateralOffset={0}
+              size={size}
+              onClick={onItemClick}
+            />
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
