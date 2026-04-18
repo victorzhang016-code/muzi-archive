@@ -22,6 +22,18 @@ export function BestMatchGallery() {
     return m;
   }, [wardrobe]);
 
+  const sortedMatches = useMemo(() => {
+    const countSlots = (m: BestMatch) =>
+      m.items.tops.length + m.items.bottoms.length + m.items.shoes.length + m.items.accessories.length;
+    const countVariants = (m: BestMatch) =>
+      [...m.items.tops, ...m.items.bottoms, ...m.items.shoes, ...m.items.accessories]
+        .reduce((s, slot) => s + (slot.variants?.length ?? 0), 0);
+    return [...matches].sort((a, b) => {
+      const pd = countSlots(b) - countSlots(a);
+      return pd !== 0 ? pd : countVariants(b) - countVariants(a);
+    });
+  }, [matches]);
+
   if (loading || wardrobeLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -121,7 +133,7 @@ export function BestMatchGallery() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12 pt-2">
-          {matches.map((match, idx) => (
+          {sortedMatches.map((match, idx) => (
             <MatchCard
               key={match.id}
               match={match}
