@@ -6,19 +6,17 @@ import {
 import { auth } from '../firebase';
 import { LogOut, Loader2 } from 'lucide-react';
 
-const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 处理重定向回跳（兜底：如果旧 redirect 流程回跳过来）
     getRedirectResult(auth).catch((error) => {
       console.error('Redirect sign-in error:', error);
     });
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      // 匿名用户视为未登录
       setUser(firebaseUser && !firebaseUser.isAnonymous ? firebaseUser : null);
       setLoading(false);
     });
@@ -28,13 +26,22 @@ export function useAuth() {
   const login = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      if (isMobile) {
-        await signInWithRedirect(auth, provider);
+      // 优先 popup（桌面 + 手机均适用）
+      // signInWithRedirect 在手机默认浏览器 / Chrome Custom Tabs 里会因
+      // session storage 被清空而丢失 state，导致登录失败
+      await signInWithPopup(auth, provider);
+    } catch (error: unknown) {
+      const code = (error as { code?: string }).code;
+      if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') {
+        // popup 被系统拦截时降级到 redirect
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectError) {
+          console.error('Redirect sign-in error:', redirectError);
+        }
       } else {
-        await signInWithPopup(auth, provider);
+        console.error('Error signing in with Google', error);
       }
-    } catch (error) {
-      console.error('Error signing in with Google', error);
     }
   };
 
