@@ -83,7 +83,7 @@ max_tokens: 16384，客户端做截断兜底
 | serverless 函数 500 `FUNCTION_INVOCATION_FAILED` | `package.json` 是 `"type":"module"`，ESM 下裸 `import x.json` 运行时报错（构建却过）| 函数里**别 import JSON**，把 projectId/dbId 等非密钥常量**硬编码** |
 | 改了 `VITE_AUTHOR_UID` 线上不变 | `VITE_*` 是**构建期**变量；本地 `.env` 与 Vercel env 两套 | 两处都改 + **重新构建/部署**才生效 |
 | 防限流上了，调试时读取仍 1 万/次 | **每次部署清空边缘缓存**（Phase2 后还作废全部 ~101 图）→ 部署后首批访问全回源 | 这是 deploy churn，非生产问题；**别刚部署完量读取**，焐热后连刷应全 `x-vercel-cache: HIT`、0 读 |
-| 迁移 / 批量操作把数据弄没 | 破坏性操作直接对生产库跑 | **先 export 备份**，先在测试库演练 |
+| 迁移把数据库整个删没 | 账号迁移**比对了错误的 uid** + 原数据**无备份** → 只能重建 | 迁移前**先 export 备份**；涉及 uid 匹配先 **dry-run 核对 ID**；先在测试库演练 |
 | Kimi 一键导入总解析失败 | 真因是 **PDF 文字超 Kimi 单次容量被截断**（不是输出 JSON 不干净）| **扩大单次可读取上限 / `max_tokens`**；格式强约束只治标，容量才治本 |
 
 > ⚠️ 读取额度（Phase1 边缘缓存）+ 带宽（Phase2 图片拆分）两道防线均已上线，公开分享可放心传播；细节见下「公开页边缘缓存」节与 `踩坑经验.md`。
