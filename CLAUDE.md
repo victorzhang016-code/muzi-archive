@@ -66,6 +66,9 @@ max_tokens: 16384，客户端做截断兜底
 | 规则 permission-denied | imageUrl 字段长度校验 | 去掉字段校验，只验 auth |
 | 手机登录每次 UID 不同 | signInAnonymously 和 signInWithRedirect 竞争 | 已移除匿名登录，彻底解决 |
 | lazy 图片返回不加载 | CSS columns 布局 + intersection observer 不重触发 | 改为 `loading="eager"` |
+| 公开页报「未开启分享」但其实已开 | **Firestore 免费层每日读取额度（5万/天）用尽 → 429 resource-exhausted**。规则 `sharingEnabled()` 要 get `wardrobe_users` 这条读被额度挡掉 → 规则判 false → 误显示「未开启分享」 | 1）额度每日重置（约北京时间次日下午）；2）代码已区分 `permission-denied`(真未开) vs 其它(显示「服务器繁忙稍后再试」)；3）已降读取量：ShareView 改 getDocs 一次性读、best match 懒加载（切 tab 才拉）、登录页卡墙 12→8 张；4）**根治**：此 `ai-studio-...` 命名库是「free tier database」，**即使开通账单也不能超免费额度**，高流量公开分享需迁到标准 Firestore 库 / 加分页缓存 |
+
+> ⚠️ 公开页（ShareView / 深链）单次访问会读「全部单品（~100 条）」，被广泛分享时极易撞 5 万/天上限。长期要做分页 / 缓存 / CDN 或迁库。
 
 ---
 

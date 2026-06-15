@@ -30,6 +30,7 @@ export function SharedBestMatchView() {
   const [entries, setEntries] = useState<BundleEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
+  const [tempError, setTempError] = useState(false);
 
   useEffect(() => {
     if (!matchId || !userId) return;
@@ -70,8 +71,9 @@ export function SharedBestMatchView() {
           if (d.exists()) map.set(d.id, { id: d.id, ...d.data() } as WardrobeItem);
         });
         setEntries(bundleEntriesFromMatch(m, map));
-      } catch {
-        setDenied(true);
+      } catch (e: any) {
+        if (e?.code && e.code !== 'permission-denied') setTempError(true);
+        else setDenied(true);
       } finally {
         setLoading(false);
       }
@@ -82,6 +84,21 @@ export function SharedBestMatchView() {
     return (
       <div className="min-h-screen bg-kraft flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-graphite/40" />
+      </div>
+    );
+  }
+
+  if (tempError) {
+    return (
+      <div className="min-h-screen bg-kraft flex items-center justify-center px-6">
+        <div className="text-center max-w-sm">
+          <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/40 mb-3">Temporarily Unavailable</p>
+          <p className="font-story text-ink/80 mb-2">暂时加载不出来</p>
+          <p className="font-story text-graphite/55 text-sm mb-6">服务器有点忙，请稍后再刷新试试。</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-2.5 border border-graphite/30 bg-tag/60 hover:bg-tag text-ink/75 hover:text-ink transition-colors font-tag text-[11px] uppercase tracking-wider">
+            重新加载
+          </button>
+        </div>
       </div>
     );
   }

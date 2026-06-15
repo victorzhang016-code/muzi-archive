@@ -18,10 +18,11 @@ const AUTHOR_UID = import.meta.env.VITE_AUTHOR_UID as string | undefined;
 export async function fetchAuthorSampleItems(n: number): Promise<WardrobeItem[]> {
   if (!AUTHOR_UID) return [];
   try {
+    // 仅小幅 over-fetch 以便「有图优先」，避免在高流量登录页消耗过多读取额度
     const q = query(
       collection(db, 'wardrobe_items'),
       where('userId', '==', AUTHOR_UID),
-      limit(Math.max(n * 3, 24))
+      limit(Math.min(n * 2, 16))
     );
     const snap = await getDocs(q);
     const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as WardrobeItem));

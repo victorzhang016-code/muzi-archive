@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, getCountFromServer, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { WardrobeItem, BestMatch, BestMatchItems, Category } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
@@ -58,64 +58,73 @@ export function ShareView() {
   const [matches, setMatches] = useState<BestMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [view, setView] = useState<'items' | 'matches'>('items');
+  const [matchCount, setMatchCount] = useState(0);
+  const [matchesLoaded, setMatchesLoaded] = useState(false);
 
+  // 单品：一次性读取（只读公开页无需实时监听，省读取额度）
   useEffect(() => {
     if (!userId) return;
+    setLoading(true);
     const q = query(
       collection(db, 'wardrobe_items'),
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WardrobeItem)));
-      setLoading(false);
-    }, () => {
-      setAccessDenied(true);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    getDocs(q)
+      .then((snapshot) => {
+        setItems(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as WardrobeItem)));
+      })
+      .catch((e: any) => {
+        // 区分「真的没开分享」(permission-denied) 与「服务繁忙/额度用尽」(resource-exhausted 等)
+        if (e?.code === 'permission-denied') setAccessDenied(true);
+        else setLoadError(true);
+      })
+      .finally(() => setLoading(false));
   }, [userId]);
 
-  // Best matches (公开可读，规则与 wardrobe_items 一致)
+  // best match 数量（仅 1 次聚合读，用于决定是否显示切换 tab）
   useEffect(() => {
     if (!userId) return;
-    const q = query(
-      collection(db, 'best_matches'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMatches(snapshot.docs.map((d) => {
-        const data = d.data() as any;
-        const rawItems = data.items ?? {};
-        const matchItems: BestMatchItems = {
-          tops: normalizeSlots(rawItems.tops),
-          bottoms: normalizeSlots(rawItems.bottoms),
-          shoes: normalizeSlots(rawItems.shoes),
-          accessories: normalizeSlots(rawItems.accessories),
-        };
-        return {
-          id: d.id,
-          userId: data.userId,
-          items: matchItems,
-          allItemIds: data.allItemIds ?? [],
-          name: data.name ?? undefined,
-          story: data.story ?? data.note ?? undefined,
-          sceneTags: data.sceneTags,
-          photoBase64: data.photoBase64,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-        } as BestMatch;
-      }));
-    }, () => {
-      // best match 读失败不阻塞页面（单品区照常显示）
-      setMatches([]);
-    });
-    return () => unsubscribe();
+    getCountFromServer(query(collection(db, 'best_matches'), where('userId', '==', userId)))
+      .then((s) => setMatchCount(s.data().count))
+      .catch(() => setMatchCount(0));
   }, [userId]);
+
+  // best match 详情：仅当用户切到 Best Match 视图时才拉（懒加载，省额度）
+  useEffect(() => {
+    if (view !== 'matches' || matchesLoaded || !userId) return;
+    setMatchesLoaded(true);
+    getDocs(query(collection(db, 'best_matches'), where('userId', '==', userId), orderBy('createdAt', 'desc')))
+      .then((snapshot) => {
+        setMatches(snapshot.docs.map((d) => {
+          const data = d.data() as any;
+          const rawItems = data.items ?? {};
+          const matchItems: BestMatchItems = {
+            tops: normalizeSlots(rawItems.tops),
+            bottoms: normalizeSlots(rawItems.bottoms),
+            shoes: normalizeSlots(rawItems.shoes),
+            accessories: normalizeSlots(rawItems.accessories),
+          };
+          return {
+            id: d.id,
+            userId: data.userId,
+            items: matchItems,
+            allItemIds: data.allItemIds ?? [],
+            name: data.name ?? undefined,
+            story: data.story ?? data.note ?? undefined,
+            sceneTags: data.sceneTags,
+            photoBase64: data.photoBase64,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          } as BestMatch;
+        }));
+      })
+      .catch(() => setMatches([]));
+  }, [view, matchesLoaded, userId]);
 
   const wardrobeMap = useMemo(() => {
     const m = new Map<string, WardrobeItem>();
@@ -142,6 +151,26 @@ export function ShareView() {
           <Lock className="w-10 h-10 text-graphite/25 mx-auto mb-5" />
           <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/40 mb-3">Access Denied</p>
           <p className="font-story text-graphite/60">此衣柜未开启分享</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-kraft flex items-center justify-center px-6">
+        <div className="text-center max-w-sm">
+          <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/40 mb-3">Temporarily Unavailable</p>
+          <p className="font-story text-ink/80 mb-2">衣柜暂时加载不出来</p>
+          <p className="font-story text-graphite/55 text-sm leading-relaxed mb-6">
+            服务器有点忙（可能是访问量较大），请稍后再刷新试试。
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 border border-graphite/30 bg-tag/60 hover:bg-tag text-ink/75 hover:text-ink transition-colors font-tag text-[11px] uppercase tracking-wider"
+          >
+            重新加载
+          </button>
         </div>
       </div>
     );
@@ -182,7 +211,7 @@ export function ShareView() {
         </div>
 
         {/* 视图切换：单品 / Best Match */}
-        {matches.length > 0 && (
+        {matchCount > 0 && (
           <div className="flex items-center gap-2 mb-8">
             <button
               onClick={() => setView('items')}
@@ -206,17 +235,22 @@ export function ShareView() {
               )}
             >
               Best Match
-              <span className={cn("ml-1.5 text-[10px] font-normal", view === 'matches' ? "text-white/60" : "text-graphite/45")}>{matches.length}</span>
+              <span className={cn("ml-1.5 text-[10px] font-normal", view === 'matches' ? "text-white/60" : "text-graphite/45")}>{matchCount}</span>
             </button>
           </div>
         )}
 
         {/* ── Best Match 视图 ── */}
-        {view === 'matches' && matches.length > 0 && (
+        {view === 'matches' && (
           <section className="mb-4">
             <p className="font-story italic text-graphite/75 text-[14px] leading-relaxed mb-8 max-w-2xl">
               Best Match 是 TA 心中「绝对没错」的搭配——把那些固定会一起穿、怎么搭都不会出错的单品组合记下来。点开任意一套，看看它由哪些单品构成。
             </p>
+            {!matchesLoaded && matches.length === 0 ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-graphite/40" />
+              </div>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
               {matches.map((match) => {
                 const entries = bundleEntriesFromMatch(match, wardrobeMap);
@@ -258,6 +292,7 @@ export function ShareView() {
                 );
               })}
             </div>
+            )}
           </section>
         )}
 

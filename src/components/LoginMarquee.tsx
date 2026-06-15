@@ -38,7 +38,7 @@ export function LoginMarquee() {
   const [items, setItems] = useState<WardrobeItem[]>([]);
 
   useEffect(() => {
-    fetchAuthorSampleItems(12).then(setItems);
+    fetchAuthorSampleItems(8).then(setItems);
   }, []);
 
   if (items.length === 0) return null;
