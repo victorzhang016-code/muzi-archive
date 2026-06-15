@@ -88,7 +88,7 @@ export function SharedBestMatchView() {
           <TagBundle entries={entries} size="detail" variant="strung" />
         ) : match.photoBase64 ? (
           <div className="border border-graphite/20 p-2 bg-white/40 max-w-[280px]">
-            <img src={match.photoBase64} alt={match.name || 'outfit'} className="w-full" />
+            <img src={match.photoBase64} alt={match.name || 'outfit'} className="w-full" loading="lazy" />
           </div>
         ) : (
           <p className="font-story italic text-graphite/50 py-16">搭配里的衣物已被删除</p>

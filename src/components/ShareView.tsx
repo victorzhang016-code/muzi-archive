@@ -191,7 +191,7 @@ export function ShareView() {
                       {entries.length > 0 ? (
                         <TagBundle entries={entries} size="mini" variant="stacked" />
                       ) : match.photoBase64 ? (
-                        <img src={match.photoBase64} alt={match.name || 'outfit'} className="w-full rounded" />
+                        <img src={match.photoBase64} alt={match.name || 'outfit'} className="w-full rounded" loading="lazy" />
                       ) : (
                         <p className="font-tag text-xs text-graphite/45 py-12 text-center">No items</p>
                       )}
@@ -258,6 +258,7 @@ export function ShareView() {
                 key={item.id}
                 item={item}
                 index={i}
+                eager={false}
                 onCardClick={(clickedItem) => setSelectedItem(clickedItem)}
               />
             ))}

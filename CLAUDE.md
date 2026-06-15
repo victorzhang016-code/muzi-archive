@@ -62,7 +62,8 @@ max_tokens: 16384，客户端做截断兜底
 - 时间戳兼容：公开路径是 millis，owner 直连路径是 Firestore Timestamp → 渲染日期一律用 `toDateSafe()`。
 - owner 自己的 app（`WardrobeContext`/`BestMatchContext` 实时直连）**不走缓存**，保持即时。
 - 新增公开页时**务必走缓存接口**，不要再写 `getDocs`/`onSnapshot` 直读公开数据。
-- 公开页相对 owner 编辑有约 1 小时延迟（缓存 TTL），属预期。Phase 2 待办：base64 图片拆分 + 懒加载（省 Vercel 带宽）。
+- 公开页相对 owner 编辑有约 1 小时延迟（缓存 TTL），属预期。
+- **Phase 2（已上线，带宽优化）**：公开接口**不再内联 base64**，把 `imageUrl`/`photoBase64` 改写成图片接口 URL `api/img/[uid]/[id].ts`（读单条解码成 JPEG，缓存 1 天，规则 gate）。整柜 JSON 从 8.58MB → ~100KB；图片走独立缓存接口 + 懒加载（`WardrobeItemCard` 的 `eager` prop：owner=eager 默认，公开页传 `eager={false}`）。owner 自用仍直连 base64，不受影响。
 
 ---
 

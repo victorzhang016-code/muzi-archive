@@ -12,9 +12,11 @@ interface Props {
   onEdit?: (item: WardrobeItem) => void;
   onDelete?: (item: WardrobeItem) => void;
   onCardClick?: (item: WardrobeItem) => void;
+  /** owner 直连 base64 用 eager（默认）；公开页图片是 URL，传 false 走懒加载省带宽 */
+  eager?: boolean;
 }
 
-export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick }: Props) {
+export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick, eager = true }: Props) {
   const navigate = useNavigate();
   const theme = getTagTheme(item.id);
   const rotation = getTagRotation(item.id);
@@ -146,7 +148,7 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick }:
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}
-                    loading="eager"
+                    loading={eager ? 'eager' : 'lazy'}
                   />
                 ) : (
                   <div

@@ -839,7 +839,7 @@ export function WardrobeList() {
                   一张填好的卡片，大概长这样 ↓
                 </p>
                 <div className="w-full max-w-[300px] pointer-events-none select-none opacity-95">
-                  <WardrobeItemCard item={sampleItem} index={0} />
+                  <WardrobeItemCard item={sampleItem} index={0} eager={false} />
                 </div>
               </div>
             )}

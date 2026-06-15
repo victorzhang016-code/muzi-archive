@@ -27,7 +27,7 @@ function MarqueeColumn({ items, direction, duration }: {
         }}
       >
         {doubled.map((item, i) => (
-          <WardrobeItemCard key={`${item.id}-${i}`} item={item} index={0} />
+          <WardrobeItemCard key={`${item.id}-${i}`} item={item} index={0} eager={false} />
         ))}
       </div>
     </div>

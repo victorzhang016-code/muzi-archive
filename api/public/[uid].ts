@@ -102,6 +102,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .slice(0, limit);
     }
 
+    // Phase 2：剥掉 base64，把 imageUrl / photoBase64 换成图片接口 URL。
+    // 整柜 JSON 从 ~8.58MB 降到 ~100KB（只剩文字元数据），图片按需/懒加载。
+    outItems = outItems.map((it) => ({
+      ...it,
+      imageUrl: it.imageUrl ? `/api/img/${uid}/${it.id}` : undefined,
+    }));
+    matches = matches.map((m) => ({
+      ...m,
+      photoBase64: m.photoBase64 ? `/api/img/${uid}/${m.id}?c=match` : undefined,
+    }));
+
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ shareEnabled: true, items: outItems, matches });
   } catch (e: any) {
