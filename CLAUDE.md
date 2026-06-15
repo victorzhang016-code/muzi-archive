@@ -141,7 +141,7 @@ git push origin main # 触发 Vercel 自动部署（不用 vercel CLI）
 - **登录页卡墙**：作者公开卡片模糊持续滚动 +「先看看作者的衣柜」预览入口（跳 `/author`）
 - **新用户示例卡**：空衣柜展示一张作者真实卡片作示例
 - **分享单品 / best match**：生成图文卡片（PNG + 二维码短链）+ 公开深链落地页
-- **公开衣柜页（ShareView）含 Best Match 区**：单品 + best match 都展示，best match 卡点开进 `/share/:uid/best-match/:id`
+- **公开衣柜页（ShareView）单品/Best Match 分视图切换**：顶部「单品 / Best Match」切换按钮（best match 区带一句说明），best match 卡点开进 `/share/:uid/best-match/:id`；页面顶部醒目 CTA「创建我自己的衣柜」→ 回登录页（`/`）
 
 ## 已上线功能（截至 2026-05）
 

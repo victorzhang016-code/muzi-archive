@@ -60,6 +60,7 @@ export function ShareView() {
   const [accessDenied, setAccessDenied] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
+  const [view, setView] = useState<'items' | 'matches'>('items');
 
   useEffect(() => {
     if (!userId) return;
@@ -165,20 +166,57 @@ export function ShareView() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* ── Best Match 区 ── */}
+        {/* CTA：创建我自己的衣柜 */}
+        <div className="mb-10 rounded-xl border border-stamp/30 bg-stamp/5 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="font-story text-ink text-[15px] font-semibold">喜欢这种记录方式？</p>
+            <p className="font-story text-graphite/70 text-[13px] mt-0.5">建一个只属于你的衣柜，记录每件衣服的故事。</p>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 bg-stamp text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
+          >
+            创建我自己的衣柜
+            <span aria-hidden>→</span>
+          </button>
+        </div>
+
+        {/* 视图切换：单品 / Best Match */}
         {matches.length > 0 && (
-          <section className="mb-14">
-            <div className="flex items-baseline gap-3 mb-6 border-b border-dashed border-graphite/20 pb-3">
-              <h2
-                className="text-ink leading-none"
-                style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, fontSize: '2rem', letterSpacing: '0.03em' }}
-              >
-                Best Match
-              </h2>
-              <span className="font-tag text-[10px] uppercase tracking-[0.2em] text-graphite/45">
-                {matches.length} Looks
-              </span>
-            </div>
+          <div className="flex items-center gap-2 mb-8">
+            <button
+              onClick={() => setView('items')}
+              className={cn(
+                "px-5 py-2 font-tag text-[12px] uppercase tracking-[0.12em] font-semibold border transition-all",
+                view === 'items'
+                  ? "bg-ink text-white border-ink shadow-sm"
+                  : "bg-tag/60 text-ink/55 border-graphite/25 hover:text-ink hover:border-graphite/55 hover:bg-tag"
+              )}
+            >
+              单品
+              <span className={cn("ml-1.5 text-[10px] font-normal", view === 'items' ? "text-white/60" : "text-graphite/45")}>{items.length}</span>
+            </button>
+            <button
+              onClick={() => setView('matches')}
+              className={cn(
+                "px-5 py-2 font-tag text-[12px] uppercase tracking-[0.12em] font-semibold border transition-all",
+                view === 'matches'
+                  ? "bg-ink text-white border-ink shadow-sm"
+                  : "bg-tag/60 text-ink/55 border-graphite/25 hover:text-ink hover:border-graphite/55 hover:bg-tag"
+              )}
+            >
+              Best Match
+              <span className={cn("ml-1.5 text-[10px] font-normal", view === 'matches' ? "text-white/60" : "text-graphite/45")}>{matches.length}</span>
+            </button>
+          </div>
+        )}
+
+        {/* ── Best Match 视图 ── */}
+        {view === 'matches' && matches.length > 0 && (
+          <section className="mb-4">
+            <p className="font-story italic text-graphite/75 text-[14px] leading-relaxed mb-8 max-w-2xl">
+              Best Match 是 TA 心中「绝对没错」的搭配——把那些固定会一起穿、怎么搭都不会出错的单品组合记下来。点开任意一套，看看它由哪些单品构成。
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
               {matches.map((match) => {
                 const entries = bundleEntriesFromMatch(match, wardrobeMap);
@@ -223,15 +261,9 @@ export function ShareView() {
           </section>
         )}
 
-        {/* ── 单品区 ── */}
-        {matches.length > 0 && (
-          <h2
-            className="text-ink leading-none mb-6"
-            style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, fontSize: '2rem', letterSpacing: '0.03em' }}
-          >
-            Archive
-          </h2>
-        )}
+        {/* ── 单品视图 ── */}
+        {view === 'items' && (
+        <>
         <div className="flex items-center gap-2 flex-wrap mb-10">
           {CATEGORIES.map(cat => {
             const isActive = filterCategory === cat;
@@ -269,6 +301,8 @@ export function ShareView() {
               />
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
 
