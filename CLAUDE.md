@@ -67,18 +67,25 @@ max_tokens: 16384，客户端做截断兜底
 
 ---
 
-## Firebase 踩坑速查
+## Firebase / Vercel 踩坑速查
+
+> 完整版（症状→根因→解法→教训，24 条）见仓库根 **`踩坑经验.md`**。下面是高频速查。
 
 | 症状 | 根因 | 解法 |
 |---|---|---|
 | Storage 上传 permission-denied | 新格式 bucket 默认不可写 | 弃用 Storage，用 base64 |
 | 规则部署 "skipping upload" | firebase.json 中 rules 路径写错（用了冒号不是点号） | 改为 `"rules": "firestore.rules"` |
+| 改了规则线上不生效 | 改的是 default 库，本项目是**命名库 `ai-studio-...`** | 控制台先切到命名库；CLI 认 firebase.json |
 | 规则 permission-denied | imageUrl 字段长度校验 | 去掉字段校验，只验 auth |
 | 手机登录每次 UID 不同 | signInAnonymously 和 signInWithRedirect 竞争 | 已移除匿名登录，彻底解决 |
-| lazy 图片返回不加载 | CSS columns 布局 + intersection observer 不重触发 | 改为 `loading="eager"` |
-| 公开页报「未开启分享」但其实已开 | **Firestore 免费层每日读取额度（5万/天）用尽 → 429 resource-exhausted**。规则 `sharingEnabled()` 要 get `wardrobe_users` 这条读被额度挡掉 → 规则判 false → 误显示「未开启分享」 | 1）额度每日重置（约北京时间次日下午）；2）代码已区分 `permission-denied`(真未开) vs 其它(显示「服务器繁忙稍后再试」)；3）已降读取量：ShareView 改 getDocs 一次性读、best match 懒加载（切 tab 才拉）、登录页卡墙 12→8 张；4）**根治**：此 `ai-studio-...` 命名库是「free tier database」，**即使开通账单也不能超免费额度**，高流量公开分享需迁到标准 Firestore 库 / 加分页缓存 |
+| lazy 图片返回不加载（owner 端） | CSS columns 布局 + intersection observer 不重触发 | owner 端用 `loading="eager"`（公开端是 CSS grid，可 lazy）|
+| 公开页报「未开启分享」但其实已开 | **Firestore 免费层每日读额度（5万/天）用尽 → 429**，规则 `sharingEnabled()` 的 get `wardrobe_users` 被挡 → 判 false | 额度按太平洋时间午夜重置；代码区分 `permission-denied`(真没开) vs 429(显示「繁忙」且不缓存错误)；**根治＝公开页走边缘缓存**（已上线，见下「公开页边缘缓存」节）|
+| serverless 函数 500 `FUNCTION_INVOCATION_FAILED` | `package.json` 是 `"type":"module"`，ESM 下裸 `import x.json` 运行时报错（构建却过）| 函数里**别 import JSON**，把 projectId/dbId 等非密钥常量**硬编码** |
+| 改了 `VITE_AUTHOR_UID` 线上不变 | `VITE_*` 是**构建期**变量；本地 `.env` 与 Vercel env 两套 | 两处都改 + **重新构建/部署**才生效 |
+| 防限流上了，调试时读取仍 1 万/次 | **每次部署清空边缘缓存**（Phase2 后还作废全部 ~101 图）→ 部署后首批访问全回源 | 这是 deploy churn，非生产问题；**别刚部署完量读取**，焐热后连刷应全 `x-vercel-cache: HIT`、0 读 |
+| 迁移 / 批量操作把数据弄没 | 破坏性操作直接对生产库跑 | **先 export 备份**，先在测试库演练 |
 
-> ⚠️ 公开页（ShareView / 深链）单次访问会读「全部单品（~100 条）」，被广泛分享时极易撞 5 万/天上限。长期要做分页 / 缓存 / CDN 或迁库。
+> ⚠️ 读取额度（Phase1 边缘缓存）+ 带宽（Phase2 图片拆分）两道防线均已上线，公开分享可放心传播；细节见下「公开页边缘缓存」节与 `踩坑经验.md`。
 
 ---
 
