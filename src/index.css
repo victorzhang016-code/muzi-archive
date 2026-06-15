@@ -144,6 +144,24 @@
 }
 .animate-fade-up { animation: fadeUp 0.5s ease-out both; }
 
+/* ── Login background card wall — seamless vertical marquee ──
+   The track holds its cards duplicated twice; translating by -50% lands
+   exactly on the start of the second copy → infinite seamless loop. */
+@keyframes marquee-up {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+@keyframes marquee-down {
+  from { transform: translateY(-50%); }
+  to   { transform: translateY(0); }
+}
+.marquee-track {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  will-change: transform;
+}
+
 /* ── Custom range thumb (zoom slider) ── */
 input[type=range] { -webkit-appearance: none; appearance: none; outline: none; }
 input[type=range]::-webkit-slider-thumb {

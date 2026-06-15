@@ -1,10 +1,13 @@
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthButton, useAuth } from './components/Auth';
 import { WardrobeList } from './components/WardrobeList';
 import { ItemDetail } from './components/ItemDetail';
 import { ShareView } from './components/ShareView';
+import { SharedItemView } from './components/SharedItemView';
+import { SharedBestMatchView } from './components/SharedBestMatchView';
+import { LoginMarquee } from './components/LoginMarquee';
 import { MigrateData } from './components/MigrateData';
 import { BestMatchGallery } from './components/BestMatchGallery';
 import { BestMatchBuilder } from './components/BestMatchBuilder';
@@ -22,10 +25,21 @@ const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|
 
 function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-kraft flex flex-col items-center justify-center px-6 selection:bg-stamp selection:text-white">
-      <div className="flex flex-col items-center text-center max-w-md w-full">
+    <div className="relative min-h-screen bg-kraft flex flex-col items-center justify-center px-6 overflow-hidden selection:bg-stamp selection:text-white">
+      {/* 背景卡墙（模糊、持续滚动） */}
+      <LoginMarquee />
+      {/* 可读性渐隐遮罩：保证中部文字清晰 */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 55% at 50% 50%, rgba(221,216,204,0.92) 0%, rgba(221,216,204,0.78) 45%, rgba(221,216,204,0.45) 100%)',
+        }}
+      />
+      <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
         {/* Logo mark */}
         <div className="mb-8">
           <Shirt className="w-14 h-14 text-stamp mx-auto mb-4" strokeWidth={1.5} />
@@ -73,6 +87,15 @@ function LoginPage() {
             使用 Google 账号登录
           </button>
         )}
+
+        {/* 不登录也能看：作者的公开衣柜（理想态示例） */}
+        <button
+          onClick={() => navigate('/author')}
+          className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-graphite/30 bg-tag/40 hover:bg-tag/70 hover:border-graphite/50 text-ink/75 hover:text-ink transition-colors text-sm font-story"
+        >
+          先看看模子的衣柜
+          <span aria-hidden>→</span>
+        </button>
 
         <p className="mt-6 text-xs text-graphite/60 font-story">
           登录即代表你的衣柜数据将与 Google 账号绑定
@@ -157,6 +180,8 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
+          <Route path="/share/:userId/item/:itemId" element={<SharedItemView />} />
+          <Route path="/share/:userId/best-match/:matchId" element={<SharedBestMatchView />} />
           <Route path="/share/:userId" element={<ShareView />} />
           <Route path="/author" element={
             import.meta.env.VITE_AUTHOR_UID

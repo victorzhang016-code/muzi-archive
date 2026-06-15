@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate, useParams } from 'react-router';
 import { doc, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { ArrowLeft, Edit2, Trash2, Loader2, Image as ImageIcon, GitBranch } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Loader2, Image as ImageIcon, GitBranch, Share2 } from 'lucide-react';
+import { ShareCardModal } from './ShareCardModal';
+import { buildBestMatchShareUrl } from '../lib/sharing';
 import { db, auth } from '../firebase';
 import { BestMatch, BestMatchItems, WardrobeItem } from '../types';
 import { useWardrobe } from '../contexts/WardrobeContext';
@@ -30,6 +32,7 @@ export function BestMatchDetail() {
   const [loading, setLoading] = useState(true);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [bundleVisible, setBundleVisible] = useState(true);
+  const [shareOpen, setShareOpen] = useState(false);
   const [slotDisplay, setSlotDisplay] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -200,6 +203,13 @@ export function BestMatchDetail() {
           <span>Best Match</span>
         </button>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { sfx.modalOpen(); setShareOpen(true); }}
+            className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+            title="分享"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={() => { sfx.modalOpen(); navigate(`/best-match/new?edit=${match.id}`); }}
             className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
@@ -478,6 +488,14 @@ export function BestMatchDetail() {
           </motion.div>
         </motion.div>
       </div>
+
+      {shareOpen && auth.currentUser && (
+        <ShareCardModal
+          target={{ kind: 'bestMatch', match, entries }}
+          shareUrl={buildBestMatchShareUrl(auth.currentUser.uid, match.id)}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </div>
   );
 }

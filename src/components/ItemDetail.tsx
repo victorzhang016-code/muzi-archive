@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router';
 import { doc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { WardrobeItem } from '../types';
-import { ArrowLeft, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Loader2, Share2 } from 'lucide-react';
 import { AddEditItemModal } from './AddEditItemModal';
+import { ShareCardModal } from './ShareCardModal';
+import { buildItemShareUrl } from '../lib/sharing';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { MargielaRating } from './MargielaRating';
@@ -20,6 +22,7 @@ export function ItemDetail() {
   const [item, setItem] = useState<WardrobeItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { matches } = useBestMatches();
   const { items: wardrobe } = useWardrobe();
 
@@ -114,6 +117,13 @@ export function ItemDetail() {
           <span>返回</span>
         </button>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { sfx.modalOpen(); setIsShareModalOpen(true); }}
+            className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+            title="分享"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={() => { sfx.modalOpen(); setIsEditModalOpen(true); }}
             className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
@@ -346,6 +356,14 @@ export function ItemDetail() {
         onClose={() => setIsEditModalOpen(false)}
         itemToEdit={item}
       />
+
+      {isShareModalOpen && auth.currentUser && (
+        <ShareCardModal
+          target={{ kind: 'item', item }}
+          shareUrl={buildItemShareUrl(auth.currentUser.uid, item.id)}
+          onClose={() => setIsShareModalOpen(false)}
+        />
+      )}
     </div>
     </div>
   );

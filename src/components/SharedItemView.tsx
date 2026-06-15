@@ -1,0 +1,77 @@
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { WardrobeItem } from '../types';
+import { SharedItemCard } from './SharedItemCard';
+import { Loader2, Lock, ArrowRight } from 'lucide-react';
+
+export function SharedItemView() {
+  const { userId, itemId } = useParams<{ userId: string; itemId: string }>();
+  const [item, setItem] = useState<WardrobeItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState(false);
+
+  useEffect(() => {
+    if (!itemId || !userId) return;
+    getDoc(doc(db, 'wardrobe_items', itemId))
+      .then((snap) => {
+        if (snap.exists() && snap.data().userId === userId) {
+          setItem({ id: snap.id, ...snap.data() } as WardrobeItem);
+        } else {
+          setDenied(true);
+        }
+      })
+      .catch(() => setDenied(true))
+      .finally(() => setLoading(false));
+  }, [itemId, userId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-kraft flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-graphite/40" />
+      </div>
+    );
+  }
+
+  if (denied || !item) {
+    return (
+      <div className="min-h-screen bg-kraft flex items-center justify-center">
+        <div className="text-center">
+          <Lock className="w-10 h-10 text-graphite/25 mx-auto mb-5" />
+          <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/40 mb-3">Not Available</p>
+          <p className="font-story text-graphite/60">此内容未公开或已删除</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
+      <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="font-tag font-bold text-ink" style={{ fontSize: '1.05rem', letterSpacing: '0.06em' }}>
+              模子の衣柜
+            </h1>
+            <span className="font-tag text-[8px] uppercase tracking-[0.2em] text-graphite/50 border border-dashed border-graphite/25 px-2 py-0.5">
+              只读
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <SharedItemCard item={item} />
+
+        <Link
+          to={`/share/${userId}`}
+          className="mt-8 w-full flex items-center justify-center gap-2 px-5 py-3 border border-graphite/25 bg-tag/60 hover:bg-tag text-ink/75 hover:text-ink transition-colors font-tag text-[11px] uppercase tracking-wider"
+        >
+          查看完整衣柜
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </main>
+    </div>
+  );
+}
