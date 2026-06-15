@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import cfg from '../../firebase-applet-config.json';
 
 /**
  * 公开衣柜的「边缘缓存」接口 —— 免费层防限流的核心。
@@ -12,8 +11,10 @@ import cfg from '../../firebase-applet-config.json';
  * 再叠加显式 shareEnabled 校验，未开分享的衣柜不会泄露。
  */
 
-const PROJECT = cfg.projectId;
-const DB = cfg.firestoreDatabaseId;
+// 非密钥（与前端 firebase-applet-config.json 一致，已在客户端 bundle 中公开）。
+// 不用 JSON import：package.json 是 "type":"module"，ESM 下裸 JSON import 会在运行时报 ERR。
+const PROJECT = 'gen-lang-client-0133868878';
+const DB = 'ai-studio-6fd5f2f5-eaa7-473f-b484-cc0b2cdcd9bb';
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/${encodeURIComponent(DB)}/documents`;
 
 // ── Firestore REST typed-value 解码 ──
