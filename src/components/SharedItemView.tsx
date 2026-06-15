@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { WardrobeItem } from '../types';
 import { SharedItemCard } from './SharedItemCard';
+import { fetchPublicWardrobe, SharingDisabledError } from '../lib/publicWardrobe';
 import { Loader2, Lock, ArrowRight } from 'lucide-react';
 
 export function SharedItemView() {
@@ -15,18 +14,16 @@ export function SharedItemView() {
 
   useEffect(() => {
     if (!itemId || !userId) return;
-    getDoc(doc(db, 'wardrobe_items', itemId))
-      .then((snap) => {
-        if (snap.exists() && snap.data().userId === userId) {
-          setItem({ id: snap.id, ...snap.data() } as WardrobeItem);
-        } else {
-          setDenied(true);
-        }
-      })
-      .catch((e: any) => {
-        // permission-denied = 未公开；其它（额度/网络）= 临时不可用
-        if (e?.code && e.code !== 'permission-denied') setTempError(true);
+    fetchPublicWardrobe(userId)
+      .then(({ items }) => {
+        const found = items.find((i) => i.id === itemId);
+        if (found) setItem(found);
         else setDenied(true);
+      })
+      .catch((e) => {
+        // 未开分享 = 未公开；其它（额度/网络）= 临时不可用
+        if (e instanceof SharingDisabledError) setDenied(true);
+        else setTempError(true);
       })
       .finally(() => setLoading(false));
   }, [itemId, userId]);

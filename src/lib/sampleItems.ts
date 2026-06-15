@@ -1,6 +1,5 @@
-import { collection, query, where, limit, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
 import { WardrobeItem } from '../types';
+import { fetchPublicWardrobe } from './publicWardrobe';
 
 const AUTHOR_UID = import.meta.env.VITE_AUTHOR_UID as string | undefined;
 
@@ -9,26 +8,14 @@ const AUTHOR_UID = import.meta.env.VITE_AUTHOR_UID as string | undefined;
  *  - 登录页背景滚动卡墙
  *  - 新用户空衣柜的「示例卡片」
  *
- * 依赖作者已开启全局分享（wardrobe_users/{author}.shareEnabled === true）。
- * 未配置 AUTHOR_UID 或读取失败时返回 []，调用方需做兜底（不渲染）。
- *
- * 注：Firestore 不能直接「优先有图」排序，这里多取一些再按「有图」前置，
- * 取前 n 张。
+ * 走 /api/public/:uid?limit=n 边缘缓存接口（不直连 Firestore），有图优先。
+ * 未配置 AUTHOR_UID 或读取失败时返回 []，调用方做兜底（不渲染）。
  */
 export async function fetchAuthorSampleItems(n: number): Promise<WardrobeItem[]> {
   if (!AUTHOR_UID) return [];
   try {
-    // 仅小幅 over-fetch 以便「有图优先」，避免在高流量登录页消耗过多读取额度
-    const q = query(
-      collection(db, 'wardrobe_items'),
-      where('userId', '==', AUTHOR_UID),
-      limit(Math.min(n * 2, 16))
-    );
-    const snap = await getDocs(q);
-    const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as WardrobeItem));
-    // 有图的排前面，保证视觉饱满
-    all.sort((a, b) => (b.imageUrl ? 1 : 0) - (a.imageUrl ? 1 : 0));
-    return all.slice(0, n);
+    const { items } = await fetchPublicWardrobe(AUTHOR_UID, { limit: n });
+    return items;
   } catch {
     return [];
   }

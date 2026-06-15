@@ -1,33 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { collection, query, where, getDocs, getCountFromServer, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
-import { WardrobeItem, BestMatch, BestMatchItems, Category } from '../types';
+import { WardrobeItem, BestMatch, Category } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { SharedItemCard } from './SharedItemCard';
 import { TagBundle } from './TagBundle';
 import { bundleEntriesFromMatch } from '../contexts/BestMatchContext';
+import { fetchPublicWardrobe, SharingDisabledError } from '../lib/publicWardrobe';
 import { cn } from '../lib/utils';
 import { Loader2, X, Lock } from 'lucide-react';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
-
-/** Coerce v1 string[] / v2 BestMatchSlot[] into v2 shape (mirrors BestMatchContext). */
-function normalizeSlots(raw: any) {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((entry: any) => {
-      if (typeof entry === 'string') return { primary: entry };
-      if (entry && typeof entry === 'object' && typeof entry.primary === 'string') {
-        const variants = Array.isArray(entry.variants)
-          ? entry.variants.filter((v: unknown) => typeof v === 'string')
-          : undefined;
-        return variants && variants.length > 0 ? { primary: entry.primary, variants } : { primary: entry.primary };
-      }
-      return null;
-    })
-    .filter(Boolean) as { primary: string; variants?: string[] }[];
-}
 
 function ReadOnlyItemModal({ item, onClose }: { item: WardrobeItem; onClose: () => void }) {
   return (
@@ -62,69 +44,19 @@ export function ShareView() {
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [view, setView] = useState<'items' | 'matches'>('items');
-  const [matchCount, setMatchCount] = useState(0);
-  const [matchesLoaded, setMatchesLoaded] = useState(false);
 
-  // 单品：一次性读取（只读公开页无需实时监听，省读取额度）
+  // 公开衣柜：统一走边缘缓存接口 /api/public/:uid（不直连 Firestore，省读取额度）
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
-    const q = query(
-      collection(db, 'wardrobe_items'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-    getDocs(q)
-      .then((snapshot) => {
-        setItems(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as WardrobeItem)));
-      })
-      .catch((e: any) => {
-        // 区分「真的没开分享」(permission-denied) 与「服务繁忙/额度用尽」(resource-exhausted 等)
-        if (e?.code === 'permission-denied') setAccessDenied(true);
+    fetchPublicWardrobe(userId)
+      .then(({ items, matches }) => { setItems(items); setMatches(matches); })
+      .catch((e) => {
+        if (e instanceof SharingDisabledError) setAccessDenied(true);
         else setLoadError(true);
       })
       .finally(() => setLoading(false));
   }, [userId]);
-
-  // best match 数量（仅 1 次聚合读，用于决定是否显示切换 tab）
-  useEffect(() => {
-    if (!userId) return;
-    getCountFromServer(query(collection(db, 'best_matches'), where('userId', '==', userId)))
-      .then((s) => setMatchCount(s.data().count))
-      .catch(() => setMatchCount(0));
-  }, [userId]);
-
-  // best match 详情：仅当用户切到 Best Match 视图时才拉（懒加载，省额度）
-  useEffect(() => {
-    if (view !== 'matches' || matchesLoaded || !userId) return;
-    setMatchesLoaded(true);
-    getDocs(query(collection(db, 'best_matches'), where('userId', '==', userId), orderBy('createdAt', 'desc')))
-      .then((snapshot) => {
-        setMatches(snapshot.docs.map((d) => {
-          const data = d.data() as any;
-          const rawItems = data.items ?? {};
-          const matchItems: BestMatchItems = {
-            tops: normalizeSlots(rawItems.tops),
-            bottoms: normalizeSlots(rawItems.bottoms),
-            shoes: normalizeSlots(rawItems.shoes),
-            accessories: normalizeSlots(rawItems.accessories),
-          };
-          return {
-            id: d.id,
-            userId: data.userId,
-            items: matchItems,
-            allItemIds: data.allItemIds ?? [],
-            name: data.name ?? undefined,
-            story: data.story ?? data.note ?? undefined,
-            sceneTags: data.sceneTags,
-            photoBase64: data.photoBase64,
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt,
-          } as BestMatch;
-        }));
-      })
-      .catch(() => setMatches([]));
-  }, [view, matchesLoaded, userId]);
 
   const wardrobeMap = useMemo(() => {
     const m = new Map<string, WardrobeItem>();
@@ -211,7 +143,7 @@ export function ShareView() {
         </div>
 
         {/* 视图切换：单品 / Best Match */}
-        {matchCount > 0 && (
+        {matches.length > 0 && (
           <div className="flex items-center gap-2 mb-8">
             <button
               onClick={() => setView('items')}
@@ -235,7 +167,7 @@ export function ShareView() {
               )}
             >
               Best Match
-              <span className={cn("ml-1.5 text-[10px] font-normal", view === 'matches' ? "text-white/60" : "text-graphite/45")}>{matchCount}</span>
+              <span className={cn("ml-1.5 text-[10px] font-normal", view === 'matches' ? "text-white/60" : "text-graphite/45")}>{matches.length}</span>
             </button>
           </div>
         )}
@@ -246,11 +178,6 @@ export function ShareView() {
             <p className="font-story italic text-graphite/75 text-[14px] leading-relaxed mb-8 max-w-2xl">
               Best Match 是 TA 心中「绝对没错」的搭配——把那些固定会一起穿、怎么搭都不会出错的单品组合记下来。点开任意一套，看看它由哪些单品构成。
             </p>
-            {!matchesLoaded && matches.length === 0 ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-6 h-6 animate-spin text-graphite/40" />
-              </div>
-            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
               {matches.map((match) => {
                 const entries = bundleEntriesFromMatch(match, wardrobeMap);
@@ -292,7 +219,6 @@ export function ShareView() {
                 );
               })}
             </div>
-            )}
           </section>
         )}
 

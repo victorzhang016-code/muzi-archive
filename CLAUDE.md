@@ -55,6 +55,15 @@ max_tokens: 16384，客户端做截断兜底
 - 改规则后部署：`firebase deploy --only firestore:rules`
 - 确认输出有 "uploading rules" 而非 "skipping upload"（后者代表 firebase.json 路径写错）
 
+### 公开页边缘缓存（防限流，勿绕过）
+- **所有公开读都走 `api/public/[uid].ts`（Vercel 边缘缓存），不直连 Firestore。** 这是免费层 5 万读/天上限下抗流量的命门。
+- 该函数用 **Firestore REST**（免 SDK、无 gRPC）读取，显式校验 `shareEnabled`，把 Timestamp 序列化成 millis。响应头 `Cache-Control: s-maxage=3600, stale-while-revalidate=86400` → Firestore 每作者每天只被读约 24 次，**与访问量无关**。
+- 客户端统一用 `src/lib/publicWardrobe.ts` 的 `fetchPublicWardrobe()`；消费方：`ShareView`、`SharedItemView`、`SharedBestMatchView`、`sampleItems`（卡墙/示例卡）。
+- 时间戳兼容：公开路径是 millis，owner 直连路径是 Firestore Timestamp → 渲染日期一律用 `toDateSafe()`。
+- owner 自己的 app（`WardrobeContext`/`BestMatchContext` 实时直连）**不走缓存**，保持即时。
+- 新增公开页时**务必走缓存接口**，不要再写 `getDocs`/`onSnapshot` 直读公开数据。
+- 公开页相对 owner 编辑有约 1 小时延迟（缓存 TTL），属预期。Phase 2 待办：base64 图片拆分 + 懒加载（省 Vercel 带宽）。
+
 ---
 
 ## Firebase 踩坑速查

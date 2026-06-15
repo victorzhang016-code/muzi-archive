@@ -1,6 +1,7 @@
 import { WardrobeItem } from '../types';
 import { MargielaRating } from './MargielaRating';
 import { getTagTheme } from '../lib/tagThemes';
+import { toDateSafe } from '../lib/publicWardrobe';
 
 /**
  * 只读单品大卡（吊牌 + CARE LABEL），无 modal 外壳、无交互。
@@ -9,7 +10,7 @@ import { getTagTheme } from '../lib/tagThemes';
 export function SharedItemCard({ item }: { item: WardrobeItem }) {
   const theme = getTagTheme(item.id);
 
-  const createdDate = item.createdAt?.toDate?.();
+  const createdDate = toDateSafe(item.createdAt);
   const dateStr = createdDate
     ? `${createdDate.getFullYear()}.${String(createdDate.getMonth() + 1).padStart(2, '0')}.${String(createdDate.getDate()).padStart(2, '0')}`
     : '—';

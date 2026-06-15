@@ -1,28 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { BestMatch, BestMatchItems, WardrobeItem } from '../types';
+import { BestMatch, WardrobeItem } from '../types';
 import { TagBundle } from './TagBundle';
 import type { BundleEntry } from './TagBundle';
-import { bestMatchItemIds, bundleEntriesFromMatch } from '../contexts/BestMatchContext';
+import { bundleEntriesFromMatch } from '../contexts/BestMatchContext';
+import { fetchPublicWardrobe, SharingDisabledError } from '../lib/publicWardrobe';
 import { Loader2, Lock, ArrowRight } from 'lucide-react';
-
-function normalizeSlots(raw: any) {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((entry: any) => {
-      if (typeof entry === 'string') return { primary: entry };
-      if (entry && typeof entry === 'object' && typeof entry.primary === 'string') {
-        const variants = Array.isArray(entry.variants)
-          ? entry.variants.filter((v: unknown) => typeof v === 'string')
-          : undefined;
-        return variants && variants.length > 0 ? { primary: entry.primary, variants } : { primary: entry.primary };
-      }
-      return null;
-    })
-    .filter(Boolean) as { primary: string; variants?: string[] }[];
-}
 
 export function SharedBestMatchView() {
   const { userId, matchId } = useParams<{ userId: string; matchId: string }>();
@@ -34,50 +17,20 @@ export function SharedBestMatchView() {
 
   useEffect(() => {
     if (!matchId || !userId) return;
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, 'best_matches', matchId));
-        if (!snap.exists() || snap.data().userId !== userId) {
-          setDenied(true);
-          return;
-        }
-        const data = snap.data() as any;
-        const rawItems = data.items ?? {};
-        const items: BestMatchItems = {
-          tops: normalizeSlots(rawItems.tops),
-          bottoms: normalizeSlots(rawItems.bottoms),
-          shoes: normalizeSlots(rawItems.shoes),
-          accessories: normalizeSlots(rawItems.accessories),
-        };
-        const m: BestMatch = {
-          id: snap.id,
-          userId: data.userId,
-          items,
-          allItemIds: data.allItemIds ?? [],
-          name: data.name ?? undefined,
-          story: data.story ?? data.note ?? undefined,
-          sceneTags: data.sceneTags,
-          photoBase64: data.photoBase64,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-        };
+    // 走边缘缓存接口：一次拿到整柜，本地找出这套搭配 + 解析引用单品（0 次 Firestore 读）
+    fetchPublicWardrobe(userId)
+      .then(({ items, matches }) => {
+        const m = matches.find((x) => x.id === matchId);
+        if (!m) { setDenied(true); return; }
         setMatch(m);
-
-        // 拉取引用的公开单品
-        const ids = bestMatchItemIds(m);
-        const docs = await Promise.all(ids.map((id) => getDoc(doc(db, 'wardrobe_items', id))));
-        const map = new Map<string, WardrobeItem>();
-        docs.forEach((d) => {
-          if (d.exists()) map.set(d.id, { id: d.id, ...d.data() } as WardrobeItem);
-        });
+        const map = new Map<string, WardrobeItem>(items.map((i) => [i.id, i]));
         setEntries(bundleEntriesFromMatch(m, map));
-      } catch (e: any) {
-        if (e?.code && e.code !== 'permission-denied') setTempError(true);
-        else setDenied(true);
-      } finally {
-        setLoading(false);
-      }
-    })();
+      })
+      .catch((e) => {
+        if (e instanceof SharingDisabledError) setDenied(true);
+        else setTempError(true);
+      })
+      .finally(() => setLoading(false));
   }, [matchId, userId]);
 
   if (loading) {
