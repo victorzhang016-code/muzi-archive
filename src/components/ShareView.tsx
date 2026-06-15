@@ -1,14 +1,33 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router';
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import { WardrobeItem, Category } from '../types';
+import { WardrobeItem, BestMatch, BestMatchItems, Category } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { SharedItemCard } from './SharedItemCard';
+import { TagBundle } from './TagBundle';
+import { bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { cn } from '../lib/utils';
 import { Loader2, X, Lock } from 'lucide-react';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
+
+/** Coerce v1 string[] / v2 BestMatchSlot[] into v2 shape (mirrors BestMatchContext). */
+function normalizeSlots(raw: any) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry: any) => {
+      if (typeof entry === 'string') return { primary: entry };
+      if (entry && typeof entry === 'object' && typeof entry.primary === 'string') {
+        const variants = Array.isArray(entry.variants)
+          ? entry.variants.filter((v: unknown) => typeof v === 'string')
+          : undefined;
+        return variants && variants.length > 0 ? { primary: entry.primary, variants } : { primary: entry.primary };
+      }
+      return null;
+    })
+    .filter(Boolean) as { primary: string; variants?: string[] }[];
+}
 
 function ReadOnlyItemModal({ item, onClose }: { item: WardrobeItem; onClose: () => void }) {
   return (
@@ -34,7 +53,9 @@ function ReadOnlyItemModal({ item, onClose }: { item: WardrobeItem; onClose: () 
 
 export function ShareView() {
   const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
   const [items, setItems] = useState<WardrobeItem[]>([]);
+  const [matches, setMatches] = useState<BestMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
@@ -56,6 +77,50 @@ export function ShareView() {
     });
     return () => unsubscribe();
   }, [userId]);
+
+  // Best matches (公开可读，规则与 wardrobe_items 一致)
+  useEffect(() => {
+    if (!userId) return;
+    const q = query(
+      collection(db, 'best_matches'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMatches(snapshot.docs.map((d) => {
+        const data = d.data() as any;
+        const rawItems = data.items ?? {};
+        const matchItems: BestMatchItems = {
+          tops: normalizeSlots(rawItems.tops),
+          bottoms: normalizeSlots(rawItems.bottoms),
+          shoes: normalizeSlots(rawItems.shoes),
+          accessories: normalizeSlots(rawItems.accessories),
+        };
+        return {
+          id: d.id,
+          userId: data.userId,
+          items: matchItems,
+          allItemIds: data.allItemIds ?? [],
+          name: data.name ?? undefined,
+          story: data.story ?? data.note ?? undefined,
+          sceneTags: data.sceneTags,
+          photoBase64: data.photoBase64,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+        } as BestMatch;
+      }));
+    }, () => {
+      // best match 读失败不阻塞页面（单品区照常显示）
+      setMatches([]);
+    });
+    return () => unsubscribe();
+  }, [userId]);
+
+  const wardrobeMap = useMemo(() => {
+    const m = new Map<string, WardrobeItem>();
+    items.forEach((i) => m.set(i.id, i));
+    return m;
+  }, [items]);
 
   const filteredItems = items.filter(item =>
     filterCategory === '全部' || item.category === filterCategory
@@ -100,6 +165,73 @@ export function ShareView() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* ── Best Match 区 ── */}
+        {matches.length > 0 && (
+          <section className="mb-14">
+            <div className="flex items-baseline gap-3 mb-6 border-b border-dashed border-graphite/20 pb-3">
+              <h2
+                className="text-ink leading-none"
+                style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, fontSize: '2rem', letterSpacing: '0.03em' }}
+              >
+                Best Match
+              </h2>
+              <span className="font-tag text-[10px] uppercase tracking-[0.2em] text-graphite/45">
+                {matches.length} Looks
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
+              {matches.map((match) => {
+                const entries = bundleEntriesFromMatch(match, wardrobeMap);
+                return (
+                  <button
+                    key={match.id}
+                    onClick={() => navigate(`/share/${userId}/best-match/${match.id}`)}
+                    className="flex flex-col items-start gap-3 group text-left"
+                  >
+                    <div className="w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
+                      {entries.length > 0 ? (
+                        <TagBundle entries={entries} size="mini" variant="stacked" />
+                      ) : match.photoBase64 ? (
+                        <img src={match.photoBase64} alt={match.name || 'outfit'} className="w-full rounded" />
+                      ) : (
+                        <p className="font-tag text-xs text-graphite/45 py-12 text-center">No items</p>
+                      )}
+                    </div>
+                    {match.name && (
+                      <h3 className="font-story font-bold text-base text-ink max-w-[220px] line-clamp-2">
+                        {match.name}
+                      </h3>
+                    )}
+                    {(match.sceneTags?.length ?? 0) > 0 && (
+                      <div className="flex flex-wrap gap-1.5 max-w-full">
+                        {match.sceneTags!.map((tag) => (
+                          <span key={tag} className="px-2 py-0.5 font-tag text-[10px] uppercase tracking-wider text-graphite border border-graphite/25 bg-tag/40">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {match.story && (
+                      <p className="font-story italic text-[12px] text-graphite/70 max-w-[240px] line-clamp-2">
+                        {match.story}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ── 单品区 ── */}
+        {matches.length > 0 && (
+          <h2
+            className="text-ink leading-none mb-6"
+            style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, fontSize: '2rem', letterSpacing: '0.03em' }}
+          >
+            Archive
+          </h2>
+        )}
         <div className="flex items-center gap-2 flex-wrap mb-10">
           {CATEGORIES.map(cat => {
             const isActive = filterCategory === cat;

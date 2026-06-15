@@ -93,7 +93,7 @@ function LoginPage() {
           onClick={() => navigate('/author')}
           className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-graphite/30 bg-tag/40 hover:bg-tag/70 hover:border-graphite/50 text-ink/75 hover:text-ink transition-colors text-sm font-story"
         >
-          先看看模子的衣柜
+          先看看作者的衣柜
           <span aria-hidden>→</span>
         </button>
 
