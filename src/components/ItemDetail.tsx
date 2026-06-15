@@ -322,7 +322,7 @@ export function ItemDetail() {
           <h3 className="font-story text-lg text-ink mb-5">
             出现在 <strong>{relatedMatches.length}</strong> 套搭配里
           </h3>
-          <div className="flex gap-5 overflow-x-auto hide-scrollbar pb-3 -mx-2 px-2">
+          <div className="flex flex-wrap items-start gap-5 pb-3">
             {relatedMatches.map((m) => {
               const entries = bundleEntriesFromMatch(m, wardrobeMap);
               return (
