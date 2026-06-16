@@ -349,7 +349,9 @@ function StackedBundle({ entries, size, dims, className, onItemClick }: VariantP
   return (
     <div
       className={`relative ${className ?? ''}`}
-      style={{ width: layout.containerWidth, height: layout.containerHeight }}
+      // isolate so the internal z-index 100+ (used only to stack tags within
+      // this bundle) does not leak above page-level overlays like the edit modal
+      style={{ width: layout.containerWidth, height: layout.containerHeight, isolation: 'isolate' }}
     >
       {layout.placements.map((p) => (
         <div
