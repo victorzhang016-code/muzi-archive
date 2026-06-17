@@ -3,14 +3,15 @@ import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestor
 import { db } from '../firebase';
 import { BestMatch, BestMatchItems, BestMatchSlot, WardrobeItem } from '../types';
 import type { BundleEntry } from '../components/TagBundle';
-import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
+import { classifyLoadError, LoadErrorKind } from '../lib/firebase-errors';
 
 interface BestMatchContextValue {
   matches: BestMatch[];
   loading: boolean;
+  error: LoadErrorKind | null;
 }
 
-const BestMatchContext = createContext<BestMatchContextValue>({ matches: [], loading: true });
+const BestMatchContext = createContext<BestMatchContextValue>({ matches: [], loading: true, error: null });
 
 const EMPTY_ITEMS: BestMatchItems = { tops: [], bottoms: [], shoes: [], accessories: [] };
 
@@ -65,6 +66,7 @@ function normalizeMatch(id: string, raw: any): BestMatch {
 export function BestMatchProvider({ children, uid }: { children: ReactNode; uid: string }) {
   const [matches, setMatches] = useState<BestMatch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<LoadErrorKind | null>(null);
 
   useEffect(() => {
     if (!uid) {
@@ -74,6 +76,7 @@ export function BestMatchProvider({ children, uid }: { children: ReactNode; uid:
     }
 
     setLoading(true);
+    setError(null);
     const q = query(
       collection(db, 'best_matches'),
       where('userId', '==', uid),
@@ -85,10 +88,12 @@ export function BestMatchProvider({ children, uid }: { children: ReactNode; uid:
       (snapshot) => {
         const next = snapshot.docs.map((d) => normalizeMatch(d.id, d.data()));
         setMatches(next);
+        setError(null);
         setLoading(false);
       },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'best_matches');
+      (err) => {
+        // 同 WardrobeContext：监听回调里不 throw，归类后交给 UI 优雅降级
+        setError(classifyLoadError(err, 'best_matches'));
         setLoading(false);
       }
     );
@@ -97,7 +102,7 @@ export function BestMatchProvider({ children, uid }: { children: ReactNode; uid:
   }, [uid]);
 
   return (
-    <BestMatchContext.Provider value={{ matches, loading }}>
+    <BestMatchContext.Provider value={{ matches, loading, error }}>
       {children}
     </BestMatchContext.Provider>
   );

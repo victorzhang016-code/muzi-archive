@@ -24,7 +24,7 @@ function extractBrands(raw: string): string[] {
 }
 
 export function WardrobeList() {
-  const { items, loading } = useWardrobe();
+  const { items, loading, error } = useWardrobe();
   const { matches } = useBestMatches();
   const navigate = useNavigate();
   const scrollYRef = useRef(0);
@@ -47,14 +47,16 @@ export function WardrobeList() {
   const [sampleItem, setSampleItem] = useState<WardrobeItem | null>(null);
 
   // 新用户空衣柜：拉一张作者的真实卡片作为「示例」
+  // 注意：仅在「真·空衣柜」时拉示例；若是加载失败（额度/网络）导致的空，
+  // 不显示示例，避免把「读失败」误导成「你的账号是空的」。
   useEffect(() => {
-    if (loading || items.length > 0) return;
+    if (loading || items.length > 0 || error) return;
     let alive = true;
     fetchAuthorSampleItems(1).then((arr) => {
       if (alive && arr.length > 0) setSampleItem(arr[0]);
     });
     return () => { alive = false; };
-  }, [loading, items.length]);
+  }, [loading, items.length, error]);
 
   const shareUrl = auth.currentUser ? `${window.location.origin}/share/${auth.currentUser.uid}` : '';
 
@@ -827,16 +829,39 @@ export function WardrobeList() {
 
       {/* ── Masonry Grid ─────────────────────────────────── */}
       <div>
-        {sortedItems.length === 0 ? (
+        {sortedItems.length === 0 && error ? (
+          /* 加载失败（最常见是免费层读额度用尽 → 429）：不要伪装成空衣柜吓人 */
+          <div className="text-center py-24 max-w-md mx-auto">
+            <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/40 mb-3">Temporarily Unavailable</p>
+            <h3 className="text-2xl font-story font-bold text-ink mb-3">衣柜暂时加载不出来</h3>
+            <p className="text-graphite/70 mb-2 font-story leading-relaxed">
+              {error === 'permission'
+                ? '没有读取权限，请重新登录后再试。'
+                : '服务器有点忙（可能是今天的访问/调试量较大），你的数据没有丢失，稍后刷新即可恢复。'}
+            </p>
+            <p className="text-graphite/45 text-xs font-story mb-8">
+              {error === 'permission' ? '' : '（免费额度按太平洋时间午夜重置，约北京次日下午）'}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-8 py-3 bg-ink text-white font-tag text-[10px] uppercase tracking-widest font-bold hover:bg-ink/90 transition-colors inline-flex items-center gap-2"
+            >
+              重新加载
+            </button>
+          </div>
+        ) : sortedItems.length === 0 ? (
           <div className="text-center py-20">
-            {/* 示例卡：让新用户看到「填好一张卡」长什么样 */}
+            {/* 示例卡：让新用户看到「填好一张卡」长什么样。明确标注这是作者的示例，不是用户自己的衣物 */}
             {sampleItem && (
               <div className="mb-14 flex flex-col items-center">
                 <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/45 mb-1">
-                  Sample · 示例
+                  Sample · 示例（来自作者的衣柜）
                 </p>
-                <p className="font-story text-sm text-graphite/70 mb-6 italic">
-                  一张填好的卡片，大概长这样 ↓
+                <p className="font-story text-sm text-graphite/70 mb-1 italic">
+                  这不是你的衣物 —— 只是给你看「一张填好的卡片」长什么样 ↓
+                </p>
+                <p className="font-story text-xs text-graphite/45 mb-6">
+                  你的衣柜目前还是空的，添加后这里就会换成你自己的记录。
                 </p>
                 <div className="w-full max-w-[300px] pointer-events-none select-none opacity-95">
                   <WardrobeItemCard item={sampleItem} index={0} eager={false} />

@@ -1,19 +1,22 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { WardrobeItem } from '../types';
-import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
+import { classifyLoadError, LoadErrorKind } from '../lib/firebase-errors';
 
 interface WardrobeContextValue {
   items: WardrobeItem[];
   loading: boolean;
+  /** 加载失败类别（null=正常）。'busy'=额度用尽/不可用，可重试。 */
+  error: LoadErrorKind | null;
 }
 
-const WardrobeContext = createContext<WardrobeContextValue>({ items: [], loading: true });
+const WardrobeContext = createContext<WardrobeContextValue>({ items: [], loading: true, error: null });
 
 export function WardrobeProvider({ children, uid }: { children: ReactNode; uid: string }) {
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<LoadErrorKind | null>(null);
 
   useEffect(() => {
     if (!uid) {
@@ -23,6 +26,7 @@ export function WardrobeProvider({ children, uid }: { children: ReactNode; uid: 
     }
 
     setLoading(true);
+    setError(null);
     const q = query(
       collection(db, 'wardrobe_items'),
       where('userId', '==', uid),
@@ -35,9 +39,11 @@ export function WardrobeProvider({ children, uid }: { children: ReactNode; uid: 
         ...doc.data()
       })) as WardrobeItem[];
       setItems(newItems);
+      setError(null);
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'wardrobe_items');
+    }, (err) => {
+      // 不能在监听回调里 throw —— 会被吞掉且卡住 loading，把额度限流伪装成空账号
+      setError(classifyLoadError(err, 'wardrobe_items'));
       setLoading(false);
     });
 
@@ -45,7 +51,7 @@ export function WardrobeProvider({ children, uid }: { children: ReactNode; uid: 
   }, [uid]);
 
   return (
-    <WardrobeContext.Provider value={{ items, loading }}>
+    <WardrobeContext.Provider value={{ items, loading, error }}>
       {children}
     </WardrobeContext.Provider>
   );
