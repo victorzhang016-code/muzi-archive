@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ArrowUpRight } from 'lucide-react';
+import QRCode from 'qrcode';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { sfx } from '../lib/sounds';
 
@@ -11,7 +12,7 @@ import { sfx } from '../lib/sounds';
  */
 
 // 飞书公开表单链接（开启「任何人可填写」后复制的 /share/base/form/... 链接）
-const FEEDBACK_FORM_URL: string = '';
+const FEEDBACK_FORM_URL: string = 'https://mcni0aur92cd.feishu.cn/share/base/form/shrcnaRpRCfOfYdyWEknA0UOuif';
 
 const LS_KEY = 'wearlog-feedback-v1';
 const MIN_ITEMS = 3;                       // 加满 3 件 = 真正用过核心功能
@@ -41,6 +42,14 @@ export function FeedbackPrompt() {
   const { items, loading } = useWardrobe();
   const location = useLocation();
   const [visible, setVisible] = useState(false);
+  const [qr, setQr] = useState('');
+
+  useEffect(() => {
+    if (!FEEDBACK_FORM_URL) return;
+    QRCode.toDataURL(FEEDBACK_FORM_URL, { margin: 1, width: 320, color: { dark: '#1C1C1A', light: '#FFFFFF' } })
+      .then(setQr)
+      .catch(() => setQr(''));
+  }, []);
 
   const onHome = location.pathname === '/';
   const meetsUsage = !loading && items.length >= MIN_ITEMS;
@@ -99,10 +108,21 @@ export function FeedbackPrompt() {
             <h3 className="font-story font-bold text-2xl text-ink mb-3 leading-snug">
               你的几句话，<br />会让它更好
             </h3>
-            <p className="font-story text-[14px] text-graphite/75 leading-relaxed mb-7">
+            <p className="font-story text-[14px] text-graphite/75 leading-relaxed mb-6">
               衣LOG 还很早期。花 1 分钟说说你是谁、从哪来、用下来的感受，
               会帮我把它做得更对。
             </p>
+
+            {qr && (
+              <div className="mb-6 flex flex-col items-center">
+                <div className="p-2.5 bg-white border border-graphite/15 shadow-sm">
+                  <img src={qr} alt="衣LOG 试用反馈问卷二维码" className="w-32 h-32 block" />
+                </div>
+                <p className="mt-2 font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/45">
+                  手机扫码填写
+                </p>
+              </div>
+            )}
 
             <button
               onClick={goFill}
