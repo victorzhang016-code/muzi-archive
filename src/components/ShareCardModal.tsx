@@ -56,8 +56,8 @@ export function ShareCardModal({ target, shareUrl, onClose }: Props) {
 
   const fileName = () =>
     target.kind === 'item'
-      ? `muzi-${(target.item.name || 'item').slice(0, 12)}.png`
-      : `muzi-${(target.match.name || 'outfit').slice(0, 12)}.png`;
+      ? `wearlog-${(target.item.name || 'item').slice(0, 12)}.png`
+      : `wearlog-${(target.match.name || 'outfit').slice(0, 12)}.png`;
 
   const renderPng = async (): Promise<string | null> => {
     if (!cardRef.current) return null;
@@ -142,7 +142,7 @@ export function ShareCardModal({ target, shareUrl, onClose }: Props) {
             {/* 顶部 wordmark */}
             <div className="text-center mb-5">
               <p className="font-tag font-bold text-ink tracking-[0.08em]" style={{ fontSize: '1.05rem' }}>
-                模子の衣柜
+                衣LOG
               </p>
               <p className="font-story text-[11px] text-graphite/70 italic mt-0.5">
                 每一件衣服都有它的故事

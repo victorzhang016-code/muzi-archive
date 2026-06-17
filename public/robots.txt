@@ -1,7 +1,9 @@
 User-agent: *
-Allow: /share/
+Allow: /
 Allow: /author
-Disallow: /
+Allow: /share/
 Disallow: /item/
 Disallow: /best-match/
 Disallow: /migrate
+
+Sitemap: https://wearlog.vercel.app/sitemap.xml

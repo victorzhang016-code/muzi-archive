@@ -46,8 +46,8 @@ export function ShareView() {
   const [view, setView] = useState<'items' | 'matches'>('items');
 
   useEffect(() => {
-    document.title = '模子的衣柜 — 穿衣档案';
-    return () => { document.title = '模子的衣柜'; };
+    document.title = '衣LOG · 穿搭档案 wearlog';
+    return () => { document.title = '衣LOG'; };
   }, []);
 
   // 公开衣柜：统一走边缘缓存接口 /api/public/:uid（不直连 Firestore，省读取额度）
@@ -119,7 +119,7 @@ export function ShareView() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="font-tag font-bold text-ink" style={{ fontSize: '1.05rem', letterSpacing: '0.06em' }}>
-              模子の衣柜
+              衣LOG
             </h1>
             <span className="font-tag text-[8px] uppercase tracking-[0.2em] text-graphite/50 border border-dashed border-graphite/25 px-2 py-0.5">
               只读

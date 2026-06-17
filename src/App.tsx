@@ -15,6 +15,7 @@ import { BestMatchBuilder } from './components/BestMatchBuilder';
 import { BestMatchDetail } from './components/BestMatchDetail';
 import { WardrobeProvider } from './contexts/WardrobeContext';
 import { BestMatchProvider } from './contexts/BestMatchContext';
+import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { Shirt, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
@@ -53,15 +54,18 @@ function LoginPage() {
           <Shirt className="w-14 h-14 text-stamp mx-auto mb-4" strokeWidth={1.5} />
           <h1
             className="font-tag font-bold text-ink"
-            style={{ fontSize: '1.4rem', letterSpacing: '0.08em' }}
+            style={{ fontSize: '1.7rem', letterSpacing: '0.12em' }}
           >
-            模子の衣柜
+            衣LOG
           </h1>
+          <p className="font-tag text-[10px] uppercase tracking-[0.45em] text-graphite/50 mt-1.5">
+            wearlog
+          </p>
         </div>
 
         {/* Tagline */}
         <h2 className="text-2xl sm:text-3xl font-story font-bold text-ink tracking-tight mb-3">
-          记录你的衣柜故事
+          记录你的穿搭与衣橱故事
         </h2>
         <p className="text-sm sm:text-base text-graphite mb-10 leading-relaxed font-story">
           每一件衣服都有它的故事。<br />
@@ -173,7 +177,7 @@ function AppRoutes() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <h1 className="font-tag font-bold text-ink group-hover:text-stamp transition-colors" style={{ fontSize: '1.05rem', letterSpacing: '0.06em' }}>
-              模子の衣柜
+              衣LOG
             </h1>
           </Link>
           <AuthButton />
@@ -184,6 +188,7 @@ function AppRoutes() {
         <WardrobeProvider uid={user.uid}>
           <BestMatchProvider uid={user.uid}>
             <PageRoutes />
+            <FeedbackPrompt />
           </BestMatchProvider>
         </WardrobeProvider>
       </main>
