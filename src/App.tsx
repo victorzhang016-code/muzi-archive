@@ -56,7 +56,8 @@ function LoginPage() {
             className="font-tag font-bold text-ink"
             style={{ fontSize: '1.7rem', letterSpacing: '0.12em' }}
           >
-            衣LOG
+            {/* 「衣」用简洁有力的无衬线 CJK 字体，与 JetBrains Mono 的 LOG 视觉统一 */}
+            <span style={{ fontFamily: '"PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", sans-serif', fontWeight: 800 }}>衣</span>LOG
           </h1>
           <p className="font-tag text-[10px] uppercase tracking-[0.45em] text-graphite/50 mt-1.5">
             wearlog
