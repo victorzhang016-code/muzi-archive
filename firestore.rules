@@ -19,6 +19,16 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/wardrobe_users/$(userId)) &&
              get(/databases/$(database)/documents/wardrobe_users/$(userId)).data.shareEnabled == true;
     }
+    // 字段大小上限（防写入滥用 / 超大文档）。base64 图本就受 Firestore 单文档 1MiB 硬上限约束，
+    // 这里再叠一道；正常压缩后的图片（720px/78% JPEG）远小于上限，不会被误拒。
+    function withinSizeLimits() {
+      let d = request.resource.data;
+      return (!('name' in d) || (d.name is string && d.name.size() <= 200))
+        && (!('brand' in d) || (d.brand is string && d.brand.size() <= 200))
+        && (!('story' in d) || (d.story is string && d.story.size() <= 10000))
+        && (!('imageUrl' in d) || (d.imageUrl is string && d.imageUrl.size() <= 1200000))
+        && (!('photoBase64' in d) || (d.photoBase64 is string && d.photoBase64.size() <= 1200000));
+    }
 
     // 每个用户的分享设置 — 任何人可读，本人可写
     match /wardrobe_users/{userId} {
@@ -29,8 +39,8 @@ service cloud.firestore {
     match /wardrobe_items/{itemId} {
       // 本人读，或主人开启了分享
       allow read: if isDocOwner() || sharingEnabled(resource.data.userId);
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && withinSizeLimits();
+      allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']) && withinSizeLimits();
       allow delete: if isDocOwner();
     }
 
@@ -38,8 +48,8 @@ service cloud.firestore {
     match /best_matches/{matchId} {
       // 本人读，或主人开启了分享（与 wardrobe_items 一致）
       allow read: if isDocOwner() || sharingEnabled(resource.data.userId);
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && withinSizeLimits();
+      allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']) && withinSizeLimits();
       allow delete: if isDocOwner();
     }
 

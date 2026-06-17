@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Loader2, CheckCircle } from 'lucide-react';
+
+const AUTHOR_UID = import.meta.env.VITE_AUTHOR_UID;
 
 export function MigrateData() {
   const [oldUid, setOldUid] = useState('');
@@ -10,6 +13,11 @@ export function MigrateData() {
   const [error, setError] = useState('');
 
   const currentUid = auth.currentUser?.uid ?? '';
+
+  // 内部一次性工具：仅作者本人可用，其他登录用户访问 /migrate 一律弹回首页
+  if (!AUTHOR_UID || currentUid !== AUTHOR_UID) {
+    return <Navigate to="/" replace />;
+  }
 
   const migrate = async () => {
     const trimmed = oldUid.trim();

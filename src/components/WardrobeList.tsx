@@ -16,6 +16,9 @@ import { useNavigate } from 'react-router';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
 
+// 单用户单品上限（防写入滥用 / 控制每人对额度的占用）
+const ITEM_LIMIT = 200;
+
 function normalizeBrand(b: string): string {
   return b.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -159,6 +162,10 @@ export function WardrobeList() {
   };
 
   const openAddModal = () => {
+    if (items.length >= ITEM_LIMIT) {
+      alert(`已达单品上限 ${ITEM_LIMIT} 件。如需继续记录，请先删除一些不再需要的单品。`);
+      return;
+    }
     setItemToEdit(null);
     setIsModalOpen(true);
   };
@@ -215,9 +222,10 @@ export function WardrobeList() {
           messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、brand（品牌名，字符串，可选）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
         };
 
+        const idToken = await auth.currentUser.getIdToken();
         const aiRes = await fetch('/api/ai-import', {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: { 'content-type': 'application/json', 'authorization': `Bearer ${idToken}` },
           body: JSON.stringify(requestBody),
         });
         if (!aiRes.ok) {
@@ -255,11 +263,23 @@ export function WardrobeList() {
       const itemsRef = collection(db, 'wardrobe_items');
       const userId = auth.currentUser.uid;
 
-      const validItems = parsedData.filter(item => item.name && item.category);
+      let validItems = parsedData.filter(item => item.name && item.category);
 
       if (validItems.length === 0) {
         alert(`没有有效数据。parsedData 前两项：${JSON.stringify(parsedData.slice(0, 2))}`);
         return;
+      }
+
+      // 单品上限：超出部分不导入
+      const remaining = ITEM_LIMIT - items.length;
+      if (remaining <= 0) {
+        alert(`已达单品上限 ${ITEM_LIMIT} 件，无法继续导入。`);
+        return;
+      }
+      if (validItems.length > remaining) {
+        const skipped = validItems.length - remaining;
+        validItems = validItems.slice(0, remaining);
+        alert(`单品上限为 ${ITEM_LIMIT} 件，本次仅导入前 ${remaining} 条，跳过 ${skipped} 条。`);
       }
 
       const BATCH_SIZE = 400;
