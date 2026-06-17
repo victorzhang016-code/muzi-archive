@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /share/
+Allow: /author
+Disallow: /
+Disallow: /item/
+Disallow: /best-match/
+Disallow: /migrate

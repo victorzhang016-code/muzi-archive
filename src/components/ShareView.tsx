@@ -45,6 +45,11 @@ export function ShareView() {
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [view, setView] = useState<'items' | 'matches'>('items');
 
+  useEffect(() => {
+    document.title = '模子的衣柜 — 穿衣档案';
+    return () => { document.title = '模子的衣柜'; };
+  }, []);
+
   // 公开衣柜：统一走边缘缓存接口 /api/public/:uid（不直连 Firestore，省读取额度）
   useEffect(() => {
     if (!userId) return;

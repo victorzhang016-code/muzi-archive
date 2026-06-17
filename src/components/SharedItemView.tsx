@@ -13,6 +13,13 @@ export function SharedItemView() {
   const [tempError, setTempError] = useState(false);
 
   useEffect(() => {
+    if (!item) return;
+    const brand = item.brand ? `${item.brand} ` : '';
+    document.title = `${brand}${item.name} — 模子的衣柜`;
+    return () => { document.title = '模子的衣柜'; };
+  }, [item]);
+
+  useEffect(() => {
     if (!itemId || !userId) return;
     fetchPublicWardrobe(userId)
       .then(({ items }) => {
