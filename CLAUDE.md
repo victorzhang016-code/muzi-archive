@@ -1,14 +1,18 @@
-# 模子の衣柜 — 项目 CLAUDE.md
+# 衣LOG（wearlog）— 项目 CLAUDE.md
+
+> **命名说明（重要）：** 本项目**现用名「衣LOG」**（英文 **wearlog**），**曾用名「模子の衣柜」**。
+> 凡是文档、代码、git 历史、本机路径、仓库/域名里出现的 **「衣柜」「模子の衣柜」「muzi」「muzi-archive」** 都指**同一个项目（衣LOG / wearlog）**，不是另一个东西。
+> 历史遗留命名（仍未改、改了有成本）：GitHub 仓库名仍是 `muzi-archive`，本机目录仍是 `…\模子の衣柜`，部分内部 localStorage / 文件名前缀历史用过 `muzi-`。面向用户的名称、UI、SEO 已全部统一为 衣LOG / wearlog。
 
 ## 项目定位
 
-**模子の衣柜** 是 Victor 的个人衣物档案 app，以实体服装吊牌为核心视觉隐喻（Margiela / Essentials 风格）。不是穿搭推荐工具，是建立自我认知的工具——每件衣服背后都有只属于自己的故事。
+**衣LOG（wearlog，曾用名「模子の衣柜」）** 是 Victor 的个人衣物档案 app，以实体服装吊牌为核心视觉隐喻（Margiela / Essentials 风格）。不是穿搭推荐工具，是建立自我认知的工具——每件衣服背后都有只属于自己的故事。
 
 **目标用户：** AI / builder 圈（18-35岁），核心主张：builder 文化本身是一种时尚。
 
 **线上地址：**
-- GitHub: `https://github.com/victorzhang016-code/muzi-archive`（main 分支）
-- Vercel: `https://muzi-archive.vercel.app`（push main 自动部署，不用 Vercel CLI）
+- GitHub: `https://github.com/victorzhang016-code/muzi-archive`（仓库名仍是旧名 muzi-archive，main 分支）
+- Vercel: `https://wear-log.vercel.app`（现用域名；曾用 `muzi-archive.vercel.app`。push main 自动部署，不用 Vercel CLI）
 
 ---
 
