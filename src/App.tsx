@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -14,7 +15,7 @@ import { BestMatchBuilder } from './components/BestMatchBuilder';
 import { BestMatchDetail } from './components/BestMatchDetail';
 import { WardrobeProvider } from './contexts/WardrobeContext';
 import { BestMatchProvider } from './contexts/BestMatchContext';
-import { Shirt, Loader2, ExternalLink } from 'lucide-react';
+import { Shirt, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
 const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|FBAN|FBAV|Instagram|Twitter|Snapchat|Pinterest|LinkedInApp/i.test(navigator.userAgent)
@@ -26,6 +27,13 @@ const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|
 function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const copyCurrentLink = () => {
+    navigator.clipboard?.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   return (
     <div className="relative min-h-screen bg-kraft flex flex-col items-center justify-center px-6 overflow-hidden selection:bg-stamp selection:text-white">
@@ -66,10 +74,17 @@ function LoginPage() {
             <div className="w-full rounded-2xl border border-dashed border-graphite/30 bg-white/50 px-5 py-5 text-center">
               <ExternalLink className="w-6 h-6 text-graphite mx-auto mb-3" />
               <p className="text-sm font-story text-ink font-medium mb-1">请在系统浏览器中打开</p>
-              <p className="text-xs text-graphite leading-relaxed">
-                当前环境不支持 Google 登录。<br />
-                请复制链接，粘贴到 <span className="font-medium">Safari 或 Chrome</span> 中打开
+              <p className="text-xs text-graphite leading-relaxed mb-4">
+                微信 / App 内置浏览器无法使用 Google 登录。<br />
+                复制链接后，粘贴到 <span className="font-medium">Safari 或 Chrome</span> 打开即可。
               </p>
+              <button
+                onClick={copyCurrentLink}
+                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-ink hover:bg-ink/85 text-kraft transition-colors text-sm font-medium shadow-sm"
+              >
+                {linkCopied ? <Check className="w-4 h-4 shrink-0" /> : <Copy className="w-4 h-4 shrink-0" />}
+                {linkCopied ? '已复制链接 ✓' : '复制链接'}
+              </button>
             </div>
           </div>
         ) : (
@@ -97,8 +112,9 @@ function LoginPage() {
           <span aria-hidden>→</span>
         </button>
 
-        <p className="mt-6 text-xs text-graphite/60 font-story">
-          登录即代表你的衣柜数据将与 Google 账号绑定
+        <p className="mt-6 text-xs text-graphite/60 font-story leading-relaxed">
+          需 Google 账号登录，当前需在科学上网环境下使用。<br />
+          登录即代表你的衣柜数据将与 Google 账号绑定。
         </p>
       </div>
     </div>

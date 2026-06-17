@@ -35,6 +35,7 @@ export function WardrobeList() {
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [brandFilterOpen, setBrandFilterOpen] = useState(false);
   const [brandStatsOpen, setBrandStatsOpen] = useState(false);
+  const [importHelpOpen, setImportHelpOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<WardrobeItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -523,6 +524,8 @@ export function WardrobeList() {
             <span>添加衣物</span>
           </button>
           <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar bg-tag border border-graphite/20 shadow-sm">
+            {/* 分享 / 清理重复：对空衣柜无意义，新用户先聚焦「添加衣物」 */}
+            {items.length > 0 && (<>
             <button
               onClick={toggleShare}
               className={cn(
@@ -587,6 +590,7 @@ export function WardrobeList() {
               {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               <span>清理重复</span>
             </button>
+            </>)}
 
             <div className="relative">
               <input
@@ -613,6 +617,28 @@ export function WardrobeList() {
               <Plus className="w-4 h-4" />
               <span>添加衣物</span>
             </button>
+          </div>
+
+          {/* 导入说明：可导入内容与边界，降低批量导入的困惑 */}
+          <div className="w-full sm:w-auto sm:text-right">
+            <button
+              onClick={() => setImportHelpOpen(v => !v)}
+              className="inline-flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors"
+            >
+              <span>{importHelpOpen ? '▾' : '▸'}</span>
+              <span>导入说明</span>
+            </button>
+            {importHelpOpen && (
+              <div className="mt-2 px-4 py-3 bg-tag/70 border border-graphite/20 text-left max-w-md sm:ml-auto">
+                <p className="font-tag text-[9px] uppercase tracking-widest text-graphite/45 mb-2">可导入的内容 / 边界</p>
+                <ul className="space-y-1 list-disc pl-4 font-story text-[12px] leading-relaxed text-ink/70">
+                  <li>支持 <strong>JSON / CSV / TXT / PDF</strong>；PDF 需为文字版（扫描图片提取不到文字）。</li>
+                  <li>每条至少需 <strong>名称 + 品类</strong>；可含品牌 / 评分 / 季节 / 故事。</li>
+                  <li>TXT / PDF 由 AI 解析，<strong>尽力而为</strong>，可能漏或错，导入后请核对。</li>
+                  <li>单柜上限 <strong>200 件</strong>，超出部分不导入；单次文件不要过大。</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {shareEnabled && (
