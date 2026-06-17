@@ -183,7 +183,7 @@ export function ItemDetail() {
           {/* Top bar: ID + hole + season / year */}
           <div className="relative flex items-center justify-between px-4 pt-4 pb-2">
             <span className="font-tag text-[7px] uppercase tracking-[0.1em]" style={{ color: theme.textMuted }}>
-              {item.id.slice(-8).toUpperCase()}
+              {item.category}
             </span>
             <div className="absolute left-1/2 top-4 -translate-x-1/2 tag-hole" style={{ backgroundColor: theme.holeColor }} />
             <div className="flex flex-col items-end gap-0.5">

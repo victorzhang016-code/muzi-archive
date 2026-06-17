@@ -118,7 +118,7 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick, e
           {/* Top bar: ID · hole · season / year */}
           <div className="relative flex items-center justify-between px-3 pt-3 pb-2">
             <span className="font-tag text-[7px] uppercase tracking-[0.1em] leading-none" style={{ color: theme.textMuted }}>
-              {item.id.slice(-6).toUpperCase()}
+              {item.category}
             </span>
             <div className="absolute left-1/2 top-3 -translate-x-1/2 tag-hole" style={{ backgroundColor: theme.holeColor }} />
             <div className="flex flex-col items-end gap-0.5">

@@ -93,7 +93,7 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
               letterSpacing: '0.1em',
             }}
           >
-            {item.id.slice(-5).toUpperCase()}
+            {item.category}
           </span>
           <span
             className="font-tag uppercase leading-none"
@@ -103,7 +103,7 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
               letterSpacing: '0.1em',
             }}
           >
-            {item.category}
+            {item.season}
           </span>
         </div>
 
