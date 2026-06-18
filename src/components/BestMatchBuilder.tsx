@@ -109,7 +109,8 @@ export function BestMatchBuilder() {
           setPhotoBase64(data.photoBase64 ?? null);
         }
       } catch (err) {
-        handleFirestoreError(err, OperationType.GET, `best_matches/${editId}`);
+        const kind = handleFirestoreError(err, OperationType.GET, `best_matches/${editId}`);
+        alert(kind === 'busy' ? '服务器繁忙，未能加载这套搭配，请稍后重试。' : '加载失败，请返回重试。');
       } finally {
         setLoadingEdit(false);
       }
@@ -328,7 +329,8 @@ export function BestMatchBuilder() {
         navigate(`/best-match/${ref.id}`);
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, 'best_matches');
+      const kind = handleFirestoreError(err, OperationType.WRITE, 'best_matches');
+      alert(kind === 'busy' ? '服务器繁忙，搭配未保存，请稍后重试。' : '保存失败，请重试（若有照片可换张更小的图）。');
       setSaving(false);
     }
   };

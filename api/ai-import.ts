@@ -21,6 +21,32 @@ const JWKS = createRemoteJWKSet(
 // 单次请求体上限：正常导入的文档文字远小于此；超过基本是滥用/误传
 const MAX_BODY_CHARS = 600_000;
 
+// 按用户限流：KIMI_API_KEY 是借来、无法轮换的（真金白银），鉴权只挡住匿名脚本，
+// 但任何登录用户都能反复调用、把 messages 当免费 LLM 代理刷。这里再加一道每用户限流。
+// 说明：这是「尽力而为」级——计数在模块作用域的内存里，Vercel 冷启/多实例会各自归零，
+// 不是强一致配额；目的在于挡住单用户的循环/连刷，对小范围试用足够。
+const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 小时滑动窗口
+const RATE_MAX = 40;                    // 每用户每小时最多 40 次导入解析
+const hits = new Map<string, number[]>(); // uid -> 近期调用时间戳
+
+function rateLimited(uid: string): boolean {
+  const now = Date.now();
+  const recent = (hits.get(uid) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_MAX) {
+    hits.set(uid, recent);
+    return true;
+  }
+  recent.push(now);
+  hits.set(uid, recent);
+  // 顺手清理：Map 过大时丢弃不再活跃的 uid，避免无界增长
+  if (hits.size > 5000) {
+    for (const [k, v] of hits) {
+      if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k);
+    }
+  }
+  return false;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).send('Method not allowed');
 
@@ -28,13 +54,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authz = (req.headers.authorization as string) || '';
   const token = authz.startsWith('Bearer ') ? authz.slice(7).trim() : '';
   if (!token) return res.status(401).json({ error: '请登录后再使用导入功能' });
+  let uid: string;
   try {
-    await jwtVerify(token, JWKS, {
+    const { payload } = await jwtVerify(token, JWKS, {
       issuer: `https://securetoken.google.com/${PROJECT}`,
       audience: PROJECT,
     });
+    uid = String(payload.sub || payload.user_id || '');
+    if (!uid) throw new Error('no subject');
   } catch {
     return res.status(401).json({ error: '登录状态已失效，请刷新页面重新登录后再导入' });
+  }
+
+  // 1.5) 按用户限流，保护借来的 API key
+  if (rateLimited(uid)) {
+    return res.status(429).json({ error: '导入太频繁了，请过一会儿再试（每小时上限 40 次）' });
   }
 
   const apiKey = process.env.KIMI_API_KEY;

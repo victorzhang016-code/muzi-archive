@@ -7,7 +7,7 @@ import { ArrowLeft, Edit2, Trash2, Loader2, Share2 } from 'lucide-react';
 import { AddEditItemModal } from './AddEditItemModal';
 import { ShareCardModal } from './ShareCardModal';
 import { buildItemShareUrl } from '../lib/sharing';
-import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
+import { handleFirestoreError, OperationType, LoadErrorKind } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { MargielaRating } from './MargielaRating';
 import { cn } from '../lib/utils';
@@ -21,6 +21,7 @@ export function ItemDetail() {
   const navigate = useNavigate();
   const [item, setItem] = useState<WardrobeItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { matches } = useBestMatches();
@@ -46,9 +47,11 @@ export function ItemDetail() {
       } else {
         setItem(null);
       }
+      setLoadError(null);
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `wardrobe_items/${id}`);
+      // 不再 throw —— 归类后展示「繁忙」而非无限转圈
+      setLoadError(handleFirestoreError(error, OperationType.GET, `wardrobe_items/${id}`));
       setLoading(false);
     });
     return () => unsubscribe();
@@ -61,7 +64,8 @@ export function ItemDetail() {
       await deleteDoc(doc(db, 'wardrobe_items', item.id));
       navigate('/');
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `wardrobe_items/${item.id}`);
+      const kind = handleFirestoreError(error, OperationType.DELETE, `wardrobe_items/${item.id}`);
+      alert(kind === 'busy' ? '服务器繁忙，删除未成功，请稍后重试。' : '删除失败，请稍后重试。');
     }
   };
 
@@ -69,6 +73,28 @@ export function ItemDetail() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-graphite/40" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    const busy = loadError === 'busy';
+    return (
+      <div className="text-center py-32">
+        <h2 className="text-2xl font-story font-bold text-ink mb-4">
+          {busy ? '服务器繁忙' : '加载失败'}
+        </h2>
+        <p className="text-sm text-graphite mb-6 font-story">
+          {busy ? '当前访问较多，稍后再试即可（不是数据丢失）。' : '没能加载这件单品。'}
+        </p>
+        <div className="flex items-center justify-center gap-4">
+          <button onClick={() => window.location.reload()} className="font-tag text-[10px] uppercase tracking-widest text-graphite hover:text-ink transition-colors font-bold">
+            重试
+          </button>
+          <button onClick={() => navigate('/')} className="font-tag text-[10px] uppercase tracking-widest text-graphite hover:text-ink transition-colors font-bold">
+            Return to Archive
+          </button>
+        </div>
       </div>
     );
   }

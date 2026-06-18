@@ -8,7 +8,7 @@ import { buildBestMatchShareUrl } from '../lib/sharing';
 import { db, auth } from '../firebase';
 import { BestMatch, BestMatchItems, WardrobeItem } from '../types';
 import { useWardrobe } from '../contexts/WardrobeContext';
-import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
+import { handleFirestoreError, OperationType, LoadErrorKind } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { TagBundle } from './TagBundle';
 import type { BundleEntry } from './TagBundle';
@@ -30,6 +30,7 @@ export function BestMatchDetail() {
   const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
   const [match, setMatch] = useState<BestMatch | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [bundleVisible, setBundleVisible] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
@@ -88,10 +89,12 @@ export function BestMatchDetail() {
         } else {
           setMatch(null);
         }
+        setLoadError(null);
         setLoading(false);
       },
       (err) => {
-        handleFirestoreError(err, OperationType.GET, `best_matches/${id}`);
+        // 不再 throw —— 归类后展示「繁忙」而非无限转圈
+        setLoadError(handleFirestoreError(err, OperationType.GET, `best_matches/${id}`));
         setLoading(false);
       }
     );
@@ -125,7 +128,8 @@ export function BestMatchDetail() {
       await deleteDoc(doc(db, 'best_matches', match.id));
       navigate('/best-match');
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `best_matches/${match.id}`);
+      const kind = handleFirestoreError(err, OperationType.DELETE, `best_matches/${match.id}`);
+      alert(kind === 'busy' ? '服务器繁忙，删除未成功，请稍后重试。' : '删除失败，请稍后重试。');
     }
   };
 
@@ -145,7 +149,8 @@ export function BestMatchDetail() {
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `best_matches/${match.id}`);
+      const kind = handleFirestoreError(err, OperationType.WRITE, `best_matches/${match.id}`);
+      alert(kind === 'busy' ? '服务器繁忙，照片未保存，请稍后重试。' : '照片保存失败，请重试或换一张更小的图片。');
     } finally {
       setPhotoUploading(false);
       e.target.value = '';
@@ -156,6 +161,28 @@ export function BestMatchDetail() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-7 h-7 animate-spin text-graphite/40" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    const busy = loadError === 'busy';
+    return (
+      <div className="text-center py-32">
+        <h2 className="text-2xl font-story font-bold text-ink mb-4">
+          {busy ? '服务器繁忙' : '加载失败'}
+        </h2>
+        <p className="text-sm text-graphite mb-6 font-story">
+          {busy ? '当前访问较多，稍后再试即可（不是数据丢失）。' : '没能加载这套搭配。'}
+        </p>
+        <div className="flex items-center justify-center gap-4">
+          <button onClick={() => window.location.reload()} className="font-tag text-[10px] uppercase tracking-widest text-graphite hover:text-ink transition-colors font-bold">
+            重试
+          </button>
+          <button onClick={() => navigate('/best-match')} className="font-tag text-[10px] uppercase tracking-widest text-graphite hover:text-ink transition-colors font-bold">
+            Return to Gallery
+          </button>
+        </div>
       </div>
     );
   }

@@ -46,7 +46,15 @@ export function classifyLoadError(error: unknown, path: string | null): LoadErro
   return 'unknown';
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+/**
+ * 记录 Firestore 读写错误并返回归类（'busy' / 'permission' / 'unknown'）——**绝不 throw**。
+ *
+ * 历史上这里会 `throw`，但它的调用方全是 async 监听/事件回调（onSnapshot error 回调、
+ * onClick 的 catch）。在这些异步上下文里 throw 只会变成未处理的 promise rejection：
+ * ErrorBoundary（只接 render 错误）接不到，更糟的是会让紧随其后的 `setLoading(false)`
+ * 变成死代码 → 读失败时页面无限转圈。改为返回归类、由调用方决定如何优雅降级。
+ */
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): LoadErrorKind {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -66,5 +74,8 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  const code = (error as { code?: string })?.code;
+  if (code === 'resource-exhausted' || code === 'unavailable') return 'busy';
+  if (code === 'permission-denied') return 'permission';
+  return 'unknown';
 }

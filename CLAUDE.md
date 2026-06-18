@@ -136,7 +136,7 @@ max_tokens: 16384，客户端做截断兜底
 ## 开发工作流
 
 ```bash
-cd "C:\Users\29748\Desktop\衣柜\模子の衣柜"
+cd "E:\个人项目\衣柜\模子の衣柜"
 npm run dev          # 本地开发
 git push origin main # 触发 Vercel 自动部署（不用 vercel CLI）
 ```

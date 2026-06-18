@@ -26,7 +26,7 @@ const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|
   || (/iPhone|iPad/.test(navigator.userAgent) && !/Safari\//.test(navigator.userAgent) && /AppleWebKit/.test(navigator.userAgent));
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, authError } = useAuth();
   const navigate = useNavigate();
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -106,6 +106,12 @@ function LoginPage() {
             </svg>
             使用 Google 账号登录
           </button>
+        )}
+
+        {authError && (
+          <p className="mt-4 w-full max-w-xs text-xs text-stamp bg-stamp/5 border border-stamp/25 px-4 py-3 leading-relaxed font-story text-left">
+            {authError}
+          </p>
         )}
 
         {/* 不登录也能看：作者的公开衣柜（理想态示例） */}

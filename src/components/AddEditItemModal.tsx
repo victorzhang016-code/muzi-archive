@@ -3,7 +3,6 @@ import { X, Upload, Loader2, Crop as CropIcon } from 'lucide-react';
 import { WardrobeItem, NewWardrobeItem, Category, Season, PantsLength, TopType, TOP_TYPES, BOTTOM_TYPES, AccessoryType, ACCESSORY_TYPES } from '../types';
 import { auth, db } from '../firebase';
 import { collection, addDoc, updateDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { cn } from '../lib/utils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg, { compressToBase64 } from '../lib/cropImage';

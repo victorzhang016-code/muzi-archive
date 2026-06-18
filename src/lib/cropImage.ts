@@ -80,8 +80,10 @@ export default async function getCroppedImg(
     return null;
   }
 
-  // Set the size of the cropped canvas
-  // 1200px gives sharper detail-page display with acceptable file size (~40% larger than 800)
+  // Set the size of the cropped canvas.
+  // 注意：本函数产出的 File 仅是中间产物——调用方（AddEditItemModal）随后会用
+  // compressToBase64(file, 720, 0.78) 再压一道，最终存进 Firestore / 详情页显示的恒为 720px。
+  // 这里给 1200px 只是给那一步留足像素余量，不会直接影响最终清晰度。
   const MAX_WIDTH = 1200;
   const scale = pixelCrop.width > MAX_WIDTH ? MAX_WIDTH / pixelCrop.width : 1;
 

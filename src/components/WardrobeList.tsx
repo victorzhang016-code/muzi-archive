@@ -9,6 +9,7 @@ import { Plus, Loader2, Database, ArrowUpDown, Trash2, Share2, Copy, Check, Spar
 import { cn } from '../lib/utils';
 import { SEED_DATA } from '../data/seedData';
 import { fetchAuthorSampleItems } from '../lib/sampleItems';
+import { parseCsv } from '../lib/csv';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
@@ -153,7 +154,8 @@ export function WardrobeList() {
     try {
       await deleteDoc(doc(db, 'wardrobe_items', item.id));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `wardrobe_items/${item.id}`);
+      const kind = handleFirestoreError(error, OperationType.DELETE, `wardrobe_items/${item.id}`);
+      alert(kind === 'busy' ? '服务器繁忙，删除未成功，请稍后重试。' : '删除失败，请稍后重试。');
     }
   };
 
@@ -190,18 +192,7 @@ export function WardrobeList() {
         parsedData = JSON.parse(text);
       } else if (file.name.endsWith('.csv')) {
         const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        if (lines.length > 1) {
-          const headers = lines[0].split(',').map(h => h.trim());
-          parsedData = lines.slice(1).map(line => {
-            const values = line.split(',').map(v => v.trim());
-            const obj: any = {};
-            headers.forEach((header, i) => {
-              obj[header] = values[i];
-            });
-            return obj;
-          });
-        }
+        parsedData = parseCsv(text);
       } else if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
         let fileText: string;
 
