@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+!.env.emulator
+
+.vercel
+
+# 本地模拟器导出的数据快照（每人本地各自维护，不进仓库）
+.emulator-data/

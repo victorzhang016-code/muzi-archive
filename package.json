@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev:emu": "vite --mode emulator --port=3000 --host=0.0.0.0",
+    "emu": "firebase emulators:start --import=./.emulator-data --export-on-exit=./.emulator-data",
+    "emu:fresh": "firebase emulators:start --export-on-exit=./.emulator-data",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
