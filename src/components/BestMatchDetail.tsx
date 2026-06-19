@@ -11,6 +11,7 @@ import { handleFirestoreError, OperationType, LoadErrorKind } from '../lib/fireb
 import { sfx } from '../lib/sounds';
 import { bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { compressToBase64 } from '../lib/cropImage';
+import { uploadImageToBlob } from '../lib/blobUpload';
 import { BestMatchView } from './BestMatchView';
 
 export function BestMatchDetail() {
@@ -125,8 +126,9 @@ export function BestMatchDetail() {
     setPhotoUploading(true);
     try {
       const base64 = await compressToBase64(file, 720, 0.78);
+      const url = await uploadImageToBlob(base64);
       await updateDoc(doc(db, 'best_matches', match.id), {
-        photoBase64: base64,
+        photoBase64: url,
         updatedAt: serverTimestamp(),
       });
     } catch (err) {

@@ -6,6 +6,7 @@ import { collection, addDoc, updateDoc, doc, serverTimestamp, deleteField } from
 import { cn } from '../lib/utils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg, { compressToBase64, normalizeImageFile } from '../lib/cropImage';
+import { uploadImageToBlob } from '../lib/blobUpload';
 import { MargielaRating } from './MargielaRating';
 
 interface Props {
@@ -109,18 +110,22 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
 
   const handleCropConfirm = async () => {
     if (!cropImageSrc || !croppedAreaPixels) return;
+    setConverting(true);
     try {
       const croppedFile = await getCroppedImg(cropImageSrc, croppedAreaPixels);
       if (croppedFile) {
-        // Compress to base64 for Firestore storage (no Firebase Storage needed)
+        // 压缩成小图 → 上传到 Vercel Blob，存它返回的公开 URL（不再把 base64 塞进 Firestore）
         const base64 = await compressToBase64(croppedFile);
-        setImageBase64(base64);
-        setImagePreview(base64);
+        const url = await uploadImageToBlob(base64);
+        setImageBase64(url);
+        setImagePreview(url);
         setCropImageSrc(null);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setError('裁剪失败，请重试');
+      setError(e?.message || '图片处理失败，请重试');
+    } finally {
+      setConverting(false);
     }
   };
 
@@ -263,10 +268,11 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
               <button
                 type="button"
                 onClick={handleCropConfirm}
-                className="px-6 py-2 bg-ink text-white text-xs uppercase tracking-widest font-bold hover:bg-ink/90 transition-colors flex items-center gap-2"
+                disabled={converting}
+                className="px-6 py-2 bg-ink text-white text-xs uppercase tracking-widest font-bold hover:bg-ink/90 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
-                <CropIcon className="w-4 h-4" />
-                确认裁剪
+                {converting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CropIcon className="w-4 h-4" />}
+                {converting ? '上传中…' : '确认裁剪'}
               </button>
             </div>
           </div>

@@ -9,6 +9,7 @@ import { Plus, Loader2, Database, ArrowUpDown, Trash2, Share2, Copy, Check, Spar
 import { cn } from '../lib/utils';
 import { SEED_DATA } from '../data/seedData';
 import { fetchAuthorPreferredSample } from '../lib/sampleItems';
+import { MigrateImages } from './MigrateImages';
 import { parseCsv } from '../lib/csv';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { useBestMatches } from '../contexts/BestMatchContext';
@@ -430,6 +431,7 @@ export function WardrobeList() {
 
   return (
     <div className="space-y-10">
+      <MigrateImages />
       {/* Header */}
       <div className="flex flex-col gap-5">
         <div className="border-b border-dashed border-graphite/25 pb-5">

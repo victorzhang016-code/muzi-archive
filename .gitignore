@@ -20,3 +20,6 @@ skills-lock.json
 # 仅本地保留的文件（学习笔记、反馈截图），留在工作区但不进仓库
 架构概念-学习笔记.md
 衣LOG · 试用反馈.png
+
+.vercel
+.env*

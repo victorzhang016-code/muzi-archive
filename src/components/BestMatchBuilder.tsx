@@ -8,6 +8,7 @@ import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { cn } from '../lib/utils';
 import { compressToBase64 } from '../lib/cropImage';
+import { uploadImageToBlob } from '../lib/blobUpload';
 import {
   BestMatchItems,
   BestMatchSlot,
@@ -344,9 +345,10 @@ export function BestMatchBuilder() {
     }
     try {
       const base64 = await compressToBase64(file, 720, 0.78);
-      setPhotoBase64(base64);
-    } catch {
-      showToast('图片处理失败');
+      const url = await uploadImageToBlob(base64);
+      setPhotoBase64(url);
+    } catch (err: any) {
+      showToast(err?.message || '图片处理失败');
     } finally {
       e.target.value = '';
     }

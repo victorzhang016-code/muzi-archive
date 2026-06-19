@@ -102,16 +102,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .slice(0, limit);
     }
 
-    // Phase 2：剥掉 base64，把 imageUrl / photoBase64 换成图片接口 URL。
-    // 整柜 JSON 从 ~8.58MB 降到 ~100KB（只剩文字元数据），图片按需/懒加载。
-    outItems = outItems.map((it) => ({
-      ...it,
-      imageUrl: it.imageUrl ? `/api/img/${uid}/${it.id}` : undefined,
-    }));
-    matches = matches.map((m) => ({
-      ...m,
-      photoBase64: m.photoBase64 ? `/api/img/${uid}/${m.id}?c=match` : undefined,
-    }));
+    // Phase 2/3：图片不内联 base64。
+    //  - Phase 3 新数据：imageUrl 已是 Blob 公开 https URL → 原样透传（看图走 Blob CDN，0 Firestore 读）。
+    //  - Phase 2 旧数据：imageUrl 还是 data:base64 → 改写成 /api/img 接口 URL（兼容未迁移的图）。
+    const rewriteImg = (val: any, apiPath: string): string | undefined => {
+      if (!val || typeof val !== 'string') return undefined;
+      return val.startsWith('http') ? val : apiPath;
+    };
+    // 注意：迁移会把原 base64 备份到 imageUrlBackup/photoBackup —— 公开 JSON 必须剔除，否则又把 base64 灌回来。
+    outItems = outItems.map((it) => {
+      const out: any = { ...it, imageUrl: rewriteImg(it.imageUrl, `/api/img/${uid}/${it.id}`) };
+      delete out.imageUrlBackup;
+      return out;
+    });
+    matches = matches.map((m) => {
+      const out: any = { ...m, photoBase64: rewriteImg(m.photoBase64, `/api/img/${uid}/${m.id}?c=match`) };
+      delete out.photoBackup;
+      return out;
+    });
 
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ shareEnabled: true, items: outItems, matches });
