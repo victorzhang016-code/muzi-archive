@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { WardrobeItem, BestMatch, Category } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { SharedItemCard } from './SharedItemCard';
@@ -36,6 +36,7 @@ function ReadOnlyItemModal({ item, onClose }: { item: WardrobeItem; onClose: () 
 export function ShareView() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [matches, setMatches] = useState<BestMatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,10 @@ export function ShareView() {
   const [loadError, setLoadError] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
-  const [view, setView] = useState<'items' | 'matches'>('items');
+  // 从 Best Match 详情返回时带 state.view='matches'，落在对应 tab 而非默认单品 tab
+  const [view, setView] = useState<'items' | 'matches'>(
+    (location.state as { view?: 'items' | 'matches' } | null)?.view === 'matches' ? 'matches' : 'items'
+  );
 
   useEffect(() => {
     document.title = '衣LOG · 穿搭档案 wearlog';
