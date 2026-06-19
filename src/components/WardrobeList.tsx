@@ -8,7 +8,7 @@ import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { Plus, Loader2, Database, ArrowUpDown, Trash2, Share2, Copy, Check, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SEED_DATA } from '../data/seedData';
-import { fetchAuthorSampleItems } from '../lib/sampleItems';
+import { fetchAuthorPreferredSample } from '../lib/sampleItems';
 import { parseCsv } from '../lib/csv';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { useBestMatches } from '../contexts/BestMatchContext';
@@ -57,8 +57,8 @@ export function WardrobeList() {
   useEffect(() => {
     if (loading || items.length > 0 || error) return;
     let alive = true;
-    fetchAuthorSampleItems(1).then((arr) => {
-      if (alive && arr.length > 0) setSampleItem(arr[0]);
+    fetchAuthorPreferredSample().then((it) => {
+      if (alive && it) setSampleItem(it);
     });
     return () => { alive = false; };
   }, [loading, items.length, error]);
