@@ -454,7 +454,7 @@ export function BestMatchBuilder() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 onChange={handlePhotoChange}
                 className="hidden"
               />

@@ -5,7 +5,7 @@ import { auth, db } from '../firebase';
 import { collection, addDoc, updateDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import Cropper from 'react-easy-crop';
-import getCroppedImg, { compressToBase64 } from '../lib/cropImage';
+import getCroppedImg, { compressToBase64, normalizeImageFile } from '../lib/cropImage';
 import { MargielaRating } from './MargielaRating';
 
 interface Props {
@@ -32,6 +32,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
   const [imageBase64, setImageBase64] = useState<string | null>(null); // compressed base64 stored in Firestore
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [converting, setConverting] = useState(false); // HEIC→JPEG 转换中
   const [error, setError] = useState<string | null>(null);
 
   // Cropper state
@@ -75,21 +76,31 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
     setCropImageSrc(null);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size must be less than 5MB');
-        return;
-      }
+    // Reset input value so the same file can be selected again
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB');
+      return;
+    }
+    setError(null);
+    try {
+      // HEIC/HEIF 先转 JPEG，裁剪器才能显示（非 HEIC 直通，零成本）
+      setConverting(true);
+      const normalized = await normalizeImageFile(file);
+      setConverting(false);
       const reader = new FileReader();
       reader.onloadend = () => {
         setCropImageSrc(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(normalized);
+    } catch (err) {
+      console.error('image normalize failed', err);
+      setConverting(false);
+      setError('这张图片无法读取（可能是不支持的格式），请换一张试试');
     }
-    // Reset input value so the same file can be selected again
-    e.target.value = '';
   };
 
   const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
@@ -274,15 +285,22 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
               <div className="relative group cursor-pointer w-full max-w-[240px] aspect-[3/4]">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.heif"
                   onChange={handleImageChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                  disabled={converting}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 disabled:cursor-wait"
                 />
                 <div className={cn(
                   "w-full h-full border border-dashed flex flex-col items-center justify-center overflow-hidden transition-colors bg-white",
                   imagePreview ? "border-transparent" : "border-graphite/20 group-hover:border-graphite"
                 )}>
-                  {imagePreview ? (
+                  {converting ? (
+                    <div className="text-graphite flex flex-col items-center gap-2 p-4 text-center">
+                      <Loader2 className="w-6 h-6 mb-2 animate-spin opacity-60" />
+                      <span className="text-sm font-medium">转换图片中…</span>
+                      <span className="text-[10px] uppercase tracking-widest opacity-70">HEIC 转 JPEG</span>
+                    </div>
+                  ) : imagePreview ? (
                     <>
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
@@ -295,7 +313,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
                     <div className="text-graphite flex flex-col items-center gap-2 p-4 text-center">
                       <Upload className="w-6 h-6 mb-2 opacity-50" />
                       <span className="text-sm font-medium">点击或拖拽上传</span>
-                      <span className="text-[10px] uppercase tracking-widest opacity-70">支持 JPG, PNG</span>
+                      <span className="text-[10px] uppercase tracking-widest opacity-70">支持 JPG / PNG / HEIC 等</span>
                     </div>
                   )}
                 </div>

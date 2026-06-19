@@ -366,7 +366,7 @@ export function BestMatchDetail() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               onChange={handlePhotoUpload}
               className="hidden"
             />

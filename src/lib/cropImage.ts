@@ -1,9 +1,41 @@
+/**
+ * 把浏览器无法原生解码的格式（主要是 iPhone 的 HEIC/HEIF）先转成 JPEG File，
+ * 其它格式（JPG/PNG/WEBP/AVIF/GIF…）原样直通——这些 `<img>`/canvas 本就能解码。
+ *
+ * 解码库 `heic-to`（libheif WASM）走**动态 import**：只有真选了 HEIC 才加载 ~1MB WASM，
+ * 不进首屏 bundle。检测优先用 `isHeic()` 读 ftyp 魔数（比 MIME 可靠——浏览器常把
+ * HEIC 的 `File.type` 报成空串），再兜底扩展名。
+ */
+export async function normalizeImageFile(file: File): Promise<File> {
+  const looksHeicByName = /\.(heic|heif)$/i.test(file.name);
+  const looksHeicByType = file.type === 'image/heic' || file.type === 'image/heif';
+  // 先用便宜的线索过滤：明显是常见格式（有 image/* 且非 heic）就直接放行，省去加载 WASM
+  if (!looksHeicByName && !looksHeicByType && file.type && file.type.startsWith('image/')) {
+    return file;
+  }
+
+  const { isHeic, heicTo } = await import('heic-to');
+  let heic = looksHeicByName || looksHeicByType;
+  try {
+    if (!heic) heic = await isHeic(file);
+  } catch {
+    // isHeic 读不了就退回到文件名/类型的判断
+  }
+  if (!heic) return file;
+
+  const blob = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.9 });
+  const jpegName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+  return new File([blob], jpegName, { type: 'image/jpeg', lastModified: Date.now() });
+}
+
 /** Compress a cropped File to a base64 data URL, resizing to maxWidth at given quality. */
 export async function compressToBase64(
   file: File,
   maxWidth = 720,
   quality = 0.78
 ): Promise<string> {
+  // HEIC/HEIF 先转 JPEG，再走原生 canvas 压缩（幂等：非 HEIC 0 成本直通）
+  file = await normalizeImageFile(file);
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
