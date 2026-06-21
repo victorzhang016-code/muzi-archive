@@ -17,6 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader('Content-Type', blob.blob.contentType || 'application/octet-stream');
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=0');
+  // 与 /api/img 一致：1 小时缓存、不 SWR（省额度 + 撤销窗口 ~1 小时）。
+  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=0');
   return res.status(200).end(Buffer.from(await new Response(blob.stream).arrayBuffer()));
 }

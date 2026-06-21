@@ -2,23 +2,15 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { get } from '@vercel/blob';
 import { blockDevProdFirestore } from '../../_lib/devGuard';
 
-/**
- * 公开图片接口：所有公开分享页图片都经由这里返回。
- * 这样分享关闭后，CDN 最长只保留短缓存，图片也会一起失效。
- *
- * 兼容三种历史/现存格式：
- * - data:base64
- * - 旧的公开 https URL
- * - 新的 Blob path（如 items/<uid>/<id>.jpg）
- *
- * 安全：未鉴权 REST 读取受 Firestore 规则约束，再叠加 shareEnabled 与 owner 校验。
- * /api/img/:uid/:id        → wardrobe_items/{id}.imageUrl
- * /api/img/:uid/:id?c=match → best_matches/{id}.photoBase64
- */
-
 const PROJECT = 'gen-lang-client-0133868878';
 const DB = 'ai-studio-6fd5f2f5-eaa7-473f-b484-cc0b2cdcd9bb';
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/${encodeURIComponent(DB)}/documents`;
+
+function withVersionHeader(res: VercelResponse): void {
+  // 1 小时缓存、不 SWR：图片回源每张每小时 ≤1 次 Firestore 读（省额度），
+  // 同时把「取消分享后图片直链最长可见」收敛到 ~1 小时（无 purge 能力下的折中）。
+  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=0');
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (blockDevProdFirestore(res)) return;
@@ -31,7 +23,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!uid || !id) return res.status(400).send('bad request');
 
   try {
-    // 先读目标 doc，拿到 userId / 图片字段 / 单条 shared 标记
     const r = await fetch(`${BASE}/${collection}/${id}`);
     if (r.status === 429 || r.status === 503) {
       res.setHeader('Cache-Control', 'no-store');
@@ -50,7 +41,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).send('no image');
     }
 
-    // 闸门：这一条单独分享，或主人开启了整柜公开
     if (!docShared) {
       const shareRes = await fetch(`${BASE}/wardrobe_users/${uid}`);
       const shareDoc: any = shareRes.ok ? await shareRes.json() : null;
@@ -86,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     res.setHeader('Content-Type', mime);
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=0');
+    withVersionHeader(res);
     return res.status(200).end(buf);
   } catch {
     res.setHeader('Cache-Control', 'no-store');

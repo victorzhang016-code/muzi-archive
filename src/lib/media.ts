@@ -13,9 +13,23 @@ export function resolveMediaUrl(value?: string | null): string | undefined {
 }
 
 export function buildPublicItemMediaUrl(userId: string, itemId: string): string {
-  return `/api/img/${encodeURIComponent(userId)}/${encodeURIComponent(itemId)}`;
+  return buildPublicItemMediaUrlWithVersion(userId, itemId);
 }
 
 export function buildPublicBestMatchMediaUrl(userId: string, matchId: string): string {
-  return `/api/img/${encodeURIComponent(userId)}/${encodeURIComponent(matchId)}?c=match`;
+  return buildPublicBestMatchMediaUrlWithVersion(userId, matchId);
+}
+
+export function buildPublicItemMediaUrlWithVersion(userId: string, itemId: string, version?: string | number): string {
+  const base = `/api/img/${encodeURIComponent(userId)}/${encodeURIComponent(itemId)}`;
+  return version == null ? base : `${base}?v=${encodeURIComponent(String(version))}`;
+}
+
+export function buildPublicBestMatchMediaUrlWithVersion(
+  userId: string,
+  matchId: string,
+  version?: string | number
+): string {
+  const base = `/api/img/${encodeURIComponent(userId)}/${encodeURIComponent(matchId)}?c=match`;
+  return version == null ? base : `${base}&v=${encodeURIComponent(String(version))}`;
 }

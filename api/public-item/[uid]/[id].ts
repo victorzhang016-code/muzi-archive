@@ -1,12 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { blockDevProdFirestore } from '../../_lib/devGuard';
 
-/**
- * 单条公开单品接口（按单品分享）。
- * 深链 /share/:uid/item/:id 走这里：只要这一件 shared==true（或主人整柜公开）即可读，
- * 整柜未公开也能打开单条。Firestore REST + 短缓存，未鉴权读取仍受规则约束，再叠显式校验。
- */
-
 const PROJECT = 'gen-lang-client-0133868878';
 const DB = 'ai-studio-6fd5f2f5-eaa7-473f-b484-cc0b2cdcd9bb';
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/${encodeURIComponent(DB)}/documents`;
@@ -24,10 +18,21 @@ function decodeValue(v: any): any {
   if ('referenceValue' in v) return v.referenceValue;
   return null;
 }
+
 function decodeFields(fields: any): any {
-  const o: any = {};
-  for (const k in fields) o[k] = decodeValue(fields[k]);
-  return o;
+  const out: any = {};
+  for (const k in fields) out[k] = decodeValue(fields[k]);
+  return out;
+}
+
+function versionFor(data: any): string | number | undefined {
+  return data?.updatedAt || data?.createdAt || undefined;
+}
+
+function withVersion(url: string, version?: string | number): string {
+  if (version == null) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=${encodeURIComponent(String(version))}`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -54,7 +59,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(403).json({ shared: false });
     }
 
-    // 闸门：单条 shared，或主人整柜公开
     let allowed = data.shared === true;
     if (!allowed) {
       const uRes = await fetch(`${BASE}/wardrobe_users/${uid}`);
@@ -67,10 +71,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const out: any = { id, ...data };
-    if (out.imageUrl) out.imageUrl = `/api/img/${uid}/${id}`;
+    if (out.imageUrl) out.imageUrl = withVersion(`/api/img/${uid}/${id}`, versionFor(data));
     delete out.imageUrlBackup;
 
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=0');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
     return res.status(200).json({ item: out });
   } catch (e: any) {
     res.setHeader('Cache-Control', 'no-store');
