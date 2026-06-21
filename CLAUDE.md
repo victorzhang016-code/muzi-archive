@@ -73,14 +73,24 @@ max_tokens: 16384，客户端做截断兜底
 
 ### 公开页边缘缓存（防限流，勿绕过）
 - **所有公开读都走 `api/public/[uid].ts`（Vercel 边缘缓存），不直连 Firestore。** 这是免费层 5 万读/天上限下抗流量的命门。
-- 该函数用 **Firestore REST**（免 SDK、无 gRPC）读取，显式校验 `shareEnabled`，把 Timestamp 序列化成 millis。响应头 `Cache-Control: s-maxage=3600, stale-while-revalidate=86400` → Firestore 每作者每天只被读约 24 次，**与访问量无关**。
-- 客户端统一用 `src/lib/publicWardrobe.ts` 的 `fetchPublicWardrobe()`；消费方：`ShareView`、`SharedItemView`、`SharedBestMatchView`、`sampleItems`（卡墙/示例卡）。
+- 该函数用 **Firestore REST**（免 SDK、无 gRPC）读取，显式校验 `wardrobePublic`（整柜公开闸门，v2 已从旧 `shareEnabled` 改名），把 Timestamp 序列化成 millis。命门：缓存让 **Firestore 读取与访问量解耦**。
+- 客户端取数都在 `src/lib/publicWardrobe.ts`：整柜 `fetchPublicWardrobe()`（`ShareView`、`sampleItems` 卡墙/示例卡）；单条深链 `fetchPublicItem()`（`SharedItemView`）/ `fetchPublicMatch()`（`SharedBestMatchView`，走 `api/public-item`、`api/public-match`，按单品/搭配 gate，整柜未公开也能开单条）。
 - 时间戳兼容：公开路径是 millis，owner 直连路径是 Firestore Timestamp → 渲染日期一律用 `toDateSafe()`。
 - owner 自己的 app（`WardrobeContext`/`BestMatchContext` 实时直连）**不走缓存**，保持即时。
 - 新增公开页时**务必走缓存接口**，不要再写 `getDocs`/`onSnapshot` 直读公开数据。
-- 公开页相对 owner 编辑有约 1 小时延迟（缓存 TTL），属预期。
+
+#### 当前缓存值（2026-06，勿无脑改回 60s）
+| 接口 | `Cache-Control` | 撤销延迟 |
+|---|---|---|
+| JSON：`public` / `public-item` / `public-match` | `s-maxage=300, stale-while-revalidate=3600` | ~5 分钟 |
+| 图片：`api/img` / `api/media` | `s-maxage=3600, stale-while-revalidate=0` | ~1 小时 |
+
+- **演进史（勿走回头路）**：原值 `3600/86400`（每作者每天回源 ~24 次，与访问量无关）→ 安全加固一度改成 `s-maxage=60, swr=0` 追求「秒级可撤销」，但这**打穿了「读取与访问量解耦」**，放量后极易撞 5万/天 → 现折中回 JSON `300/3600`、图片 `3600/0`（方案 B）。**别再改回 60s/SWR=0**，除非先解决下面的 purge 问题。
+- **无 per-URL purge 的固有约束**：这套 Vite SPA + Vercel serverless **没有「按 URL 主动失效边缘缓存」的能力**。所以「取消分享」后图片直链最长还能被打开 ≈ 图片 `s-maxage`（现 ~1 小时），**不是即时**。公开图片 URL 带的版本号 `?v=updatedAt` 只解决「内容更新别看旧图」，**对撤销不起作用**（`setItemShared` 取消时不改 updatedAt）。要真·秒级撤销得换机制（签名/过期 token、un-share 轮换 blobPath 等），代价大。
+- `/api/public?limit=`（卡墙/示例卡）已把 `limit + orderBy createdAt` **下推到 Firestore 查询**（复用 owner app 同款 `(userId, createdAt)` 复合索引），回源读取从 ~100 条降到 ~30 条候选再「有图优先」切前 N。
 - **Phase 2（已上线，带宽优化）**：公开接口**不再内联 base64**，把 `imageUrl`/`photoBase64` 改写成图片接口 URL `api/img/[uid]/[id].ts`（读单条解码成 JPEG，缓存 1 天，规则 gate）。整柜 JSON 从 8.58MB → ~100KB；图片走独立缓存接口 + 懒加载（`WardrobeItemCard` 的 `eager` prop：owner=eager 默认，公开页传 `eager={false}`）。owner 自用仍直连 base64，不受影响。
-- **Phase 3（已完成，根治）**：图片搬到 **Vercel Blob**，`api/public` 对已迁移图直接透传 Blob https URL → 看图走 Blob CDN、**0 Firestore 读、发版不清缓存**（彻底解决 Phase2 仍存在的「每张图读 1 条文档 + 部署清 ~101 图缓存」回源放大）。未迁移的旧 `data:` 图仍走 `/api/img` 兜底。详见上「图片存储」节。
+- **Phase 3（已完成）**：图片字节搬到 **Vercel Blob**（store `wearlog-images`），Firestore 只存 blobPath/URL。
+- **v2 安全加固（已上线）覆盖了 Phase3 的「透传 Blob 直链」**：为了「分享可撤销」+「外链可收回」，公开图片**不再透传 Blob 公网 URL，统一经 `api/img` 代理**（每次回源读 1 条 doc 校验 gating 再取 Blob）。代价是看图回源**不再是 0 Firestore 读**——靠上面「图片 1 小时缓存」把每张压到每小时 ≤1 次。这是「可撤销 vs 0 读」的取舍，别为省读把图片改回透传公网 URL（会让外链永久不可撤回）。
 
 ---
 
@@ -99,11 +109,12 @@ max_tokens: 16384，客户端做截断兜底
 | 公开页报「未开启分享」但其实已开 | **Firestore 免费层每日读额度（5万/天）用尽 → 429**，规则 `sharingEnabled()` 的 get `wardrobe_users` 被挡 → 判 false | 额度按太平洋时间午夜重置；代码区分 `permission-denied`(真没开) vs 429(显示「繁忙」且不缓存错误)；**根治＝公开页走边缘缓存**（已上线，见下「公开页边缘缓存」节）|
 | serverless 函数 500 `FUNCTION_INVOCATION_FAILED` | `package.json` 是 `"type":"module"`，ESM 下裸 `import x.json` 运行时报错（构建却过）| 函数里**别 import JSON**，把 projectId/dbId 等非密钥常量**硬编码** |
 | 改了 `VITE_AUTHOR_UID` 线上不变 | `VITE_*` 是**构建期**变量；本地 `.env` 与 Vercel env 两套 | 两处都改 + **重新构建/部署**才生效 |
-| 极少用户也能烧光 5万读/天 | **每次部署清空边缘缓存**（Phase2 还作废全部 ~101 图）→ 部署后访问全冷启回源。**实测：2 用户 3 小时烧光**，主因同一天**连发 5 次部署** + 紧接着互看 | **别在活跃使用期频繁部署/压测**；批量改低峰一次性发；额度太平洋午夜重置。Phase3 图搬 Blob 后图那块回源**永久消失**（Blob CDN 不随部署清）|
+| 极少用户也能烧光 5万读/天 | **每次部署清空边缘缓存**（Phase2 还作废全部 ~101 图）→ 部署后访问全冷启回源。**实测：2 用户 3 小时烧光**，主因同一天**连发 5 次部署** + 紧接着互看 | **别在活跃使用期频繁部署/压测**；批量改低峰一次性发；额度太平洋午夜重置。注：v2 后公开图片改走 `api/img` 代理（可撤销），看图回源**又回来了**，靠 1 小时缓存压制（非 0 读）；另一个常被忽略的烧额度真凶是**本地 dev 直连生产**，见下条|
+| 没真实访问 / Vercel 无请求，Firestore 读却匀速狂涨 | **本地 `npm run dev` 直连了生产库**：owner app 用 `onSnapshot` 直读 Firestore、绕过 `/api`、绕过 Vercel（日志看不到），HMR 反复重订阅全量重读 | 本地一律 `npm run dev`（已改默认连模拟器，需先 `npm run emu`）；只有 `npm run dev:prod` 才连生产、页面有红条提醒。判别：Vercel 无请求 + 匀速直线 = 客户端 SDK 直连。见 memory `firestore-quota-debugging-trap` |
 | 迁移把数据库整个删没 | 账号迁移**比对了错误的 uid** + 原数据**无备份** → 只能重建 | 迁移前**先 export 备份**；涉及 uid 匹配先 **dry-run 核对 ID**；先在测试库演练 |
 | Kimi 一键导入总解析失败 | 真因是 **PDF 文字超 Kimi 单次容量被截断**（不是输出 JSON 不干净）| **扩大单次可读取上限 / `max_tokens`**；格式强约束只治标，容量才治本 |
 
-> ⚠️ 读取额度（Phase1 边缘缓存）+ 带宽（Phase2 图片拆分）两道防线已上线；Phase3（图片搬 Vercel Blob）迁移中，根治「看图读 Firestore + 部署清缓存回源」。细节见下「公开页边缘缓存」节与 `踩坑经验.md`。
+> ⚠️ 读取额度（Phase1 边缘缓存）+ 带宽（Phase2 图片拆分）+ Phase3（图片搬 Vercel Blob）均已上线。注意 v2 安全加固后公开图片改走 `api/img` 代理（可撤销），看图不再 0 Firestore 读 —— 当前缓存策略与「无 purge / 图片撤销 ~1h」约束见下「公开页边缘缓存」节；勿把缓存改回 60s。细节亦见 `踩坑经验.md`。
 
 ---
 
