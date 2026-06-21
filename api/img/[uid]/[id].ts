@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { get } from '@vercel/blob';
+import { blockDevProdFirestore } from '../../_lib/devGuard';
 
 /**
  * 公开图片接口：所有公开分享页图片都经由这里返回。
@@ -20,6 +21,8 @@ const DB = 'ai-studio-6fd5f2f5-eaa7-473f-b484-cc0b2cdcd9bb';
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/${encodeURIComponent(DB)}/documents`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (blockDevProdFirestore(res)) return;
+
   const uid = req.query.uid as string;
   const id = req.query.id as string;
   const isMatch = (req.query.c as string) === 'match';

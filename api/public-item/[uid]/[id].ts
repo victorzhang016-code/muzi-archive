@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { blockDevProdFirestore } from '../../_lib/devGuard';
 
 /**
  * 单条公开单品接口（按单品分享）。
@@ -30,6 +31,8 @@ function decodeFields(fields: any): any {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (blockDevProdFirestore(res)) return;
+
   const uid = (req.query.uid as string) || '';
   const id = (req.query.id as string) || '';
   if (!uid || !id) return res.status(400).json({ error: 'uid and id required' });

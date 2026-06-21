@@ -142,15 +142,24 @@ max_tokens: 16384，客户端做截断兜底
 
 ```bash
 cd "E:\个人项目\衣柜\模子の衣柜"
-npm run dev          # 本地开发
+npm run emu          # 先起 Firebase 模拟器（需 Java）
+npm run dev          # 本地开发 —— 默认连【模拟器】，读写不碰生产、额度恒 0
 git push origin main # 触发 Vercel 自动部署（不用 vercel CLI）
 ```
+
+> ⚠️ **本地一律连模拟器，别直连生产库。** `npm run dev` 已改为**默认连模拟器**（安全默认）。
+> 只有 `npm run dev:prod`（加载 `.env.prod` 的 `VITE_ALLOW_PROD=true`）才在 dev 下连生产——
+> **会烧免费额度**，且 owner app 用 onSnapshot 直连 Firestore、绕过 /api，**Vercel 日志里看不到这些读**。
+> 真要连生产排查时，页面顶部会有红色横幅提醒。serverless 侧另有 `api/_lib/devGuard.ts` 默认禁止 dev 直读生产。
+> 历史教训见 memory `firestore-quota-debugging-trap`。
 
 **env 变量：**
 - `KIMI_API_KEY`：服务端，无 VITE_ 前缀
 - `BLOB_READ_WRITE_TOKEN`：服务端，Vercel Blob 写令牌。建 Blob store 时自动注入 Vercel Production/Preview/Development + 本地 `.env.local`（`.env*` 已 gitignore）。`/api/blob-upload` 用。
 - `GEMINI_API_KEY`：客户端（legacy，当前 AI 用 Kimi）
 - `VITE_AUTHOR_UID`：作者账号 uid，用于登录页卡墙 / 新用户示例卡 / `/author` 公开预览。**构建期变量**（VITE_ 前缀，打包时写死）→ 改了必须重新构建才生效。本地在 `.env`，线上在 Vercel 环境变量。当前值 `Tji9nTlLbvSJFJJoeuCDzMqmmxN2`。
+- `VITE_ALLOW_PROD`：仅本地。`true` 时让 `npm run dev:prod` 在 dev 下连**生产** Firestore（默认不连，`npm run dev` 走模拟器）。放在已入库的 `.env.prod`（非密钥）。生产构建（mode=production）不加载此文件，不受影响。
+- `ALLOW_DEV_PROD_FIRESTORE`：仅本地 / vercel dev 的 serverless 侧。默认禁止 `/api` 直读生产 Firestore，`true` 才放行（见 `api/_lib/devGuard.ts`）。
 
 ---
 

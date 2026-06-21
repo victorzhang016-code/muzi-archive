@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { blockDevProdFirestore } from '../_lib/devGuard';
 
 /**
  * 公开衣柜的短缓存接口。
@@ -66,6 +67,8 @@ async function runQuery(collectionId: string, uid: string): Promise<any[]> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (blockDevProdFirestore(res)) return;
+
   const uid = (req.query.uid as string) || '';
   if (!uid) return res.status(400).json({ error: 'uid required' });
   const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10) || 0) : 0;
