@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { collection, query, where, deleteDoc, doc, writeBatch, getDocs, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, deleteDoc, doc, writeBatch, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { WardrobeItem, Category, Season, TopType, TOP_TYPES, AccessoryType, ACCESSORY_TYPES } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
-import { Plus, Loader2, Database, ArrowUpDown, Trash2, Share2, Copy, Check, Sparkles } from 'lucide-react';
+import { Plus, Loader2, Database, ArrowUpDown, Trash2, Copy, Check, Sparkles, Lock, X } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { ShareCardModal } from './ShareCardModal';
+import { buildItemShareUrl, isWardrobePublic, setWardrobePublic } from '../lib/sharing';
 import { SEED_DATA } from '../data/seedData';
 import { fetchAuthorPreferredSample } from '../lib/sampleItems';
-import { MigrateImages } from './MigrateImages';
 import { parseCsv } from '../lib/csv';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { useBestMatches } from '../contexts/BestMatchContext';
@@ -20,6 +21,9 @@ const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋�
 
 // 单用户单品上限（防写入滥用 / 控制每人对额度的占用）
 const ITEM_LIMIT = 200;
+
+// Best Match 解锁门槛：上传满 3 件单品才解锁该功能
+const BEST_MATCH_UNLOCK = 3;
 
 function normalizeBrand(b: string): string {
   return b.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ' ').replace(/\s+/g, ' ').trim();
@@ -48,9 +52,12 @@ export function WardrobeList() {
   const [subFilterAccessoryType, setSubFilterAccessoryType] = useState<'全部' | AccessoryType>('全部');
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc' | 'yearDesc' | 'yearAsc' | 'season' | 'brand' | 'category'>('default');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
-  const [shareEnabled, setShareEnabled] = useState(false);
+  const [wardrobePublic, setWardrobePublicState] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
   const [sampleItem, setSampleItem] = useState<WardrobeItem | null>(null);
+  const [shareTarget, setShareTarget] = useState<WardrobeItem | null>(null);
+  const [shareHintSeen, setShareHintSeen] = useState(true);
+  const [bmUnlockPopup, setBmUnlockPopup] = useState(false);
 
   // 新用户空衣柜：拉一张作者的真实卡片作为「示例」
   // 注意：仅在「真·空衣柜」时拉示例；若是加载失败（额度/网络）导致的空，
@@ -66,18 +73,40 @@ export function WardrobeList() {
 
   const shareUrl = auth.currentUser ? `${window.location.origin}/share/${auth.currentUser.uid}` : '';
 
+  // 首次进入 Archive 的分享提示
+  useEffect(() => {
+    setShareHintSeen(localStorage.getItem('wearlog-share-hint-seen') === '1');
+  }, []);
+  const dismissShareHint = () => {
+    localStorage.setItem('wearlog-share-hint-seen', '1');
+    setShareHintSeen(true);
+  };
+
+  // Best Match 解锁弹窗：单品首次满 3 件、且还没建过搭配、且没弹过 → 弹一次
+  useEffect(() => {
+    if (loading) return;
+    if (items.length < BEST_MATCH_UNLOCK) return;
+    if (matches.length > 0) return; // 老用户已在用，不打扰
+    if (localStorage.getItem('wearlog-bm-unlock-seen') === '1') return;
+    localStorage.setItem('wearlog-bm-unlock-seen', '1');
+    setBmUnlockPopup(true);
+  }, [loading, items.length, matches.length]);
+
+  const bestMatchUnlocked = items.length >= BEST_MATCH_UNLOCK;
+
   useEffect(() => {
     if (!auth.currentUser) return;
-    getDoc(doc(db, 'wardrobe_users', auth.currentUser.uid)).then(snap => {
-      if (snap.exists()) setShareEnabled(snap.data().shareEnabled === true);
-    });
+    isWardrobePublic(auth.currentUser.uid).then(setWardrobePublicState).catch(() => {});
   }, []);
 
-  const toggleShare = async () => {
-    if (!auth.currentUser) return;
-    const newVal = !shareEnabled;
-    await setDoc(doc(db, 'wardrobe_users', auth.currentUser.uid), { shareEnabled: newVal }, { merge: true });
-    setShareEnabled(newVal);
+  // 整柜公开关闭（开启在分享卡里勾选）
+  const disableWardrobePublic = async () => {
+    try {
+      await setWardrobePublic(false);
+      setWardrobePublicState(false);
+    } catch {
+      alert('操作失败，请重试');
+    }
   };
 
   const copyShareUrl = () => {
@@ -431,7 +460,6 @@ export function WardrobeList() {
 
   return (
     <div className="space-y-10">
-      <MigrateImages />
       {/* Header */}
       <div className="flex flex-col gap-5">
         <div className="border-b border-dashed border-graphite/25 pb-5">
@@ -484,27 +512,62 @@ export function WardrobeList() {
           </div>
         </div>
 
-        {/* Best Match entry */}
-        <button
-          onMouseEnter={() => sfx.cardHover()}
-          onClick={() => { sfx.cardClick(); navigate('/best-match'); }}
-          className="group flex items-center gap-3 px-4 py-3 bg-tag/60 border border-dashed border-graphite/30 hover:border-graphite/55 hover:bg-tag transition-all text-left"
-        >
-          <div className="w-9 h-9 border border-graphite/30 flex items-center justify-center shrink-0 group-hover:border-ink/60 transition-colors">
-            <Sparkles className="w-4 h-4 text-graphite group-hover:text-ink transition-colors" />
+        {/* Best Match entry —— 上传满 3 件单品才解锁 */}
+        {bestMatchUnlocked ? (
+          <button
+            onMouseEnter={() => sfx.cardHover()}
+            onClick={() => { sfx.cardClick(); navigate('/best-match'); }}
+            className="group flex items-center gap-3 px-4 py-3 bg-tag/60 border border-dashed border-graphite/30 hover:border-graphite/55 hover:bg-tag transition-all text-left"
+          >
+            <div className="w-9 h-9 border border-graphite/30 flex items-center justify-center shrink-0 group-hover:border-ink/60 transition-colors">
+              <Sparkles className="w-4 h-4 text-graphite group-hover:text-ink transition-colors" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/60 mb-0.5">
+                Best Match · {matches.length}
+              </p>
+              <p className="font-story text-sm text-ink">
+                {matches.length === 0 ? '建立心中的最佳搭配' : '查看 / 添加搭配档案'}
+              </p>
+            </div>
+            <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/50 group-hover:text-ink transition-colors shrink-0">
+              →
+            </span>
+          </button>
+        ) : (
+          <div
+            className="flex items-center gap-3 px-4 py-3 bg-tag/30 border border-dashed border-graphite/20 text-left cursor-not-allowed"
+            title={`再添加 ${BEST_MATCH_UNLOCK - items.length} 件单品解锁 Best Match`}
+          >
+            <div className="w-9 h-9 border border-graphite/20 flex items-center justify-center shrink-0">
+              <Lock className="w-4 h-4 text-graphite/40" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/40 mb-0.5">
+                Best Match · Locked
+              </p>
+              <p className="font-story text-sm text-graphite/55">
+                再添加 <strong className="text-graphite/80">{BEST_MATCH_UNLOCK - items.length}</strong> 件单品解锁「心中最佳搭配」
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/60 mb-0.5">
-              Best Match · {matches.length}
+        )}
+
+        {/* 首次分享提示 */}
+        {!shareHintSeen && items.length > 0 && (
+          <div className="flex items-center gap-3 bg-tag/70 border border-dashed border-stamp/30 px-4 py-2.5">
+            <p className="flex-1 font-story text-[13px] text-ink/75 leading-snug">
+              点任意单品/搭配右上角的<span className="text-stamp font-semibold"> 分享 </span>，即可生成图文卡片发给朋友 →
             </p>
-            <p className="font-story text-sm text-ink">
-              {matches.length === 0 ? '建立心中的最佳搭配' : '查看 / 添加搭配档案'}
-            </p>
+            <button
+              onClick={dismissShareHint}
+              className="shrink-0 p-1 text-graphite/50 hover:text-ink transition-colors"
+              title="知道了"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/50 group-hover:text-ink transition-colors shrink-0">
-            →
-          </span>
-        </button>
+        )}
 
         {/* Actions row */}
         <div className="flex flex-col items-stretch sm:items-end gap-2">
@@ -517,20 +580,8 @@ export function WardrobeList() {
             <span>添加衣物</span>
           </button>
           <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar bg-tag border border-graphite/20 shadow-sm">
-            {/* 分享 / 清理重复：对空衣柜无意义，新用户先聚焦「添加衣物」 */}
+            {/* 清理重复：对空衣柜无意义，新用户先聚焦「添加衣物」。整柜公开改由分享卡里勾选控制。 */}
             {items.length > 0 && (<>
-            <button
-              onClick={toggleShare}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 font-tag text-[12px] uppercase tracking-wider font-semibold transition-colors whitespace-nowrap border-r border-graphite/15",
-                shareEnabled
-                  ? "text-stamp hover:bg-stamp/8"
-                  : "text-ink/65 hover:text-ink hover:bg-graphite/5"
-              )}
-            >
-              <Share2 className="w-4 h-4" />
-              <span>{shareEnabled ? '关闭分享' : '分享'}</span>
-            </button>
             <button
               onClick={async () => {
                 if (!auth.currentUser) return;
@@ -634,9 +685,9 @@ export function WardrobeList() {
             )}
           </div>
 
-          {shareEnabled && (
+          {wardrobePublic && (
             <div className="flex items-center gap-2 bg-tag border border-graphite/20 px-3 py-2 max-w-full">
-              <span className="font-tag text-[9px] uppercase tracking-[0.15em] text-graphite/50 shrink-0">Link</span>
+              <span className="font-tag text-[9px] uppercase tracking-[0.15em] text-stamp shrink-0">整柜公开</span>
               <span className="font-tag text-[10px] text-ink/70 truncate">{shareUrl}</span>
               <button
                 onClick={copyShareUrl}
@@ -644,6 +695,13 @@ export function WardrobeList() {
                 title="复制链接"
               >
                 {copyDone ? <Check className="w-3.5 h-3.5 text-stamp" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                onClick={disableWardrobePublic}
+                className="shrink-0 font-tag text-[9px] uppercase tracking-wider text-graphite/50 hover:text-stamp transition-colors border-l border-graphite/15 pl-2"
+                title="关闭整柜公开"
+              >
+                关闭
               </button>
             </div>
           )}
@@ -927,6 +985,7 @@ export function WardrobeList() {
                 index={i}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onShare={(it) => { setShareTarget(it); }}
               />
             ))}
 
@@ -954,6 +1013,52 @@ export function WardrobeList() {
         itemToEdit={itemToEdit}
         defaultCategory={itemToEdit ? undefined : (filterCategory !== '全部' ? filterCategory as Category : undefined)}
       />
+
+      {/* 卡片悬浮分享 → 分享卡 */}
+      {shareTarget && auth.currentUser && (
+        <ShareCardModal
+          target={{ kind: 'item', item: shareTarget }}
+          shareUrl={buildItemShareUrl(auth.currentUser.uid, shareTarget.id)}
+          onClose={() => setShareTarget(null)}
+        />
+      )}
+
+      {/* Best Match 解锁弹窗 */}
+      {bmUnlockPopup && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-sm"
+          onClick={() => setBmUnlockPopup(false)}
+        >
+          <div
+            className="bg-kraft border border-dashed border-graphite/30 max-w-sm w-full px-7 py-8 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 border border-stamp/40 flex items-center justify-center mx-auto mb-5">
+              <Sparkles className="w-5 h-5 text-stamp" />
+            </div>
+            <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">Unlocked</p>
+            <h3 className="text-2xl font-story font-bold text-ink mb-3">🎉 Best Match 解锁了！</h3>
+            <p className="font-story text-sm text-graphite/75 leading-relaxed mb-7">
+              你已经记录了 3 件单品。现在可以把心里那些「绝对没错」的搭配组合记下来了。
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => { setBmUnlockPopup(false); sfx.modalOpen(); navigate('/best-match'); }}
+                className="w-full px-6 py-3 bg-stamp text-white font-tag text-[11px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                去建立第一套
+              </button>
+              <button
+                onClick={() => setBmUnlockPopup(false)}
+                className="w-full px-6 py-2.5 font-tag text-[10px] uppercase tracking-widest font-bold text-graphite hover:text-ink transition-colors"
+              >
+                知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

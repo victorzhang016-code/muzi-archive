@@ -34,7 +34,7 @@
 | 动画 | motion v12 |
 | 认证 | Firebase Auth（Google 专属，**已移除匿名登录**） |
 | 数据库 | Firestore（**命名数据库**，非 default） |
-| 图片存储 | Firestore base64（**不用 Firebase Storage**） |
+| 图片存储 | **Vercel Blob**（Phase3 已完成；旧图仍兼容 Firestore base64 读取） |
 | 后端 | Vercel serverless functions（`/api/` 目录） |
 | AI 导入 | Kimi relay via `/api/ai-import` |
 
@@ -47,10 +47,13 @@
 - Firebase Console 默认显示 default 库的规则，改规则必须先在顶部切换数据库
 - 规则直链：`console.firebase.google.com/project/gen-lang-client-0133868878/firestore/databases/ai-studio-6fd5f2f5-eaa7-473f-b484-cc0b2cdcd9bb/rules`
 
-### 图片存储用 base64，不用 Storage
-- Firebase Storage 新格式 bucket 默认 `allow write: if false`，上传必失败
-- 图片压缩：720px 宽，78% JPEG，通过 `src/lib/cropImage.ts` 的 `compressToBase64()`
-- base64 直接存 Firestore 文档字段
+### 图片存储：Vercel Blob（Phase3，已完成）⟵ 原 base64 存 Firestore
+- **历史（Phase1–2）**：弃用 Firebase Storage（新格式 bucket 默认 `allow write: if false`，上传必失败）；图片压缩成 base64（720px 宽 / 78% JPEG，`src/lib/cropImage.ts` 的 `compressToBase64()`）直接存 Firestore 文档字段。
+- **Phase3（2026-06 起）**：图片字节搬到 **Vercel Blob**（public store `wearlog-images`），Firestore 文档只存 https URL。根治读额度被烧 + 带宽 + 发版清缓存（图搬走后看图 0 Firestore 读、Blob CDN 不随部署清）。
+  - **新上传**：压缩后经 `/api/blob-upload`（用 `jose` 验 Firebase ID token → `put()` 到 Blob）→ 拿 URL 存进 `imageUrl`/`photoBase64`。前端 `src/lib/blobUpload.ts`；三处上传（`AddEditItemModal` 裁剪后、`BestMatchDetail`、`BestMatchBuilder` 照片）均已切。HEIC 仍先经 `normalizeImageFile` 转 JPEG。
+  - **读取兼容**：渲染同时支持 `data:`(旧 base64) 和 `https:`(新 Blob)；`api/public` 透传 https、旧 `data:` 仍改写 `/api/img`，并剔除迁移备份字段。
+  - **存量老图迁移（已完成，前端入口已下线）**：曾用 owner 首页一次性「迁移我的图片」按钮（`MigrateImages`，每人各跑自己）逐张搬到 Blob；迁移已跑完，组件与 `/migrate` 数据迁移工具（`MigrateData`）均已从前端移除（见 git 历史）。原图备份字段 `imageUrlBackup` / `photoBackup` 仍在文档里，可单独清理回收存储。
+  - 存储/CLI 参照、坑详见 memory `wearlog-vercel-blob-store` / `wearlog-image-blob-migration`。
 
 ### AI 导入链路
 ```
@@ -77,6 +80,7 @@ max_tokens: 16384，客户端做截断兜底
 - 新增公开页时**务必走缓存接口**，不要再写 `getDocs`/`onSnapshot` 直读公开数据。
 - 公开页相对 owner 编辑有约 1 小时延迟（缓存 TTL），属预期。
 - **Phase 2（已上线，带宽优化）**：公开接口**不再内联 base64**，把 `imageUrl`/`photoBase64` 改写成图片接口 URL `api/img/[uid]/[id].ts`（读单条解码成 JPEG，缓存 1 天，规则 gate）。整柜 JSON 从 8.58MB → ~100KB；图片走独立缓存接口 + 懒加载（`WardrobeItemCard` 的 `eager` prop：owner=eager 默认，公开页传 `eager={false}`）。owner 自用仍直连 base64，不受影响。
+- **Phase 3（已完成，根治）**：图片搬到 **Vercel Blob**，`api/public` 对已迁移图直接透传 Blob https URL → 看图走 Blob CDN、**0 Firestore 读、发版不清缓存**（彻底解决 Phase2 仍存在的「每张图读 1 条文档 + 部署清 ~101 图缓存」回源放大）。未迁移的旧 `data:` 图仍走 `/api/img` 兜底。详见上「图片存储」节。
 
 ---
 
@@ -95,11 +99,11 @@ max_tokens: 16384，客户端做截断兜底
 | 公开页报「未开启分享」但其实已开 | **Firestore 免费层每日读额度（5万/天）用尽 → 429**，规则 `sharingEnabled()` 的 get `wardrobe_users` 被挡 → 判 false | 额度按太平洋时间午夜重置；代码区分 `permission-denied`(真没开) vs 429(显示「繁忙」且不缓存错误)；**根治＝公开页走边缘缓存**（已上线，见下「公开页边缘缓存」节）|
 | serverless 函数 500 `FUNCTION_INVOCATION_FAILED` | `package.json` 是 `"type":"module"`，ESM 下裸 `import x.json` 运行时报错（构建却过）| 函数里**别 import JSON**，把 projectId/dbId 等非密钥常量**硬编码** |
 | 改了 `VITE_AUTHOR_UID` 线上不变 | `VITE_*` 是**构建期**变量；本地 `.env` 与 Vercel env 两套 | 两处都改 + **重新构建/部署**才生效 |
-| 防限流上了，调试时读取仍 1 万/次 | **每次部署清空边缘缓存**（Phase2 后还作废全部 ~101 图）→ 部署后首批访问全回源 | 这是 deploy churn，非生产问题；**别刚部署完量读取**，焐热后连刷应全 `x-vercel-cache: HIT`、0 读 |
+| 极少用户也能烧光 5万读/天 | **每次部署清空边缘缓存**（Phase2 还作废全部 ~101 图）→ 部署后访问全冷启回源。**实测：2 用户 3 小时烧光**，主因同一天**连发 5 次部署** + 紧接着互看 | **别在活跃使用期频繁部署/压测**；批量改低峰一次性发；额度太平洋午夜重置。Phase3 图搬 Blob 后图那块回源**永久消失**（Blob CDN 不随部署清）|
 | 迁移把数据库整个删没 | 账号迁移**比对了错误的 uid** + 原数据**无备份** → 只能重建 | 迁移前**先 export 备份**；涉及 uid 匹配先 **dry-run 核对 ID**；先在测试库演练 |
 | Kimi 一键导入总解析失败 | 真因是 **PDF 文字超 Kimi 单次容量被截断**（不是输出 JSON 不干净）| **扩大单次可读取上限 / `max_tokens`**；格式强约束只治标，容量才治本 |
 
-> ⚠️ 读取额度（Phase1 边缘缓存）+ 带宽（Phase2 图片拆分）两道防线均已上线，公开分享可放心传播；细节见下「公开页边缘缓存」节与 `踩坑经验.md`。
+> ⚠️ 读取额度（Phase1 边缘缓存）+ 带宽（Phase2 图片拆分）两道防线已上线；Phase3（图片搬 Vercel Blob）迁移中，根治「看图读 Firestore + 部署清缓存回源」。细节见下「公开页边缘缓存」节与 `踩坑经验.md`。
 
 ---
 
@@ -116,7 +120,8 @@ max_tokens: 16384，客户端做截断兜底
   rating: number           // Margiela 评分
   story: string            // 故事/装备描述（核心字段）
   purchaseYear?: number
-  imageUrl?: string        // base64
+  imageUrl?: string        // Phase3=Vercel Blob https URL；旧数据可能仍是 data:base64
+  imageUrlBackup?: string  // 迁移时原 base64 备份（回退用；回收存储时清理）
   orderIndex: number
   createdAt: Timestamp
   updatedAt: Timestamp
@@ -143,6 +148,7 @@ git push origin main # 触发 Vercel 自动部署（不用 vercel CLI）
 
 **env 变量：**
 - `KIMI_API_KEY`：服务端，无 VITE_ 前缀
+- `BLOB_READ_WRITE_TOKEN`：服务端，Vercel Blob 写令牌。建 Blob store 时自动注入 Vercel Production/Preview/Development + 本地 `.env.local`（`.env*` 已 gitignore）。`/api/blob-upload` 用。
 - `GEMINI_API_KEY`：客户端（legacy，当前 AI 用 Kimi）
 - `VITE_AUTHOR_UID`：作者账号 uid，用于登录页卡墙 / 新用户示例卡 / `/author` 公开预览。**构建期变量**（VITE_ 前缀，打包时写死）→ 改了必须重新构建才生效。本地在 `.env`，线上在 Vercel 环境变量。当前值 `Tji9nTlLbvSJFJJoeuCDzMqmmxN2`。
 
@@ -152,10 +158,15 @@ git push origin main # 触发 Vercel 自动部署（不用 vercel CLI）
 
 分享功能与登录页卡墙都依赖「作者衣柜公开可读」。换设备 / 换账号 / 部署排查时按此核对：
 
-**隐私模型：** 全局开关 `wardrobe_users/{uid}.shareEnabled`。开了之后该用户整个衣柜（含 best match）只读公开；单品 / best match 分享都复用这一个开关（没有逐条开关）。
+**隐私模型（v2，按单品/搭配分享）：**
+- **每条** `wardrobe_items` / `best_matches` 有 `shared:boolean` —— true=这一条可被链接公开访问。分享卡打开即自动把目标置 `shared=true`，可在卡里「取消分享这一件」。
+- **整柜公开** = `wardrobe_users/{uid}.wardrobePublic`（**新字段**）。只在分享卡里勾选「公开我的整个衣柜」才置 true，可随时取消。
+- 分享一套 best match 会**连带**把它 `allItemIds` 引用的单品也置 `shared=true`（落地页才能渲染吊牌串 / 点开单品）；取消时回收（但跳过仍被其它已分享搭配引用的单品）。逻辑在 `src/lib/sharing.ts`。
+- ⚠️ **旧的全局 `shareEnabled` 字段已停用**（闸门改读 `wardrobePublic`）→ 老用户整柜自动回到私密，无需批量写。`shareEnabled` 残留数据无害。
+- 单条深链不再拉整柜：`/share/:uid/item/:id` 走 `api/public-item`，`/share/:uid/best-match/:id` 走 `api/public-match`（各自单条 gate）；整柜页 `ShareView` 仍走 `api/public`（gate=`wardrobePublic`）。
 
-**作者公开衣柜要生效，三处缺一不可：**
-1. **作者账号点过「分享」** → 写入 `wardrobe_users/{authorUid}.shareEnabled=true`。没点 → 公开读被规则挡 → 卡墙拉到 0 张 → 优雅降级为空（不是 bug）。
+**作者公开衣柜（卡墙 / `/author`）要生效：**
+1. **作者账号在任一分享卡勾过「公开我的整个衣柜」** → 写入 `wardrobe_users/{authorUid}.wardrobePublic=true`。没勾 → 公开读被规则挡 → 卡墙拉到 0 张 → 优雅降级为空（不是 bug）。**注意：v2 上线后作者需重新勾一次**（旧 `shareEnabled` 不再被读）。
 2. **`VITE_AUTHOR_UID` 要等于该作者 uid**，且三处同步：本地 `.env`、Vercel **Production**、Vercel Development（Preview 因 CLI 限制可在后台手动加，仅影响 PR 预览）。
    - 拿 uid 最快方式：作者登录后点「分享」，下方 Link `…/share/XXXX` 里的 XXXX 即 uid。
 3. **改了 uid 或规则后要重新构建 / 部署**：
@@ -165,13 +176,17 @@ git push origin main # 触发 Vercel 自动部署（不用 vercel CLI）
 **分享技术点：**
 - 公开深链：`/share/:uid/item/:id`、`/share/:uid/best-match/:id`（顶层路由，无需登录）。
 - 分享图：`ShareCardModal` 用 `html-to-image` 把卡片渲染成 PNG + `qrcode` 二维码短链。
-- `best_matches` 规则已加 `sharingEnabled()` 公开读（与 `wardrobe_items` 对齐）。
+- `wardrobe_items` / `best_matches` 规则公开读 = `resource.data.shared == true || wardrobePublic(userId)`（与彼此对齐）。
 - 复用组件 `SharedItemCard`（只读弹窗 / 深链页 / 分享图三处共用）。
 
 ---
 
 ## 已上线功能（截至 2026-06）
 
+- **图片搬 Vercel Blob（Phase3，已完成）**：新上传走 Blob，公开看图 0 Firestore 读；存量老图已迁完，前端迁移按钮已下线。详见上「图片存储」节。
+- **HEIC/HEIF 上传**：iPhone 默认格式，上传前 `normalizeImageFile` 动态加载 `heic-to`(WASM) 转 JPEG，再走原有压缩链路。
+- **配饰子类型新增「美甲」「袜子」**（`AccessoryType`）。
+- **访客 Best Match 详情 = 主人布局**：抽出共用只读组件 `BestMatchView`，`BestMatchDetail`(主人) 与 `SharedBestMatchView`(访客) 共用，差异用 slot 注入，杜绝两套 JSX 漂移。
 - **登录页卡墙**：作者公开卡片模糊持续滚动 +「先看看作者的衣柜」预览入口（跳 `/author`）
 - **新用户示例卡**：空衣柜展示一张作者真实卡片作示例
 - **分享单品 / best match**：生成图文卡片（PNG + 二维码短链）+ 公开深链落地页

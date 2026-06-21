@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg, { compressToBase64, normalizeImageFile } from '../lib/cropImage';
 import { uploadImageToBlob } from '../lib/blobUpload';
+import { resolveMediaUrl } from '../lib/media';
 import { MargielaRating } from './MargielaRating';
 
 interface Props {
@@ -54,7 +55,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
       setRating(itemToEdit.rating);
       setStory(itemToEdit.story);
       setPurchaseYear(itemToEdit.purchaseYear ?? '');
-      setImagePreview(itemToEdit.imageUrl || null);
+      setImagePreview(resolveMediaUrl(itemToEdit.imageUrl) || null);
       setImageBase64(null); // no new image selected yet
     } else {
       resetForm();
@@ -144,7 +145,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
     setError(null);
 
     try {
-      // Use newly selected base64, or keep the existing imageUrl (could be old Storage URL or base64)
+      // Use newly selected blob path, or keep the existing image reference.
       const imageUrl = imageBase64 ?? (itemToEdit?.imageUrl || '');
 
       if (itemToEdit) {
@@ -352,21 +353,25 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
                 placeholder="例如：C2H4"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-3">
-                评分
-              </label>
-              <MargielaRating
-                rating={rating}
-                size="lg"
-                interactive
-                onChange={setRating}
-                accentColor="#C24127"
-                dimColor="rgba(107,106,101,0.35)"
-              />
-            </div>
+          {/* 评分 —— 整宽强调块，红框红标，避免被忽略 */}
+          <div className="bg-stamp/5 border border-stamp/30 px-4 py-3.5">
+            <label className="block font-tag text-[10px] uppercase tracking-[0.2em] font-bold text-stamp mb-1">
+              评分 / Rating
+            </label>
+            <p className="font-story text-xs text-graphite/60 mb-3">这件在你心里值几分？（0–10）</p>
+            <MargielaRating
+              rating={rating}
+              size="lg"
+              interactive
+              onChange={setRating}
+              accentColor="#C24127"
+              dimColor="rgba(107,106,101,0.35)"
+            />
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block font-tag text-[9px] uppercase tracking-[0.2em] font-medium text-graphite mb-2">分类</label>
               <select

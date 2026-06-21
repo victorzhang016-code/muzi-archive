@@ -2,6 +2,7 @@ import { WardrobeItem } from '../types';
 import { MargielaRating } from './MargielaRating';
 import { getTagTheme } from '../lib/tagThemes';
 import { toDateSafe } from '../lib/publicWardrobe';
+import { resolveMediaUrl } from '../lib/media';
 
 /**
  * 只读单品大卡（吊牌 + CARE LABEL），无 modal 外壳、无交互。
@@ -80,7 +81,7 @@ export function SharedItemCard({ item }: { item: WardrobeItem }) {
               {item.imageUrl ? (
                 <div className="aspect-[3/4] overflow-hidden">
                   <img
-                    src={item.imageUrl}
+                    src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name}
                     className="w-full h-full object-cover"
                     style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}

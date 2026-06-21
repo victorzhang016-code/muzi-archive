@@ -1,10 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { get } from '@vercel/blob';
 
 /**
- * 公开图片接口（Phase 2 带宽优化）——把单条文档里的 base64 图解码成 JPEG bytes 返回，
- * 长缓存（1 天）。公开页不再内联 8.58MB base64，改成引用这些 URL，按需/懒加载。
+ * 公开图片接口：所有公开分享页图片都经由这里返回。
+ * 这样分享关闭后，CDN 最长只保留短缓存，图片也会一起失效。
  *
- * 安全：未鉴权 REST 读取受 Firestore 规则约束（未开分享的库直接被拒），再校验 userId 匹配。
+ * 兼容三种历史/现存格式：
+ * - data:base64
+ * - 旧的公开 https URL
+ * - 新的 Blob path（如 items/<uid>/<id>.jpg）
+ *
+ * 安全：未鉴权 REST 读取受 Firestore 规则约束，再叠加 shareEnabled 与 owner 校验。
  * /api/img/:uid/:id        → wardrobe_items/{id}.imageUrl
  * /api/img/:uid/:id?c=match → best_matches/{id}.photoBase64
  */
@@ -22,34 +28,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!uid || !id) return res.status(400).send('bad request');
 
   try {
+    // 先读目标 doc，拿到 userId / 图片字段 / 单条 shared 标记
     const r = await fetch(`${BASE}/${collection}/${id}`);
     if (r.status === 429 || r.status === 503) {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(503).send('busy');
     }
-    if (r.status === 403) {
-      res.setHeader('Cache-Control', 'public, s-maxage=60');
-      return res.status(403).send('forbidden');
-    }
     if (!r.ok) {
-      res.setHeader('Cache-Control', 'public, s-maxage=300');
+      res.setHeader('Cache-Control', 'no-store');
       return res.status(404).send('not found');
     }
     const doc: any = await r.json();
     const ownerId = doc?.fields?.userId?.stringValue;
-    const dataUrl = doc?.fields?.[field]?.stringValue;
-    if (ownerId !== uid || !dataUrl) {
-      res.setHeader('Cache-Control', 'public, s-maxage=300');
+    const raw = doc?.fields?.[field]?.stringValue;
+    const docShared = doc?.fields?.shared?.booleanValue === true;
+    if (ownerId !== uid || !raw) {
+      res.setHeader('Cache-Control', 'no-store');
       return res.status(404).send('no image');
     }
 
-    const m = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]*)$/.exec(dataUrl);
-    const mime = m ? m[1] : 'image/jpeg';
-    const b64 = m ? m[2] : dataUrl;
-    const buf = Buffer.from(b64, 'base64');
+    // 闸门：这一条单独分享，或主人开启了整柜公开
+    if (!docShared) {
+      const shareRes = await fetch(`${BASE}/wardrobe_users/${uid}`);
+      const shareDoc: any = shareRes.ok ? await shareRes.json() : null;
+      if (shareDoc?.fields?.wardrobePublic?.booleanValue !== true) {
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(404).send('no image');
+      }
+    }
+
+    let mime = 'image/jpeg';
+    let buf: Buffer;
+    if (/^https?:\/\//i.test(raw)) {
+      const imgRes = await fetch(raw);
+      if (!imgRes.ok) {
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(404).send('no image');
+      }
+      mime = imgRes.headers.get('content-type') || mime;
+      buf = Buffer.from(await imgRes.arrayBuffer());
+    } else if (raw.startsWith('data:')) {
+      const m = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]*)$/.exec(raw);
+      mime = m ? m[1] : 'image/jpeg';
+      const b64 = m ? m[2] : raw;
+      buf = Buffer.from(b64, 'base64');
+    } else {
+      const blob = await get(raw, { access: 'public' });
+      if (!blob || blob.statusCode !== 200) {
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(404).send('no image');
+      }
+      mime = blob.blob.contentType || mime;
+      buf = Buffer.from(await new Response(blob.stream).arrayBuffer());
+    }
 
     res.setHeader('Content-Type', mime);
-    res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=0');
     return res.status(200).end(buf);
   } catch {
     res.setHeader('Cache-Control', 'no-store');

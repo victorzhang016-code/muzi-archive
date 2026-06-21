@@ -9,15 +9,17 @@ import { BestMatch, WardrobeItem } from '../types';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { handleFirestoreError, OperationType, LoadErrorKind } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
-import { bundleEntriesFromMatch } from '../contexts/BestMatchContext';
+import { bundleEntriesFromMatch, useBestMatches } from '../contexts/BestMatchContext';
 import { compressToBase64 } from '../lib/cropImage';
 import { uploadImageToBlob } from '../lib/blobUpload';
 import { BestMatchView } from './BestMatchView';
+import { resolveMediaUrl } from '../lib/media';
 
 export function BestMatchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
+  const { matches: allMatches } = useBestMatches();
   const [match, setMatch] = useState<BestMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
@@ -187,7 +189,7 @@ export function BestMatchDetail() {
   const photoSlot = match.photoBase64 ? (
     <div className="border border-graphite/20 p-2 bg-white/40 max-w-[240px]">
       <img
-        src={match.photoBase64}
+        src={resolveMediaUrl(match.photoBase64)}
         alt="outfit"
         className="w-full"
         style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}
@@ -236,10 +238,11 @@ export function BestMatchDetail() {
           <>
             <button
               onClick={() => { sfx.modalOpen(); setShareOpen(true); }}
-              className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
               title="分享"
             >
               <Share2 className="w-3.5 h-3.5" />
+              <span>分享</span>
             </button>
             <button
               onClick={() => { sfx.modalOpen(); navigate(`/best-match/new?edit=${match.id}`); }}
@@ -273,6 +276,7 @@ export function BestMatchDetail() {
         <ShareCardModal
           target={{ kind: 'bestMatch', match, entries: shareEntries }}
           shareUrl={buildBestMatchShareUrl(auth.currentUser.uid, match.id)}
+          allMatches={allMatches}
           onClose={() => setShareOpen(false)}
         />
       )}

@@ -6,10 +6,26 @@ import { SharedItemCard } from './SharedItemCard';
 import { TagBundle } from './TagBundle';
 import { bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { fetchPublicWardrobe, SharingDisabledError } from '../lib/publicWardrobe';
+import { resolveMediaUrl } from '../lib/media';
 import { cn } from '../lib/utils';
-import { Loader2, X, Lock } from 'lucide-react';
+import { Loader2, X, Lock, Plus } from 'lucide-react';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
+
+/** 序列末尾的「创建我自己的衣柜」卡 —— 视觉仿 Archive 的「New Tag」添加卡。 */
+function CreateOwnCTA({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="cursor-pointer" onClick={onClick} style={{ transform: 'rotate(0.8deg)' }}>
+      <div className="group tag-card-bg tag-shadow flex flex-col items-center justify-center min-h-[280px] hover:translate-y-[-3px] transition-all duration-300 border border-dashed border-graphite/25 hover:border-stamp/50">
+        <div className="w-12 h-12 border border-dashed border-stamp/40 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+          <Plus className="w-5 h-5 text-stamp/70" />
+        </div>
+        <p className="font-tag text-[8px] uppercase tracking-[0.2em] text-graphite/40 mb-1">Your Turn</p>
+        <span className="text-ink/70 font-story font-bold text-base">创建我自己的衣柜 →</span>
+      </div>
+    </div>
+  );
+}
 
 function ReadOnlyItemModal({ item, onClose }: { item: WardrobeItem; onClose: () => void }) {
   return (
@@ -91,7 +107,7 @@ export function ShareView() {
         <div className="text-center">
           <Lock className="w-10 h-10 text-graphite/25 mx-auto mb-5" />
           <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/40 mb-3">Access Denied</p>
-          <p className="font-story text-graphite/60">此衣柜未开启分享</p>
+          <p className="font-story text-graphite/60">主人没有公开整个衣柜</p>
         </div>
       </div>
     );
@@ -136,8 +152,8 @@ export function ShareView() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* CTA：创建我自己的衣柜 */}
-        <div className="mb-10 rounded-xl border border-stamp/30 bg-stamp/5 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* CTA：创建我自己的衣柜 —— 站点设计语言（直角 / 虚线 / tag 底），红实心按钮为唯一焦点 */}
+        <div className="mb-10 border border-dashed border-graphite/30 bg-tag/60 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <p className="font-story text-ink text-[15px] font-semibold">喜欢这种记录方式？</p>
             <p className="font-story text-graphite/70 text-[13px] mt-0.5">建一个只属于你的衣柜，记录每件衣服的故事。</p>
@@ -200,7 +216,7 @@ export function ShareView() {
                       {entries.length > 0 ? (
                         <TagBundle entries={entries} size="mini" variant="stacked" />
                       ) : match.photoBase64 ? (
-                        <img src={match.photoBase64} alt={match.name || 'outfit'} className="w-full rounded" loading="lazy" />
+                        <img src={resolveMediaUrl(match.photoBase64)} alt={match.name || 'outfit'} className="w-full rounded" loading="lazy" />
                       ) : (
                         <p className="font-tag text-xs text-graphite/45 py-12 text-center">No items</p>
                       )}
@@ -227,6 +243,7 @@ export function ShareView() {
                   </button>
                 );
               })}
+              <CreateOwnCTA onClick={() => navigate('/')} />
             </div>
           </section>
         )}
@@ -271,6 +288,7 @@ export function ShareView() {
                 onCardClick={(clickedItem) => setSelectedItem(clickedItem)}
               />
             ))}
+            <CreateOwnCTA onClick={() => navigate('/')} />
           </div>
         )}
         </>

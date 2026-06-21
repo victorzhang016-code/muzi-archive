@@ -9,7 +9,6 @@ import { ShareView } from './components/ShareView';
 import { SharedItemView } from './components/SharedItemView';
 import { SharedBestMatchView } from './components/SharedBestMatchView';
 import { LoginMarquee } from './components/LoginMarquee';
-import { MigrateData } from './components/MigrateData';
 import { BestMatchGallery } from './components/BestMatchGallery';
 import { BestMatchBuilder } from './components/BestMatchBuilder';
 import { BestMatchDetail } from './components/BestMatchDetail';
@@ -114,10 +113,10 @@ function LoginPage() {
           </p>
         )}
 
-        {/* 不登录也能看：作者的公开衣柜（理想态示例） */}
+        {/* 不登录也能看：作者的公开衣柜（理想态示例）—— 红色强引导，与深色登录按钮形成双主按钮 */}
         <button
           onClick={() => navigate('/author')}
-          className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-graphite/30 bg-tag/40 hover:bg-tag/70 hover:border-graphite/50 text-ink/75 hover:text-ink transition-colors text-sm font-story"
+          className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-stamp text-white hover:bg-stamp/90 transition-colors text-sm font-medium shadow-sm"
         >
           先看看作者的衣柜
           <span aria-hidden>→</span>
@@ -153,7 +152,6 @@ function PageRoutes() {
         <Routes location={location}>
           <Route path="/" element={<WardrobeList />} />
           <Route path="/item/:id" element={<ItemDetail />} />
-          <Route path="/migrate" element={<MigrateData />} />
           <Route path="/best-match" element={<BestMatchGallery />} />
           <Route path="/best-match/new" element={<BestMatchBuilder />} />
           <Route path="/best-match/:id" element={<BestMatchDetail />} />

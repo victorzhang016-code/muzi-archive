@@ -1,20 +1,31 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'motion/react';
-import { ArrowLeft, Plus, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Sparkles, Share2 } from 'lucide-react';
 import { useBestMatches, bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { sfx } from '../lib/sounds';
 import { TagBundle } from './TagBundle';
+import { ShareCardModal, ShareTarget } from './ShareCardModal';
+import { buildBestMatchShareUrl } from '../lib/sharing';
+import { auth } from '../firebase';
 import { BestMatch, WardrobeItem } from '../types';
 
 const AESTHETIC_THRESHOLD = 10;
+// 与 WardrobeList 保持一致：单品满 3 件才解锁 Best Match
+const BEST_MATCH_UNLOCK = 3;
 
 export function BestMatchGallery() {
   const navigate = useNavigate();
   const { matches, loading } = useBestMatches();
   const [exitingId, setExitingId] = useState<string | null>(null);
+  const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
   const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
+
+  // 守卫：单品不足 3 件直接回 Archive（防直接输 URL 绕过锁）
+  useEffect(() => {
+    if (!wardrobeLoading && wardrobe.length < BEST_MATCH_UNLOCK) navigate('/');
+  }, [wardrobeLoading, wardrobe.length, navigate]);
 
   const itemMap = useMemo(() => {
     const m = new Map<string, WardrobeItem>();
@@ -145,9 +156,19 @@ export function BestMatchGallery() {
                 setExitingId(match.id);
                 window.setTimeout(() => navigate(`/best-match/${match.id}`), 180);
               }}
+              onShare={setShareTarget}
             />
           ))}
         </div>
+      )}
+
+      {shareTarget && shareTarget.kind === 'bestMatch' && auth.currentUser && (
+        <ShareCardModal
+          target={shareTarget}
+          shareUrl={buildBestMatchShareUrl(auth.currentUser.uid, shareTarget.match.id)}
+          allMatches={matches}
+          onClose={() => setShareTarget(null)}
+        />
       )}
     </div>
   );
@@ -159,9 +180,10 @@ interface MatchCardProps {
   itemMap: Map<string, WardrobeItem>;
   exiting: boolean;
   onOpen: () => void;
+  onShare: (target: ShareTarget) => void;
 }
 
-function MatchCard({ match, index, itemMap, exiting, onOpen }: MatchCardProps) {
+function MatchCard({ match, index, itemMap, exiting, onOpen, onShare }: MatchCardProps) {
   const entries = useMemo(() => bundleEntriesFromMatch(match, itemMap), [match, itemMap]);
   const totalCount = entries.length + entries.reduce((sum, e) => sum + (e.variantCount ?? 0), 0);
 
@@ -179,10 +201,21 @@ function MatchCard({ match, index, itemMap, exiting, onOpen }: MatchCardProps) {
       whileTap={{ scale: 0.97 }}
     >
       <motion.div
-        className="w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 transition-colors"
+        className="relative w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 transition-colors"
         whileHover={{ y: -4 }}
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       >
+        {/* 悬浮分享 */}
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); sfx.modalOpen(); onShare({ kind: 'bestMatch', match, entries }); }}
+          className="absolute top-2 right-2 z-20 p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+          style={{ background: 'rgba(194,65,39,0.9)', color: '#fff' }}
+          title="分享"
+        >
+          <Share2 className="w-3.5 h-3.5" />
+        </span>
         {entries.length > 0 ? (
           <TagBundle entries={entries} size="mini" variant="stacked" />
         ) : (

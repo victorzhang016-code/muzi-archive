@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { BestMatch, BestMatchItems, BestMatchSlot, WardrobeItem } from '../types';
-import { fetchPublicWardrobe, SharingDisabledError } from '../lib/publicWardrobe';
+import { fetchPublicMatch, SharingDisabledError } from '../lib/publicWardrobe';
+import { isWardrobePublic } from '../lib/sharing';
+import { resolveMediaUrl } from '../lib/media';
 import { BestMatchView } from './BestMatchView';
 import { Loader2, Lock, ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -32,14 +34,13 @@ export function SharedBestMatchView() {
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
   const [tempError, setTempError] = useState(false);
+  const [wardrobePublic, setWardrobePublic] = useState(false);
 
   useEffect(() => {
     if (!matchId || !userId) return;
-    // 走边缘缓存接口：一次拿到整柜，本地找出这套搭配 + 解析引用单品（0 次 Firestore 读）
-    fetchPublicWardrobe(userId)
-      .then(({ items, matches }) => {
-        const m = matches.find((x) => x.id === matchId);
-        if (!m) { setDenied(true); return; }
+    // 单条公开搭配接口：拿到这套搭配 + 它引用的单品（落地页渲染吊牌串 / 点开单品）
+    fetchPublicMatch(userId, matchId)
+      .then(({ match: m, items }) => {
         setMatch({
           ...m,
           items: {
@@ -57,6 +58,11 @@ export function SharedBestMatchView() {
       })
       .finally(() => setLoading(false));
   }, [matchId, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    isWardrobePublic(userId).then(setWardrobePublic).catch(() => setWardrobePublic(false));
+  }, [userId]);
 
   const itemMap = useMemo(() => {
     const m = new Map<string, WardrobeItem>();
@@ -103,7 +109,7 @@ export function SharedBestMatchView() {
   const photoSlot = match.photoBase64 ? (
     <div className="border border-graphite/20 p-2 bg-white/40 max-w-[240px]">
       <img
-        src={match.photoBase64}
+        src={resolveMediaUrl(match.photoBase64)}
         alt="outfit"
         className="w-full"
         style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}
@@ -148,15 +154,17 @@ export function SharedBestMatchView() {
           }
         />
 
-        <div className="max-w-6xl mx-auto">
-          <Link
-            to={`/share/${userId}`}
-            className="mt-2 w-full flex items-center justify-center gap-2 px-5 py-3 border border-graphite/25 bg-tag/60 hover:bg-tag text-ink/75 hover:text-ink transition-colors font-tag text-[11px] uppercase tracking-wider"
-          >
-            查看完整衣柜
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+        {wardrobePublic && (
+          <div className="max-w-6xl mx-auto">
+            <Link
+              to={`/share/${userId}`}
+              className="mt-2 w-full flex items-center justify-center gap-2 px-5 py-3 border border-graphite/25 bg-tag/60 hover:bg-tag text-ink/75 hover:text-ink transition-colors font-tag text-[11px] uppercase tracking-wider"
+            >
+              查看完整衣柜
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );

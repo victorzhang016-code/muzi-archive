@@ -24,7 +24,7 @@ export async function uploadImageToBlob(dataUrl: string): Promise<string> {
     throw new Error(msg);
   }
 
-  const { url } = await res.json();
-  if (!url || typeof url !== 'string') throw new Error('图片上传未返回地址');
-  return url;
+  const data = await res.json();
+  if (!data?.blobPath || typeof data.blobPath !== 'string') throw new Error('图片上传未返回地址');
+  return data.blobPath;
 }

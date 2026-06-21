@@ -1,22 +1,24 @@
 import { WardrobeItem } from '../types';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Share2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router';
 import { MargielaRating } from './MargielaRating';
 import { getTagTheme, getTagRotation } from '../lib/tagThemes';
 import { sfx } from '../lib/sounds';
+import { resolveMediaUrl } from '../lib/media';
 
 interface Props {
   item: WardrobeItem;
   index: number;
   onEdit?: (item: WardrobeItem) => void;
   onDelete?: (item: WardrobeItem) => void;
+  onShare?: (item: WardrobeItem) => void;
   onCardClick?: (item: WardrobeItem) => void;
   /** owner 直连 base64 用 eager（默认）；公开页图片是 URL，传 false 走懒加载省带宽 */
   eager?: boolean;
 }
 
-export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick, eager = true }: Props) {
+export function WardrobeItemCard({ item, index, onEdit, onDelete, onShare, onCardClick, eager = true }: Props) {
   const navigate = useNavigate();
   const theme = getTagTheme(item.id);
   const rotation = getTagRotation(item.id);
@@ -89,9 +91,19 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick, e
             </div>
           )}
 
-          {/* Edit / Delete — only in owner mode */}
-          {(onEdit || onDelete) && (
+          {/* Edit / Delete / Share — only in owner mode */}
+          {(onEdit || onDelete || onShare) && (
             <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-30">
+              {onShare && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); sfx.modalOpen(); onShare(item); }}
+                  className="p-2 transition-colors shadow-sm"
+                  style={{ background: 'rgba(194,65,39,0.85)', border: '1px solid rgba(194,65,39,0.5)', color: '#fff', backdropFilter: 'blur(4px)' }}
+                  title="分享"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
+              )}
               {onEdit && (
                 <button
                   onClick={(e) => { e.stopPropagation(); sfx.modalOpen(); onEdit(item); }}
@@ -144,7 +156,7 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onCardClick, e
               <div className="aspect-[3/4] overflow-hidden">
                 {item.imageUrl ? (
                   <img
-                    src={item.imageUrl}
+                    src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}

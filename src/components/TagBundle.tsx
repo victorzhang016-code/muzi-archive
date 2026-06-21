@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import type { WardrobeItem } from '../types';
 import { getTagTheme, hashId } from '../lib/tagThemes';
+import { resolveMediaUrl } from '../lib/media';
 
 type BundleSize = 'mini' | 'detail';
 type BundleVariant = 'stacked' | 'strung';
@@ -124,7 +125,7 @@ function MiniTag({ entry, width, height, rotation, lateralOffset, size, onClick 
           >
             {item.imageUrl ? (
               <img
-                src={item.imageUrl}
+                src={resolveMediaUrl(item.imageUrl)}
                 alt={item.name}
                 className="w-full h-full object-cover"
                 style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}

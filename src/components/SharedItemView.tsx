@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { WardrobeItem } from '../types';
 import { SharedItemCard } from './SharedItemCard';
-import { fetchPublicWardrobe, SharingDisabledError } from '../lib/publicWardrobe';
+import { fetchPublicItem, SharingDisabledError } from '../lib/publicWardrobe';
+import { isWardrobePublic } from '../lib/sharing';
 import { Loader2, Lock, ArrowRight } from 'lucide-react';
 
 export function SharedItemView() {
@@ -11,6 +12,7 @@ export function SharedItemView() {
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
   const [tempError, setTempError] = useState(false);
+  const [wardrobePublic, setWardrobePublic] = useState(false);
 
   useEffect(() => {
     if (!item) return;
@@ -21,19 +23,20 @@ export function SharedItemView() {
 
   useEffect(() => {
     if (!itemId || !userId) return;
-    fetchPublicWardrobe(userId)
-      .then(({ items }) => {
-        const found = items.find((i) => i.id === itemId);
-        if (found) setItem(found);
-        else setDenied(true);
-      })
+    fetchPublicItem(userId, itemId)
+      .then((found) => setItem(found))
       .catch((e) => {
-        // 未开分享 = 未公开；其它（额度/网络）= 临时不可用
+        // 未分享 = 未公开；其它（额度/网络）= 临时不可用
         if (e instanceof SharingDisabledError) setDenied(true);
         else setTempError(true);
       })
       .finally(() => setLoading(false));
   }, [itemId, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    isWardrobePublic(userId).then(setWardrobePublic).catch(() => setWardrobePublic(false));
+  }, [userId]);
 
   if (loading) {
     return (
@@ -88,13 +91,15 @@ export function SharedItemView() {
       <main className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <SharedItemCard item={item} />
 
-        <Link
-          to={`/share/${userId}`}
-          className="mt-8 w-full flex items-center justify-center gap-2 px-5 py-3 border border-graphite/25 bg-tag/60 hover:bg-tag text-ink/75 hover:text-ink transition-colors font-tag text-[11px] uppercase tracking-wider"
-        >
-          查看完整衣柜
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+        {wardrobePublic && (
+          <Link
+            to={`/share/${userId}`}
+            className="mt-8 w-full flex items-center justify-center gap-2 px-5 py-3 border border-graphite/25 bg-tag/60 hover:bg-tag text-ink/75 hover:text-ink transition-colors font-tag text-[11px] uppercase tracking-wider"
+          >
+            查看完整衣柜
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        )}
       </main>
     </div>
   );

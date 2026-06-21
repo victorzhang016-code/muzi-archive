@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import QRCode from 'qrcode';
-import { X, Download, Share2, Loader2, Check, Copy } from 'lucide-react';
+import { X, Download, Share2, Loader2, Check, Copy, Globe, EyeOff } from 'lucide-react';
 import { BestMatch, WardrobeItem } from '../types';
 import type { BundleEntry } from './TagBundle';
 import { TagBundle } from './TagBundle';
 import { SharedItemCard } from './SharedItemCard';
-import { isSharingEnabled, setSharingEnabled } from '../lib/sharing';
+import {
+  setItemShared,
+  setMatchShared,
+  isWardrobePublic,
+  setWardrobePublic,
+  isItemReferencedByOtherSharedMatches,
+} from '../lib/sharing';
+import { resolveMediaUrl } from '../lib/media';
 
 export type ShareTarget =
   | { kind: 'item'; item: WardrobeItem }
@@ -16,15 +23,21 @@ interface Props {
   target: ShareTarget;
   shareUrl: string;
   onClose: () => void;
+  /** 当前用户全部搭配 —— 取消分享某套搭配时，用于跳过仍被其它已分享搭配引用的单品 */
+  allMatches?: BestMatch[];
 }
 
 const CAPTURE_WIDTH = 480;
 
-export function ShareCardModal({ target, shareUrl, onClose }: Props) {
+export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [shareReady, setShareReady] = useState<boolean | null>(null); // null = checking
-  const [enabling, setEnabling] = useState(false);
+  // 这一条是否已可公开访问（打开分享卡即自动置 true）
+  const [thisShared, setThisShared] = useState<boolean | null>(null); // null = 处理中
+  const [togglingThis, setTogglingThis] = useState(false);
+  // 整柜公开开关
+  const [wardrobePublic, setWardrobePublicState] = useState<boolean | null>(null);
+  const [togglingWardrobe, setTogglingWardrobe] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -36,21 +49,73 @@ export function ShareCardModal({ target, shareUrl, onClose }: Props) {
       .catch(() => setQrDataUrl(''));
   }, [shareUrl]);
 
+  // 打开分享卡即自动让这一条可公开访问（链接默认就能打开）
   useEffect(() => {
-    isSharingEnabled(shareUrlUid(shareUrl))
-      .then(setShareReady)
-      .catch(() => setShareReady(false));
+    let alive = true;
+    (async () => {
+      try {
+        if (target.kind === 'item') await setItemShared(target.item.id, true);
+        else await setMatchShared(target.match, true, allMatches);
+        if (alive) setThisShared(true);
+      } catch {
+        if (alive) setThisShared(false);
+      }
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shareUrl]);
 
-  const handleEnable = async () => {
-    setEnabling(true);
+  // 读取整柜公开状态
+  useEffect(() => {
+    isWardrobePublic(shareUrlUid(shareUrl))
+      .then(setWardrobePublicState)
+      .catch(() => setWardrobePublicState(false));
+  }, [shareUrl]);
+
+  const handleUnshareThis = async () => {
+    setTogglingThis(true);
     try {
-      await setSharingEnabled(true);
-      setShareReady(true);
+      if (target.kind === 'item') {
+        const stillReferenced = await isItemReferencedByOtherSharedMatches(target.item.id);
+        if (stillReferenced) {
+          alert('这件单品仍被一套已公开的搭配引用。请先取消那套搭配的分享，或保留这件单品公开。');
+          return;
+        }
+        await setItemShared(target.item.id, false);
+      } else {
+        await setMatchShared(target.match, false, allMatches);
+      }
+      setThisShared(false);
     } catch {
-      alert('开启分享失败，请重试');
+      alert('操作失败，请重试');
     } finally {
-      setEnabling(false);
+      setTogglingThis(false);
+    }
+  };
+
+  const handleReshareThis = async () => {
+    setTogglingThis(true);
+    try {
+      if (target.kind === 'item') await setItemShared(target.item.id, true);
+      else await setMatchShared(target.match, true, allMatches);
+      setThisShared(true);
+    } catch {
+      alert('操作失败，请重试');
+    } finally {
+      setTogglingThis(false);
+    }
+  };
+
+  const handleToggleWardrobe = async () => {
+    const next = !wardrobePublic;
+    setTogglingWardrobe(true);
+    try {
+      await setWardrobePublic(next);
+      setWardrobePublicState(next);
+    } catch {
+      alert('操作失败，请重试');
+    } finally {
+      setTogglingWardrobe(false);
     }
   };
 
@@ -173,21 +238,68 @@ export function ShareCardModal({ target, shareUrl, onClose }: Props) {
 
         {/* ── 操作区 ── */}
         <div className="mt-5 space-y-3">
-          {shareReady === false && (
-            <div className="rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3 text-center">
-              <p className="font-story text-[13px] text-tag/85 mb-2">
-                生成的链接需要「开启分享」后别人才能打开
+          {/* 这一条的公开状态 */}
+          <div className="rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3">
+            {thisShared === null ? (
+              <p className="font-story text-[13px] text-tag/70 flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> 正在生成可分享链接…
               </p>
-              <button
-                onClick={handleEnable}
-                disabled={enabling}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-stamp text-white font-tag text-[11px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors disabled:opacity-50"
-              >
-                {enabling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
-                开启分享
-              </button>
-            </div>
-          )}
+            ) : thisShared ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-story text-[13px] text-tag/85 flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-stamp" />
+                  {target.kind === 'item' ? '这件已可被链接公开访问' : '这套搭配已可被链接公开访问'}
+                </p>
+                <button
+                  onClick={handleUnshareThis}
+                  disabled={togglingThis}
+                  className="shrink-0 inline-flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-wider text-tag/60 hover:text-tag transition-colors disabled:opacity-50"
+                >
+                  {togglingThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <EyeOff className="w-3 h-3" />}
+                  取消分享
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-story text-[13px] text-tag/70">已取消分享，链接暂时打不开</p>
+                <button
+                  onClick={handleReshareThis}
+                  disabled={togglingThis}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors disabled:opacity-50"
+                >
+                  {togglingThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
+                  重新分享
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 整柜公开（可选） */}
+          <button
+            onClick={handleToggleWardrobe}
+            disabled={togglingWardrobe || wardrobePublic === null}
+            className="w-full flex items-center gap-3 rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"
+          >
+            <span
+              className={`w-5 h-5 shrink-0 border flex items-center justify-center transition-colors ${
+                wardrobePublic ? 'bg-stamp border-stamp' : 'border-tag/40'
+              }`}
+            >
+              {togglingWardrobe ? (
+                <Loader2 className="w-3 h-3 animate-spin text-tag" />
+              ) : wardrobePublic ? (
+                <Check className="w-3.5 h-3.5 text-white" />
+              ) : null}
+            </span>
+            <span className="min-w-0">
+              <span className="font-story text-[13px] text-tag/90 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 shrink-0" /> 公开我的整个衣柜
+              </span>
+              <span className="font-story text-[11px] text-tag/55 block mt-0.5">
+                勾选后，别人可浏览你的全部单品与搭配；可随时取消。
+              </span>
+            </span>
+          </button>
 
           <div className="flex items-center gap-2">
             <button
@@ -233,7 +345,7 @@ function BestMatchShareBody({ match, entries }: { match: BestMatch; entries: Bun
         {match.photoBase64 ? (
           <div className="border border-graphite/20 p-2 bg-white/50 w-full max-w-[260px]">
             <img
-              src={match.photoBase64}
+              src={resolveMediaUrl(match.photoBase64)}
               alt={match.name || 'outfit'}
               className="w-full"
               style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}

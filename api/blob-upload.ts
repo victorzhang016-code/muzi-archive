@@ -55,12 +55,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
     // 3) 存 Blob（路径含 uid，防越权；随机文件名防碰撞）
-    const { url } = await put(`items/${uid}/${randomUUID()}.${ext}`, buf, {
+    const blobPath = `items/${uid}/${randomUUID()}.${ext}`;
+    const { url } = await put(blobPath, buf, {
       access: 'public',
       contentType: mime,
       addRandomSuffix: false,
     });
-    return res.status(200).json({ url });
+    return res.status(200).json({ url, blobPath });
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || 'upload failed' });
   }

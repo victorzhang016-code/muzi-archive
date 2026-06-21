@@ -15,6 +15,7 @@ import { getTagTheme, getTagRotation } from '../lib/tagThemes';
 import { useBestMatches, matchesContainingItem, bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { TagBundle } from './TagBundle';
+import { resolveMediaUrl } from '../lib/media';
 
 export function ItemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -145,10 +146,11 @@ export function ItemDetail() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => { sfx.modalOpen(); setIsShareModalOpen(true); }}
-            className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
             title="分享"
           >
             <Share2 className="w-3.5 h-3.5" />
+            <span>分享</span>
           </button>
           <button
             onClick={() => { sfx.modalOpen(); setIsEditModalOpen(true); }}
@@ -230,7 +232,7 @@ export function ItemDetail() {
               {item.imageUrl ? (
                 <div className="aspect-[3/4] overflow-hidden">
                   <img
-                    src={item.imageUrl}
+                    src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name}
                     className="w-full h-full object-cover"
                     style={{ filter: 'contrast(0.97) saturate(0.92) brightness(1.02)' }}

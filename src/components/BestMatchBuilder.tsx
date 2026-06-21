@@ -27,6 +27,7 @@ import { getTagTheme } from '../lib/tagThemes';
 import { TagBundle } from './TagBundle';
 import type { BundleEntry } from './TagBundle';
 import { emptyBestMatchItems, flattenItems } from '../contexts/BestMatchContext';
+import { resolveMediaUrl } from '../lib/media';
 
 type SlotKey = keyof BestMatchItems;
 
@@ -67,6 +68,11 @@ export function BestMatchBuilder() {
   const [filterLength, setFilterLength] = useState<'全部' | '长裤' | '短裤' | '裙子'>('全部');
   const [filterTopType, setFilterTopType] = useState<'全部' | TopType>('全部');
   const [filterAccessoryType, setFilterAccessoryType] = useState<'全部' | AccessoryType>('全部');
+
+  // 守卫：单品不足 3 件不能建搭配（防直接输 URL 绕过锁）
+  useEffect(() => {
+    if (!wardrobeLoading && allItems.length < 3) navigate('/');
+  }, [wardrobeLoading, allItems.length, navigate]);
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc'>('default');
@@ -436,7 +442,7 @@ export function BestMatchBuilder() {
             <div className="flex justify-center">
               {photoBase64 ? (
                 <div className="relative w-32 h-32">
-                  <img src={photoBase64} alt="outfit" className="w-full h-full object-cover border border-graphite/20" />
+                  <img src={resolveMediaUrl(photoBase64)} alt="outfit" className="w-full h-full object-cover border border-graphite/20" />
                   <button
                     onClick={() => setPhotoBase64(null)}
                     className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-ink flex items-center justify-center"
@@ -823,7 +829,7 @@ export function BestMatchBuilder() {
                     >
                       {item.imageUrl ? (
                         <img
-                          src={item.imageUrl}
+                          src={resolveMediaUrl(item.imageUrl)}
                           alt={item.name}
                           className="w-full h-full object-cover"
                           loading="lazy"
@@ -932,4 +938,3 @@ function categoryLabel(slot: SlotKey): string {
     case 'accessories': return '配饰';
   }
 }
-

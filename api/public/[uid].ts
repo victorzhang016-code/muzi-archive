@@ -1,14 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
- * 公开衣柜的「边缘缓存」接口 —— 免费层防限流的核心。
+ * 公开衣柜的短缓存接口。
  *
  * 公开页（卡墙 / 示例卡 / 公开衣柜页 / 单品·搭配深链）全部读这个接口，
- * 由 Vercel CDN 缓存（s-maxage=3600），Firestore 仅在缓存过期时被读一次/小时，
- * 与访问量彻底解耦 —— 访问量再大也撞不到 Firestore 免费层 5 万/天的读取上限。
+ * 由 Vercel CDN 做短缓存，尽量降低 Firestore 读压力，同时保留可撤销性：
+ * 用户关闭分享后，公开 JSON 和图片链接都会在短时间内失效。
  *
  * 用 Firestore REST API（免捆绑 SDK、无 gRPC、冷启快）；未鉴权读取仍受安全规则约束，
- * 再叠加显式 shareEnabled 校验，未开分享的衣柜不会泄露。
+ * 再叠加显式 wardrobePublic 校验，未公开整柜的衣柜不会泄露。
  */
 
 // 非密钥（与前端 firebase-applet-config.json 一致，已在客户端 bundle 中公开）。
@@ -71,17 +71,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10) || 0) : 0;
 
   try {
-    // 1) shareEnabled 闸门（wardrobe_users 规则 allow read: if true）
+    // 1) 整柜公开闸门（wardrobe_users 规则 allow read: if true）—— v2 读 wardrobePublic
     const uRes = await fetch(`${BASE}/wardrobe_users/${uid}`);
     if (uRes.status === 429 || uRes.status === 503) {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(503).json({ error: 'busy' });
     }
     const uDoc = uRes.ok ? await uRes.json() : null;
-    const shareEnabled = uDoc?.fields?.shareEnabled?.booleanValue === true;
-    if (!shareEnabled) {
-      res.setHeader('Cache-Control', 'public, s-maxage=60');
-      return res.status(403).json({ shareEnabled: false });
+    const wardrobePublic = uDoc?.fields?.wardrobePublic?.booleanValue === true;
+    if (!wardrobePublic) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(403).json({ wardrobePublic: false });
     }
 
     // 2) 读单品（+ 非 limit 变体才读 best match）
@@ -102,12 +102,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .slice(0, limit);
     }
 
-    // Phase 2/3：图片不内联 base64。
-    //  - Phase 3 新数据：imageUrl 已是 Blob 公开 https URL → 原样透传（看图走 Blob CDN，0 Firestore 读）。
-    //  - Phase 2 旧数据：imageUrl 还是 data:base64 → 改写成 /api/img 接口 URL（兼容未迁移的图）。
+    // 所有公开图片统一改写为 /api/img。
+    // 这样无论底层存的是 base64、旧公网 URL，还是新的 Blob path，
+    // 对外都只暴露一层可撤销、短缓存的应用内地址。
     const rewriteImg = (val: any, apiPath: string): string | undefined => {
       if (!val || typeof val !== 'string') return undefined;
-      return val.startsWith('http') ? val : apiPath;
+      return apiPath;
     };
     // 注意：迁移会把原 base64 备份到 imageUrlBackup/photoBackup —— 公开 JSON 必须剔除，否则又把 base64 灌回来。
     outItems = outItems.map((it) => {
@@ -121,16 +121,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return out;
     });
 
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
-    return res.status(200).json({ shareEnabled: true, items: outItems, matches });
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=0');
+    return res.status(200).json({ wardrobePublic: true, items: outItems, matches });
   } catch (e: any) {
     if (e?.status === 429 || e?.status === 503) {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(503).json({ error: 'busy' });
     }
     if (e?.status === 403) {
-      res.setHeader('Cache-Control', 'public, s-maxage=60');
-      return res.status(403).json({ shareEnabled: false });
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(403).json({ wardrobePublic: false });
     }
     res.setHeader('Cache-Control', 'no-store');
     return res.status(500).json({ error: String(e?.message || e) });

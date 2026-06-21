@@ -15,9 +15,11 @@ service cloud.firestore {
     function areImmutableFieldsUnchanged(fields) {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
     }
-    function sharingEnabled(userId) {
+    // 整柜公开闸门（v2）：读新字段 wardrobePublic。
+    // 旧的全局 shareEnabled 已停用 —— 老用户整柜自动回到私密，无需批量写。
+    function wardrobePublic(userId) {
       return exists(/databases/$(database)/documents/wardrobe_users/$(userId)) &&
-             get(/databases/$(database)/documents/wardrobe_users/$(userId)).data.shareEnabled == true;
+             get(/databases/$(database)/documents/wardrobe_users/$(userId)).data.wardrobePublic == true;
     }
     // 字段大小上限（防写入滥用 / 超大文档）。base64 图本就受 Firestore 单文档 1MiB 硬上限约束，
     // 这里再叠一道；正常压缩后的图片（720px/78% JPEG）远小于上限，不会被误拒。
@@ -37,8 +39,8 @@ service cloud.firestore {
     }
 
     match /wardrobe_items/{itemId} {
-      // 本人读，或主人开启了分享
-      allow read: if isDocOwner() || sharingEnabled(resource.data.userId);
+      // 本人读，或这一件单独分享，或主人开启了整柜公开
+      allow read: if isDocOwner() || resource.data.shared == true || wardrobePublic(resource.data.userId);
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && withinSizeLimits();
       allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']) && withinSizeLimits();
       allow delete: if isDocOwner();
@@ -46,8 +48,8 @@ service cloud.firestore {
 
     // Best Match — 用户记录的"心中最佳搭配"
     match /best_matches/{matchId} {
-      // 本人读，或主人开启了分享（与 wardrobe_items 一致）
-      allow read: if isDocOwner() || sharingEnabled(resource.data.userId);
+      // 本人读，或这套搭配单独分享，或主人开启了整柜公开（与 wardrobe_items 一致）
+      allow read: if isDocOwner() || resource.data.shared == true || wardrobePublic(resource.data.userId);
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && withinSizeLimits();
       allow update: if isDocOwner() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'userId']) && withinSizeLimits();
       allow delete: if isDocOwner();
@@ -56,6 +58,24 @@ service cloud.firestore {
     // 审美档案缓存 — 文档 ID 即 userId
     match /aesthetic_profiles/{userId} {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // AI 导入限流记录 — 文档 ID 即 userId，由当前登录用户自身读写
+    match /ai_import_usage/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['windowStart', 'count'])
+        && request.resource.data.windowStart is int
+        && request.resource.data.count is int
+        && request.resource.data.count >= 0;
+      allow update: if isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['windowStart', 'count'])
+        && request.resource.data.windowStart is int
+        && request.resource.data.count is int
+        && request.resource.data.count >= 0;
+      allow delete: if false;
     }
   }
 }

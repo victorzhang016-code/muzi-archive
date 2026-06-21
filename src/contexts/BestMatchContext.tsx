@@ -58,6 +58,7 @@ function normalizeMatch(id: string, raw: any): BestMatch {
     story: raw.story ?? raw.note ?? undefined,
     sceneTags: raw.sceneTags,
     photoBase64: raw.photoBase64,
+    shared: raw.shared === true,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };

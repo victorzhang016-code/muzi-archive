@@ -50,6 +50,8 @@ export interface WardrobeItem {
   purchaseYear?: number;
   imageUrl?: string;
   orderIndex?: number;
+  /** 这一件是否可被公开读取（按单品分享模型；整柜公开见 wardrobe_users.wardrobePublic） */
+  shared?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -97,6 +99,8 @@ export interface BestMatch {
   story?: string;
   sceneTags?: SceneTag[];
   photoBase64?: string;
+  /** 这套搭配是否可被公开读取（分享搭配时其引用单品也会随之公开） */
+  shared?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
