@@ -40,7 +40,16 @@ if (USE_EMULATOR) {
   try {
     firestoreDb = initializeFirestore(
       app,
-      { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) },
+      {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        // 墙内/VPN 会反复掐断 Firestore 实时监听(onSnapshot)的 streaming 长连接，
+        // SDK 每次重连都把整柜重新读一遍 —— 实测一次打开被放大 ~8×（143 条 → ~1150 读），
+        // 表现为 Console 满屏 `ERR_CONNECTION_CLOSED` + `Listen stream transport errored`，
+        // 用量图上则是"没人用却一阵阵直连 Firestore 狂读"的尖峰（绕过 Vercel）。
+        // 强制 long-polling：改走普通短 HTTP 轮询，没有易被代理掐断的长连接，
+        // 从根上消除"断→重连→整柜重读"的循环。代价仅实时性略降，本场景无感。
+        experimentalForceLongPolling: true,
+      },
       firebaseConfig.firestoreDatabaseId
     );
   } catch (e) {

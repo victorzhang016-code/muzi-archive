@@ -111,6 +111,7 @@ max_tokens: 16384，客户端做截断兜底
 | 改了 `VITE_AUTHOR_UID` 线上不变 | `VITE_*` 是**构建期**变量；本地 `.env` 与 Vercel env 两套 | 两处都改 + **重新构建/部署**才生效 |
 | 极少用户也能烧光 5万读/天 | **每次部署清空边缘缓存**（Phase2 还作废全部 ~101 图）→ 部署后访问全冷启回源。**实测：2 用户 3 小时烧光**，主因同一天**连发 5 次部署** + 紧接着互看 | **别在活跃使用期频繁部署/压测**；批量改低峰一次性发；额度太平洋午夜重置。注：v2 后公开图片改走 `api/img` 代理（可撤销），看图回源**又回来了**，靠 1 小时缓存压制（非 0 读）；另一个常被忽略的烧额度真凶是**本地 dev 直连生产**，见下条|
 | 没真实访问 / Vercel 无请求，Firestore 读却匀速狂涨 | **本地 `npm run dev` 直连了生产库**：owner app 用 `onSnapshot` 直读 Firestore、绕过 `/api`、绕过 Vercel（日志看不到），HMR 反复重订阅全量重读 | 本地一律 `npm run dev`（已改默认连模拟器，需先 `npm run emu`）；只有 `npm run dev:prod` 才连生产、页面有红条提醒。判别：Vercel 无请求 + 匀速直线 = 客户端 SDK 直连。见 memory `firestore-quota-debugging-trap` |
+| **线上**一次打开就读上千、用量图一阵阵尖峰（Vercel 无请求、实时读取指标却小） | **墙内/VPN 反复掐断 Firestore 实时监听的 streaming 长连接** → SDK 每次重连**整柜重读一遍**。实测一次打开放大 ~8×（143 条 → ~1150 读）。判别：DevTools Console 满屏 `ERR_CONNECTION_CLOSED` + `WebChannelConnection RPC 'Listen' stream transport errored`；网络稳时刷新则干净（几条 channel、200、走缓存近 0 读）→ 间歇性，跟代理稳定度相关 | `firebase.ts` 生产路径 `initializeFirestore` 加 **`experimentalForceLongPolling: true`**（已上线）：改走短轮询，无长连接可掐 → 不再断-重连-整柜重读。全员国内挂代理，故用 Force 而非 AutoDetect（后者连上后中途被掐救不了）|
 | 迁移把数据库整个删没 | 账号迁移**比对了错误的 uid** + 原数据**无备份** → 只能重建 | 迁移前**先 export 备份**；涉及 uid 匹配先 **dry-run 核对 ID**；先在测试库演练 |
 | Kimi 一键导入总解析失败 | 真因是 **PDF 文字超 Kimi 单次容量被截断**（不是输出 JSON 不干净）| **扩大单次可读取上限 / `max_tokens`**；格式强约束只治标，容量才治本 |
 
