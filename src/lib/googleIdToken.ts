@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const GOOGLE_CLIENT_ID = '915859619424-rkp7ps93uandeed9dst34ac9lp5t2vg0.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '915859619424-513s95ujf3rlh2ec4d60ooracvgt29va.apps.googleusercontent.com';
 let scriptPromise: Promise<void> | null = null;
 
 declare global {
