@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
+    "@supabase/supabase-js": "^2.110.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vercel/blob": "^2.4.1",
     "@vitejs/plugin-react": "^5.0.4",
@@ -45,8 +46,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vercel/node": "^5.7.4",
-    "google-auth-library": "^10.6.1",
     "autoprefixer": "^10.4.21",
+    "google-auth-library": "^10.6.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
