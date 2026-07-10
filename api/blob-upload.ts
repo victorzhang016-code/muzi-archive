@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { put } from '@vercel/blob';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { randomUUID } from 'crypto';
+import { blockDevProdServices } from './_lib/devGuard';
 
 /**
  * 图片上传端点（Phase 3：图片搬出 Firestore）。
@@ -29,6 +30,8 @@ async function verifyUid(idToken: string): Promise<string> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (blockDevProdServices(res)) return;
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
 
   // 1) 鉴权

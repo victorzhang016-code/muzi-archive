@@ -76,6 +76,9 @@ max_tokens: 16384，客户端做截断兜底
 - 该函数用 **Firestore REST**（免 SDK、无 gRPC）读取，显式校验 `wardrobePublic`（整柜公开闸门，v2 已从旧 `shareEnabled` 改名），把 Timestamp 序列化成 millis。命门：缓存让 **Firestore 读取与访问量解耦**。
 - 客户端取数都在 `src/lib/publicWardrobe.ts`：整柜 `fetchPublicWardrobe()`（`ShareView`、`sampleItems` 卡墙/示例卡）；单条深链 `fetchPublicItem()`（`SharedItemView`）/ `fetchPublicMatch()`（`SharedBestMatchView`，走 `api/public-item`、`api/public-match`，按单品/搭配 gate，整柜未公开也能开单条）。
 - 时间戳兼容：公开路径是 millis，owner 直连路径是 Firestore Timestamp → 渲染日期一律用 `toDateSafe()`。
+- 2026-06-28 线上事故记忆：若 `/author` 和整柜公开同时失效，先别查前端，先直接请求 `https://wear-log.vercel.app/api/public/<authorUid>`。这次真实症状是该接口返回 `500 FUNCTION_INVOCATION_FAILED`，导致“先看作者衣柜”和访客公开衣柜一起坏。
+- 这次根因不在 `wardrobePublic` 判定，而在公开相关动态 serverless 函数启动失败。`api/public`、`api/public-item`、`api/public-match`、`api/img` 共同依赖 `api/_lib/devGuard`；线上恢复时采用的稳妥修法是把 `blockDevProdFirestore` 直接内联到这 4 个文件里，减少函数装载链路风险。提交：`b4cc169`，标题 `Fix public wardrobe API deployment`。
+- 复核顺序：先查 `/api/public/:uid` 是否从 500 恢复到 200；再查 `/api/public-item/:uid/:id` 与 `/api/img/:uid/:id` 是否 200。不要只看 `git push` 或 `npm run lint` 就认定线上已恢复。
 - owner 自己的 app（`WardrobeContext`/`BestMatchContext` 实时直连）**不走缓存**，保持即时。
 - 新增公开页时**务必走缓存接口**，不要再写 `getDocs`/`onSnapshot` 直读公开数据。
 
