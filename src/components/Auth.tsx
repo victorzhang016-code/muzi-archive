@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LogOut, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { signInWithGoogleIdToken } from '../lib/googleIdToken';
 
 export interface AppUser { uid: string; email: string | null; displayName: string | null; photoURL: string | null; publicId: string }
 let cachedUser: AppUser | null = null;
@@ -26,7 +27,7 @@ export function useAuth() {
     const { data } = supabase.auth.onAuthStateChange((_event, session) => { setTimeout(() => sync(session?.user ?? null), 0); });
     return () => data.subscription.unsubscribe();
   }, []);
-  const login = async () => { setAuthError(null); try { const { error } = await supabase!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }); if (error) throw error; } catch (e) { setAuthError(message(e)); } };
+  const login = async () => { setAuthError(null); try { await signInWithGoogleIdToken(); } catch (e) { setAuthError(message(e)); } };
   const emailLogin = async (email: string, password: string) => { setAuthError(null); const { error } = await supabase!.auth.signInWithPassword({ email, password }); if (error) { setAuthError(message(error)); return false; } return true; };
   const emailRegister = async (email: string, password: string) => { setAuthError(null); const { error } = await supabase!.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } }); if (error) { setAuthError(message(error)); return false; } return true; };
   const resetPassword = async (email: string) => { setAuthError(null); const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` }); if (error) { setAuthError(message(error)); return false; } return true; };

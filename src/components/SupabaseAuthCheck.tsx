@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { supabaseAuthRedirectUrl } from '../lib/auth-redirect';
+import { signInWithGoogleIdToken } from '../lib/googleIdToken';
 
 export function SupabaseAuthCheck() {
   const [user, setUser] = useState<User | null>(null);
@@ -31,11 +31,7 @@ export function SupabaseAuthCheck() {
   const login = async () => {
     if (!supabase) return;
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: supabaseAuthRedirectUrl(window.location.href) },
-    });
-    if (error) setError(error.message);
+    try { await signInWithGoogleIdToken(); } catch (error) { setError(error instanceof Error ? error.message : 'Google 登录失败'); }
   };
 
   const logout = async () => {
