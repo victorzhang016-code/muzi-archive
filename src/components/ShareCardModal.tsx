@@ -67,7 +67,7 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
 
   // 读取整柜公开状态
   useEffect(() => {
-    isWardrobePublic(shareUrlUid(shareUrl))
+    isWardrobePublic()
       .then(setWardrobePublicState)
       .catch(() => setWardrobePublicState(false));
   }, [shareUrl]);

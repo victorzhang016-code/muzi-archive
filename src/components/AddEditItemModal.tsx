@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Upload, Loader2, Crop as CropIcon } from 'lucide-react';
 import { WardrobeItem, NewWardrobeItem, Category, Season, PantsLength, TopType, TOP_TYPES, BOTTOM_TYPES, AccessoryType, ACCESSORY_TYPES } from '../types';
-import { auth, db } from '../firebase';
-import { collection, addDoc, updateDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { auth } from '../lib/authCompat';
+import { createWardrobeItem, updateWardrobeItem } from '../lib/supabaseData';
 import { cn } from '../lib/utils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg, { compressToBase64, normalizeImageFile } from '../lib/cropImage';
@@ -150,20 +150,18 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
 
       if (itemToEdit) {
         // Update
-        const docRef = doc(db, 'wardrobe_items', itemToEdit.id);
-        await updateDoc(docRef, {
+        await updateWardrobeItem(itemToEdit.id, {
           name,
-          brand: brand || deleteField(),
+          brand: brand || undefined,
           category,
           season,
-          ...(category === '下装' && length ? { length } : { length: deleteField() }),
-          ...(category === '上装' && topType ? { topType } : { topType: deleteField() }),
-          ...(category === '配饰' && accessoryType ? { accessoryType } : { accessoryType: deleteField() }),
+          ...(category === '下装' && length ? { length } : { length: undefined }),
+          ...(category === '上装' && topType ? { topType } : { topType: undefined }),
+          ...(category === '配饰' && accessoryType ? { accessoryType } : { accessoryType: undefined }),
           rating,
           story,
           imageUrl,
-          ...(purchaseYear !== '' ? { purchaseYear: Number(purchaseYear) } : { purchaseYear: deleteField() }),
-          updatedAt: serverTimestamp()
+          ...(purchaseYear !== '' ? { purchaseYear: Number(purchaseYear) } : { purchaseYear: undefined }),
         });
       } else {
         // Create
@@ -183,11 +181,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
           orderIndex: Date.now(),
         };
         
-        await addDoc(collection(db, 'wardrobe_items'), {
-          ...newItem,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
+        await createWardrobeItem(auth.currentUser.uid, newItem);
       }
       
       onClose();

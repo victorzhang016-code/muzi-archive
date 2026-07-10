@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { doc, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ArrowLeft, Edit2, Trash2, Loader2, Image as ImageIcon, Share2 } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { buildBestMatchShareUrl } from '../lib/sharing';
-import { db, auth } from '../firebase';
+import { auth } from '../lib/authCompat';
+import { deleteBestMatch, updateBestMatch } from '../lib/supabaseData';
 import { BestMatch, WardrobeItem } from '../types';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { handleFirestoreError, OperationType, LoadErrorKind } from '../lib/firebase-errors';
@@ -19,7 +19,7 @@ export function BestMatchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
-  const { matches: allMatches } = useBestMatches();
+  const { matches: allMatches, loading: matchesLoading } = useBestMatches();
   const [match, setMatch] = useState<BestMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
@@ -35,9 +35,11 @@ export function BestMatchDetail() {
   };
 
   useEffect(() => {
-    if (!id || !auth.currentUser) return;
-    const ref = doc(db, 'best_matches', id);
-    const unsub = onSnapshot(
+    if (!id || matchesLoading) return;
+    setMatch(allMatches.find((candidate) => candidate.id === id) ?? null);
+    setLoadError(null);
+    setLoading(false);
+    /* legacy Firestore listener removed
       ref,
       (snap) => {
         if (snap.exists()) {
@@ -89,8 +91,8 @@ export function BestMatchDetail() {
         setLoading(false);
       }
     );
-    return () => unsub();
-  }, [id]);
+    return () => unsub(); */
+  }, [id, allMatches, matchesLoading]);
 
   const itemMap = useMemo(() => {
     const m = new Map<string, WardrobeItem>();
@@ -109,7 +111,7 @@ export function BestMatchDetail() {
     if (!confirm('删除这套搭配？此操作不可恢复。')) return;
     sfx.deleteItem();
     try {
-      await deleteDoc(doc(db, 'best_matches', match.id));
+      await deleteBestMatch(match.id);
       navigate('/best-match');
     } catch (err) {
       const kind = handleFirestoreError(err, OperationType.DELETE, `best_matches/${match.id}`);
@@ -129,10 +131,7 @@ export function BestMatchDetail() {
     try {
       const base64 = await compressToBase64(file, 720, 0.78);
       const url = await uploadImageToBlob(base64);
-      await updateDoc(doc(db, 'best_matches', match.id), {
-        photoBase64: url,
-        updatedAt: serverTimestamp(),
-      });
+      await updateBestMatch(match.id, { ...match, photoBase64: url });
     } catch (err) {
       const kind = handleFirestoreError(err, OperationType.WRITE, `best_matches/${match.id}`);
       alert(kind === 'busy' ? '服务器繁忙，照片未保存，请稍后重试。' : '照片保存失败，请重试或换一张更小的图片。');
@@ -275,7 +274,7 @@ export function BestMatchDetail() {
       {shareOpen && auth.currentUser && (
         <ShareCardModal
           target={{ kind: 'bestMatch', match, entries: shareEntries }}
-          shareUrl={buildBestMatchShareUrl(auth.currentUser.uid, match.id)}
+          shareUrl={buildBestMatchShareUrl(auth.currentUser.publicId, match.id)}
           allMatches={allMatches}
           onClose={() => setShareOpen(false)}
         />

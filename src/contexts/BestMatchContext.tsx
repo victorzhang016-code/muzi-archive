@@ -1,9 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+﻿import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { BestMatch, BestMatchItems, BestMatchSlot, WardrobeItem } from '../types';
 import type { BundleEntry } from '../components/TagBundle';
 import { classifyLoadError, LoadErrorKind } from '../lib/firebase-errors';
+import { listBestMatches, onDataChanged } from '../lib/supabaseData';
 
 interface BestMatchContextValue {
   matches: BestMatch[];
@@ -78,28 +77,13 @@ export function BestMatchProvider({ children, uid }: { children: ReactNode; uid:
 
     setLoading(true);
     setError(null);
-    const q = query(
-      collection(db, 'best_matches'),
-      where('userId', '==', uid),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const next = snapshot.docs.map((d) => normalizeMatch(d.id, d.data()));
-        setMatches(next);
-        setError(null);
-        setLoading(false);
-      },
-      (err) => {
-        // 同 WardrobeContext：监听回调里不 throw，归类后交给 UI 优雅降级
-        setError(classifyLoadError(err, 'best_matches'));
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+    let active = true;
+    const load = () => listBestMatches()
+      .then((next) => { if (active) { setMatches(next.map((m) => normalizeMatch(m.id, m))); setError(null); setLoading(false); } })
+      .catch((err) => { if (active) { setError(classifyLoadError(err, 'best_matches')); setLoading(false); } });
+    load();
+    const unsubscribe = onDataChanged('best_matches', load);
+    return () => { active = false; unsubscribe(); };
   }, [uid]);
 
   return (
@@ -125,7 +109,7 @@ export function flattenItems(items: BestMatchItems): string[] {
   return out;
 }
 
-/** Just the primaries — for the visual TagBundle which renders one tag per slot. */
+/** Just the primaries 鈥?for the visual TagBundle which renders one tag per slot. */
 export function primaryItemIds(match: BestMatch): string[] {
   const out: string[] = [];
   (['tops', 'bottoms', 'shoes', 'accessories'] as (keyof BestMatchItems)[]).forEach((k) => {
@@ -148,7 +132,7 @@ export function matchesContainingItem(matches: BestMatch[], itemId: string): Bes
 
 /**
  * Build the BundleEntry[] that <TagBundle /> consumes. Each entry is one slot's
- * primary garment + the count of its variants — variants are NOT drawn as their
+ * primary garment + the count of its variants 鈥?variants are NOT drawn as their
  * own tags (that would crowd the bundle); they show up as a "+N" badge instead.
  */
 export function bundleEntriesFromMatch(
@@ -178,3 +162,4 @@ export const emptyBestMatchItems = (): BestMatchItems => ({
 });
 
 export { EMPTY_ITEMS };
+

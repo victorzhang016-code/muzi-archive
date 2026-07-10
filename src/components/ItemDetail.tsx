@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { doc, onSnapshot, deleteDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { auth } from '../lib/authCompat';
+import { deleteWardrobeItem } from '../lib/supabaseData';
 import { WardrobeItem } from '../types';
 import { ArrowLeft, Edit2, Trash2, Loader2, Share2 } from 'lucide-react';
 import { AddEditItemModal } from './AddEditItemModal';
@@ -26,7 +26,7 @@ export function ItemDetail() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { matches } = useBestMatches();
-  const { items: wardrobe } = useWardrobe();
+  const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
 
   const relatedMatches = useMemo(
     () => (id ? matchesContainingItem(matches, id) : []),
@@ -40,9 +40,11 @@ export function ItemDetail() {
   }, [wardrobe]);
 
   useEffect(() => {
-    if (!id || !auth.currentUser) return;
-    const docRef = doc(db, 'wardrobe_items', id);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    if (!id || wardrobeLoading) return;
+    setItem(wardrobe.find((candidate) => candidate.id === id) ?? null);
+    setLoadError(null);
+    setLoading(false);
+    /* legacy Firestore listener removed
       if (docSnap.exists()) {
         setItem({ id: docSnap.id, ...docSnap.data() } as WardrobeItem);
       } else {
@@ -55,14 +57,14 @@ export function ItemDetail() {
       setLoadError(handleFirestoreError(error, OperationType.GET, `wardrobe_items/${id}`));
       setLoading(false);
     });
-    return () => unsubscribe();
-  }, [id, auth.currentUser]);
+    return () => unsubscribe(); */
+  }, [id, wardrobe, wardrobeLoading]);
 
   const handleDelete = async () => {
     if (!item) return;
     sfx.deleteItem();
     try {
-      await deleteDoc(doc(db, 'wardrobe_items', item.id));
+      await deleteWardrobeItem(item.id);
       navigate('/');
     } catch (error) {
       const kind = handleFirestoreError(error, OperationType.DELETE, `wardrobe_items/${item.id}`);
@@ -388,7 +390,7 @@ export function ItemDetail() {
       {isShareModalOpen && auth.currentUser && (
         <ShareCardModal
           target={{ kind: 'item', item }}
-          shareUrl={buildItemShareUrl(auth.currentUser.uid, item.id)}
+          shareUrl={buildItemShareUrl(auth.currentUser.publicId, item.id)}
           onClose={() => setIsShareModalOpen(false)}
         />
       )}

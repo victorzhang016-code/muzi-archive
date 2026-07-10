@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { collection, query, where, deleteDoc, doc, writeBatch, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { auth } from '../lib/authCompat';
+import { deleteWardrobeItem, deleteWardrobeItems, insertWardrobeItems } from '../lib/supabaseData';
 import { WardrobeItem, Category, Season, TopType, TOP_TYPES, AccessoryType, ACCESSORY_TYPES } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
@@ -71,7 +71,7 @@ export function WardrobeList() {
     return () => { alive = false; };
   }, [loading, items.length, error]);
 
-  const shareUrl = auth.currentUser ? `${window.location.origin}/share/${auth.currentUser.uid}` : '';
+  const shareUrl = auth.currentUser ? `${window.location.origin}/share/${auth.currentUser.publicId}` : '';
 
   // 首次进入 Archive 的分享提示
   useEffect(() => {
@@ -96,7 +96,7 @@ export function WardrobeList() {
 
   useEffect(() => {
     if (!auth.currentUser) return;
-    isWardrobePublic(auth.currentUser.uid).then(setWardrobePublicState).catch(() => {});
+    isWardrobePublic().then(setWardrobePublicState).catch(() => {});
   }, []);
 
   // 整柜公开关闭（开启在分享卡里勾选）
@@ -182,7 +182,7 @@ export function WardrobeList() {
 
   const handleDelete = async (item: WardrobeItem) => {
     try {
-      await deleteDoc(doc(db, 'wardrobe_items', item.id));
+      await deleteWardrobeItem(item.id);
     } catch (error) {
       const kind = handleFirestoreError(error, OperationType.DELETE, `wardrobe_items/${item.id}`);
       alert(kind === 'busy' ? '服务器繁忙，删除未成功，请稍后重试。' : '删除失败，请稍后重试。');
@@ -282,7 +282,6 @@ export function WardrobeList() {
         return;
       }
 
-      const itemsRef = collection(db, 'wardrobe_items');
       const userId = auth.currentUser.uid;
 
       let validItems = parsedData.filter(item => item.name && item.category);
@@ -304,16 +303,7 @@ export function WardrobeList() {
         alert(`单品上限为 ${ITEM_LIMIT} 件，本次仅导入前 ${remaining} 条，跳过 ${skipped} 条。`);
       }
 
-      const BATCH_SIZE = 400;
-      let totalCount = 0;
-
-      for (let batchStart = 0; batchStart < validItems.length; batchStart += BATCH_SIZE) {
-        const chunk = validItems.slice(batchStart, batchStart + BATCH_SIZE);
-        const batch = writeBatch(db);
-
-        chunk.forEach((item, i) => {
-          const newDocRef = doc(itemsRef);
-          const itemData: Record<string, any> = {
+      const prepared = validItems.map((item, i) => ({
             name: item.name,
             ...(item.brand ? { brand: item.brand } : {}),
             rating: Number(item.rating) || 5,
@@ -321,17 +311,11 @@ export function WardrobeList() {
             season: item.season || '四季',
             story: item.story || '',
             userId,
-            orderIndex: items.length + batchStart + i,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          };
-          if (item.imageUrl) itemData.imageUrl = item.imageUrl;
-          batch.set(newDocRef, itemData);
-        });
-
-        await batch.commit();
-        totalCount += chunk.length;
-      }
+            orderIndex: items.length + i,
+            ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
+          }));
+      await insertWardrobeItems(userId, prepared);
+      const totalCount = prepared.length;
 
       alert(`成功导入 ${totalCount} 条数据！`);
     } catch (error: any) {
@@ -587,9 +571,7 @@ export function WardrobeList() {
                 if (!auth.currentUser) return;
                 setIsSeeding(true);
                 try {
-                  const q = query(collection(db, 'wardrobe_items'), where('userId', '==', auth.currentUser.uid));
-                  const snapshot = await getDocs(q);
-                  const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WardrobeItem));
+                  const allItems = items;
 
                   const nameGroups = new Map<string, WardrobeItem[]>();
                   allItems.forEach(item => {
@@ -598,7 +580,7 @@ export function WardrobeList() {
                     nameGroups.set(item.name, group);
                   });
 
-                  const batch = writeBatch(db);
+                  const idsToDelete: string[] = [];
                   let deleteCount = 0;
 
                   nameGroups.forEach(group => {
@@ -609,14 +591,14 @@ export function WardrobeList() {
                         return timeA - timeB;
                       });
                       for (let i = 1; i < group.length; i++) {
-                        batch.delete(doc(db, 'wardrobe_items', group[i].id));
+                        idsToDelete.push(group[i].id);
                         deleteCount++;
                       }
                     }
                   });
 
                   if (deleteCount > 0) {
-                    await batch.commit();
+                    await deleteWardrobeItems(idsToDelete);
                     alert(`成功清理了 ${deleteCount} 条重复数据！`);
                   } else {
                     alert('没有发现重复数据。');
@@ -1018,7 +1000,7 @@ export function WardrobeList() {
       {shareTarget && auth.currentUser && (
         <ShareCardModal
           target={{ kind: 'item', item: shareTarget }}
-          shareUrl={buildItemShareUrl(auth.currentUser.uid, shareTarget.id)}
+          shareUrl={buildItemShareUrl(auth.currentUser.publicId, shareTarget.id)}
           onClose={() => setShareTarget(null)}
         />
       )}

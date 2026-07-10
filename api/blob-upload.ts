@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { put } from '@vercel/blob';
-import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { randomUUID } from 'crypto';
 import { blockDevProdServices } from './_lib/devGuard';
+import { verifySupabaseToken } from './_lib/supabase';
 
 /**
  * 图片上传端点（Phase 3：图片搬出 Firestore）。
@@ -15,18 +15,8 @@ import { blockDevProdServices } from './_lib/devGuard';
  * 把 Blob 路径限定到 items/{uid}/，防越权。无需 firebase-admin。
  */
 
-const PROJECT = 'gen-lang-client-0133868878';
-const JWKS = createRemoteJWKSet(
-  new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
-);
-
 async function verifyUid(idToken: string): Promise<string> {
-  const { payload } = await jwtVerify(idToken, JWKS, {
-    issuer: `https://securetoken.google.com/${PROJECT}`,
-    audience: PROJECT,
-  });
-  if (!payload.sub || typeof payload.sub !== 'string') throw new Error('no sub');
-  return payload.sub;
+  return (await verifySupabaseToken(idToken)).id;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

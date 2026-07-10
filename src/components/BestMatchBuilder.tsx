@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { collection, addDoc, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { auth } from '../lib/authCompat';
+import { createBestMatch, getBestMatch, updateBestMatch } from '../lib/supabaseData';
 import { ArrowLeft, X, Loader2, Image as ImageIcon, Check, GitBranch, ArrowUpDown } from 'lucide-react';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
@@ -82,9 +82,8 @@ export function BestMatchBuilder() {
     if (!editId || !auth.currentUser) return;
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'best_matches', editId));
-        if (snap.exists()) {
-          const data = snap.data() as any;
+        const data = await getBestMatch(editId) as any;
+        if (data) {
           // Normalize legacy v1 string[] data into v2 slot[] shape for editing
           const normalizeSlots = (raw: any): BestMatchSlot[] => {
             if (!Array.isArray(raw)) return [];
@@ -318,7 +317,6 @@ export function BestMatchBuilder() {
         userId: auth.currentUser.uid,
         items: selected,
         allItemIds,
-        updatedAt: serverTimestamp(),
       };
       if (name.trim()) payload.name = name.trim();
       if (story.trim()) payload.story = story.trim();
@@ -326,14 +324,13 @@ export function BestMatchBuilder() {
       if (photoBase64) payload.photoBase64 = photoBase64;
 
       if (editId) {
-        await updateDoc(doc(db, 'best_matches', editId), payload);
+        await updateBestMatch(editId, payload);
         sfx.modalClose();
         navigate(`/best-match/${editId}`);
       } else {
-        payload.createdAt = serverTimestamp();
-        const ref = await addDoc(collection(db, 'best_matches'), payload);
+        const id = await createBestMatch(auth.currentUser.uid, payload);
         sfx.modalClose();
-        navigate(`/best-match/${ref.id}`);
+        navigate(`/best-match/${id}`);
       }
     } catch (err) {
       const kind = handleFirestoreError(err, OperationType.WRITE, 'best_matches');

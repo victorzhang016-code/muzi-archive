@@ -26,7 +26,7 @@ export interface FirestoreErrorInfo {
   }
 }
 
-import { auth } from '../firebase';
+import { auth } from './authCompat';
 
 /** Coarse category for surfacing read failures in the UI without scaring the user. */
 export type LoadErrorKind = 'busy' | 'permission' | 'unknown';
@@ -60,15 +60,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
+      providerInfo: []
     },
     operationType,
     path

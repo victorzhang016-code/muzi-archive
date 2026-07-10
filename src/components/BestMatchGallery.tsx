@@ -8,7 +8,7 @@ import { sfx } from '../lib/sounds';
 import { TagBundle } from './TagBundle';
 import { ShareCardModal, ShareTarget } from './ShareCardModal';
 import { buildBestMatchShareUrl } from '../lib/sharing';
-import { auth } from '../firebase';
+import { auth } from '../lib/authCompat';
 import { BestMatch, WardrobeItem } from '../types';
 
 const AESTHETIC_THRESHOLD = 10;
@@ -165,7 +165,7 @@ export function BestMatchGallery() {
       {shareTarget && shareTarget.kind === 'bestMatch' && auth.currentUser && (
         <ShareCardModal
           target={shareTarget}
-          shareUrl={buildBestMatchShareUrl(auth.currentUser.uid, shareTarget.match.id)}
+          shareUrl={buildBestMatchShareUrl(auth.currentUser.publicId, shareTarget.match.id)}
           allMatches={matches}
           onClose={() => setShareTarget(null)}
         />

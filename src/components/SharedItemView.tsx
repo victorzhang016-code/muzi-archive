@@ -35,7 +35,7 @@ export function SharedItemView() {
 
   useEffect(() => {
     if (!userId) return;
-    isWardrobePublic(userId).then(setWardrobePublic).catch(() => setWardrobePublic(false));
+    setWardrobePublic(false);
   }, [userId]);
 
   if (loading) {

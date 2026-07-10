@@ -16,6 +16,7 @@ import { WardrobeProvider } from './contexts/WardrobeContext';
 import { BestMatchProvider } from './contexts/BestMatchContext';
 import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
+import { ResetPassword } from './components/ResetPassword';
 import { Shirt, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
@@ -26,9 +27,12 @@ const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|
   || (/iPhone|iPad/.test(navigator.userAgent) && !/Safari\//.test(navigator.userAgent) && /AppleWebKit/.test(navigator.userAgent));
 
 function LoginPage() {
-  const { login, authError } = useAuth();
+  const { login, emailLogin, emailRegister, resetPassword, authError } = useAuth();
   const navigate = useNavigate();
   const [linkCopied, setLinkCopied] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailNote, setEmailNote] = useState<string | null>(null);
 
   const copyCurrentLink = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -106,6 +110,19 @@ function LoginPage() {
             </svg>
             使用 Google 账号登录
           </button>
+        )}
+
+        {!isWebView && (
+          <div className="mt-4 w-full max-w-xs space-y-2">
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" placeholder="邮箱" className="w-full rounded-full border border-graphite/20 bg-white/70 px-4 py-2.5 text-sm outline-none focus:border-ink" />
+            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" placeholder="密码（至少 8 位）" className="w-full rounded-full border border-graphite/20 bg-white/70 px-4 py-2.5 text-sm outline-none focus:border-ink" />
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => emailLogin(email, password)} className="rounded-full border border-ink px-3 py-2 text-sm">邮箱登录</button>
+              <button onClick={async () => { if (await emailRegister(email, password)) setEmailNote('验证邮件已发送，请验证后登录。'); }} className="rounded-full border border-ink px-3 py-2 text-sm">注册</button>
+            </div>
+            <button onClick={async () => { if (await resetPassword(email)) setEmailNote('重置邮件已发送。'); }} className="text-xs text-graphite underline">忘记密码</button>
+            {emailNote && <p className="text-xs text-graphite">{emailNote}</p>}
+          </div>
         )}
 
         {authError && (
@@ -216,6 +233,7 @@ export default function App() {
               : <Navigate to="/" replace />
           } />
           <Route path="/auth-check" element={<SupabaseAuthCheck />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/*" element={<AppRoutes />} />
         </Routes>
       </BrowserRouter>
