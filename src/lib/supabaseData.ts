@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from 'firebase/firestore';
 import type { BestMatch, WardrobeItem } from '../types';
 import { supabase } from './supabase';
 
@@ -15,7 +15,20 @@ const client = () => {
   return supabase;
 };
 
-const ts = (value: string) => Timestamp.fromDate(new Date(value));
+const ts = (value: string): Timestamp => {
+  const date = new Date(value);
+  const millis = date.getTime();
+  const seconds = Math.floor(millis / 1000);
+  const nanoseconds = (millis - seconds * 1000) * 1_000_000;
+  return {
+    seconds, nanoseconds,
+    toDate: () => new Date(millis),
+    toMillis: () => millis,
+    isEqual: (other: Timestamp) => other.toMillis() === millis,
+    toJSON: () => ({ seconds, nanoseconds, type: 'firestore/timestamp/1.0' as const }),
+    valueOf: () => `${String(seconds).padStart(12, '0')}.${String(nanoseconds).padStart(9, '0')}`,
+  } as Timestamp;
+};
 
 export function mapWardrobeItem(row: Record<string, any>): WardrobeItem {
   return {
