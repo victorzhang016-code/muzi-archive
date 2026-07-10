@@ -13,7 +13,7 @@
 ## Safety gates
 
 1. Export Firebase Auth, every Firestore collection, and every referenced Blob object; encrypt and checksum backups outside Git.
-2. Derive the two valid owners from `wardrobe_items.userId` and `best_matches.userId`; never infer ownership from `wardrobe_users` or the Auth account list.
+2. Derive the two valid owners from `wardrobe_items.userId` and `best_matches.userId`; never infer ownership from `wardrobe_users` or the Auth account list. The confirmed historical anonymous UID `XqZamxOrO9hfY0rUUYsmr9a7nyk1` is backed up but excluded from import.
 3. Run a Supabase Singapore connectivity/auth/read-write smoke test on mainland networks. If it fails, stop before production migration and evaluate a Vercel API proxy.
 4. Run the full import against a disposable Supabase project and compare counts, IDs, timestamps, share flags, image URLs, and item references.
 5. Freeze Firebase writes, perform final export/import, switch Vercel variables, and keep Firebase read-only for 30 days.
