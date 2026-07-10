@@ -28,3 +28,14 @@ Get-FileHash E:\personal-backups\wearlog\*.json -Algorithm SHA256
 ```
 
 The exporter deliberately preserves raw Firestore wire values. A later import mapper, not this backup tool, is responsible for decoding timestamps and validating application fields.
+
+## Supabase Auth provisioning
+
+Run a dry-run first. It only checks that the two confirmed Firebase UIDs have verified Google identities and matching emails:
+
+```powershell
+$env:MIGRATION_ENV_FILE = (Resolve-Path .env.migration.local)
+npx tsx scripts/migration/provision-supabase-users.mts --auth-export=E:\personal-backups\wearlog\firebase-auth-YYYYMMDD.json --valid-uids=uid1,uid2 --out=E:\personal-backups\wearlog\supabase-user-map.json
+```
+
+Only after reviewing the dry-run should `--apply` be added. It creates two Supabase users with random temporary passwords, creates their profiles, and writes the UID map outside Git. It does not send email or import wardrobe data.
