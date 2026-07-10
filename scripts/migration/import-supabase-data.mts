@@ -64,7 +64,11 @@ const items = migration.items.map((item) => ({
   story: item.story ?? '',
   purchase_year: item.purchase_year ?? null,
   image_url: item.image_url ?? null,
-  order_index: item.order_index ?? null,
+  // A few legacy records stored an ordering timestamp in milliseconds. The
+  // target column is integer; seconds preserve ordering while staying in range.
+  order_index: typeof item.order_index === 'number' && item.order_index > 2_147_483_647
+    ? Math.floor(item.order_index / 1000)
+    : item.order_index ?? null,
   shared: item.shared ?? false,
   created_at: item.created_at,
   updated_at: item.updated_at,

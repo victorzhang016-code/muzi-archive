@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { blockDevProdServices } from './_lib/devGuard';
 
 /**
  * AI 导入代理 - 把文档文字转给 Kimi 解析成结构化衣物 JSON。
@@ -128,6 +129,8 @@ async function checkAndIncrementRate(uid: string, idToken: string): Promise<bool
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (blockDevProdServices(res)) return;
+
   if (req.method !== 'POST') return res.status(405).send('Method not allowed');
 
   const authz = (req.headers.authorization as string) || '';
