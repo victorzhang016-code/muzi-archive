@@ -15,6 +15,7 @@ import { BestMatchDetail } from './components/BestMatchDetail';
 import { WardrobeProvider } from './contexts/WardrobeContext';
 import { BestMatchProvider } from './contexts/BestMatchContext';
 import { FeedbackPrompt } from './components/FeedbackPrompt';
+import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { Shirt, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
@@ -214,6 +215,7 @@ export default function App() {
               ? <Navigate to={`/share/${import.meta.env.VITE_AUTHOR_UID}`} replace />
               : <Navigate to="/" replace />
           } />
+          <Route path="/auth-check" element={<SupabaseAuthCheck />} />
           <Route path="/*" element={<AppRoutes />} />
         </Routes>
       </BrowserRouter>
