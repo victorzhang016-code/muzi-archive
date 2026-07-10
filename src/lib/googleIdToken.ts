@@ -6,7 +6,7 @@ let scriptPromise: Promise<void> | null = null;
 declare global {
   interface Window {
     google?: { accounts: { id: {
-      initialize(options: { client_id: string; callback: (response: { credential?: string }) => void; use_fedcm_for_prompt?: boolean }): void;
+      initialize(options: { client_id: string; callback: (response: { credential?: string }) => void; use_fedcm_for_prompt?: boolean; nonce?: string }): void;
       prompt(callback?: (notification: { isNotDisplayed(): boolean; getNotDisplayedReason(): string }) => void): void;
       cancel(): void;
     } } };
@@ -30,13 +30,18 @@ function loadGoogleIdentityServices() {
 export async function signInWithGoogleIdToken(): Promise<void> {
   if (!supabase) throw new Error('Supabase 未配置');
   await loadGoogleIdentityServices();
+  const nonceBytes = crypto.getRandomValues(new Uint8Array(32));
+  const nonce = btoa(String.fromCharCode(...nonceBytes));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce));
+  const hashedNonce = Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
   await new Promise<void>((resolve, reject) => {
     window.google!.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       use_fedcm_for_prompt: true,
+      nonce: hashedNonce,
       callback: async ({ credential }) => {
         if (!credential) return reject(new Error('Google 未返回登录凭据。'));
-        const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: credential });
+        const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: credential, nonce });
         if (error) reject(error); else resolve();
       },
     });
