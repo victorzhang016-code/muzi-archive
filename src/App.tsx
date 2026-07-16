@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -17,6 +17,7 @@ import { BestMatchProvider } from './contexts/BestMatchContext';
 import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
+import { supabase } from './lib/supabase';
 import { Shirt, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
@@ -219,10 +220,51 @@ function AppRoutes() {
   );
 }
 
+/**
+ * Supabase recovery links may land on the configured Site URL when the email
+ * template uses {{ .SiteURL }} instead of {{ .RedirectTo }}. In that case the
+ * recovery session is still valid, but the normal auth guard would render the
+ * wardrobe home page. Keep recovery flows isolated from the normal login flow.
+ */
+function RecoveryRedirect() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    const redirectToResetPassword = () => {
+      if (window.location.pathname !== '/reset-password') {
+        navigate('/reset-password', { replace: true });
+      }
+    };
+
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        redirectToResetPassword();
+      }
+    });
+
+    // The hash/query marker is useful as a fallback for a recovery link that
+    // was opened after the Supabase client had already restored a session.
+    const hashType = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type');
+    const queryType = new URLSearchParams(window.location.search).get('type');
+    if (hashType === 'recovery' || queryType === 'recovery') {
+      void supabase.auth.getSession().then(({ data: sessionData }) => {
+        if (sessionData.session) redirectToResetPassword();
+      });
+    }
+
+    return () => data.subscription.unsubscribe();
+  }, [navigate]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <RecoveryRedirect />
         <Routes>
           <Route path="/share/:userId/item/:itemId" element={<SharedItemView />} />
           <Route path="/share/:userId/best-match/:matchId" element={<SharedBestMatchView />} />
