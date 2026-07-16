@@ -463,11 +463,11 @@ export function WardrobeList() {
               </p>
             </div>
             {/* Controls: spring toggle + sort */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <button
                 onClick={() => { sfx.toggle(); setSplitSpringAutumn(!splitSpringAutumn); }}
                 className={cn(
-                  "px-3 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all",
+                  "min-h-11 px-4 sm:px-5 font-story text-[14px] tracking-wide font-medium border transition-all flex-1 sm:flex-none",
                   splitSpringAutumn
                     ? "bg-stamp text-white border-stamp"
                     : "bg-tag/70 text-ink/70 border-graphite/30 hover:border-graphite/60 hover:text-ink"
@@ -475,12 +475,12 @@ export function WardrobeList() {
               >
                 {splitSpringAutumn ? '已拆分春秋' : '合并春秋'}
               </button>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-tag/70 border border-graphite/30">
-                <ArrowUpDown className="w-3.5 h-3.5 text-graphite/60 shrink-0" />
+              <div className="flex items-center gap-2 min-h-11 px-4 bg-tag/70 border border-graphite/30 flex-1 sm:flex-none">
+                <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
                 <select
                   value={sortOrder}
                   onChange={(e) => { sfx.toggle(); setSortOrder(e.target.value as any); }}
-                  className="bg-transparent font-tag text-[11px] uppercase tracking-wider text-ink/75 outline-none cursor-pointer hover:text-ink transition-colors"
+                  className="bg-transparent font-story text-[14px] tracking-wide text-ink/75 outline-none cursor-pointer hover:text-ink transition-colors w-full"
                 >
                   <option value="default">默认排序</option>
                   <option value="ratingDesc">评分 ↓</option>
@@ -501,36 +501,31 @@ export function WardrobeList() {
           <button
             onMouseEnter={() => sfx.cardHover()}
             onClick={() => { sfx.cardClick(); navigate('/best-match'); }}
-            className="group flex items-center gap-3 px-4 py-3 bg-tag/60 border border-dashed border-graphite/30 hover:border-graphite/55 hover:bg-tag transition-all text-left"
+            className="best-match-entry group w-full text-left"
           >
-            <div className="w-9 h-9 border border-graphite/30 flex items-center justify-center shrink-0 group-hover:border-ink/60 transition-colors">
-              <Sparkles className="w-4 h-4 text-graphite group-hover:text-ink transition-colors" />
+            <div className="best-match-entry__mark" aria-hidden="true">
+              <Sparkles className="w-7 h-7" strokeWidth={1.35} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/60 mb-0.5">
-                Best Match · {matches.length}
-              </p>
-              <p className="font-story text-sm text-ink">
-                {matches.length === 0 ? '建立心中的最佳搭配' : '查看 / 添加搭配档案'}
+            <div className="best-match-entry__copy">
+              <p className="best-match-entry__eyebrow">Best Match · {matches.length} Looks</p>
+              <p className="best-match-entry__title">心中的最佳搭配</p>
+              <p className="best-match-entry__description">
+                {matches.length === 0 ? '把那些“绝对没错”的组合，存成你的审美档案。' : '查看与继续添加你最认可的搭配组合。'}
               </p>
             </div>
-            <span className="font-tag text-[10px] uppercase tracking-wider text-graphite/50 group-hover:text-ink transition-colors shrink-0">
-              →
-            </span>
+            <span className="best-match-entry__cta">进入档案 <span aria-hidden>→</span></span>
           </button>
         ) : (
           <div
-            className="flex items-center gap-3 px-4 py-3 bg-tag/30 border border-dashed border-graphite/20 text-left cursor-not-allowed"
+            className="best-match-entry best-match-entry--locked w-full text-left"
             title={`再添加 ${BEST_MATCH_UNLOCK - items.length} 件单品解锁 Best Match`}
           >
-            <div className="w-9 h-9 border border-graphite/20 flex items-center justify-center shrink-0">
+            <div className="best-match-entry__mark">
               <Lock className="w-4 h-4 text-graphite/40" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/40 mb-0.5">
-                Best Match · Locked
-              </p>
-              <p className="font-story text-sm text-graphite/55">
+            <div className="best-match-entry__copy">
+              <p className="best-match-entry__eyebrow">Best Match · Locked</p>
+              <p className="best-match-entry__title text-graphite/65">
                 再添加 <strong className="text-graphite/80">{BEST_MATCH_UNLOCK - items.length}</strong> 件单品解锁「心中最佳搭配」
               </p>
             </div>
@@ -558,7 +553,7 @@ export function WardrobeList() {
           {/* Mobile-only primary action */}
           <button
             onClick={() => { sfx.modalOpen(); openAddModal(); }}
-            className="sm:hidden w-full flex items-center justify-center gap-2 px-5 py-3 bg-ink text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-ink/85 transition-colors"
+            className="sm:hidden w-full min-h-12 flex items-center justify-center gap-2 px-5 py-3 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>添加衣物</span>
@@ -611,7 +606,7 @@ export function WardrobeList() {
                 }
               }}
               disabled={isSeeding}
-              className="flex items-center gap-2 px-4 py-2.5 font-tag text-[12px] uppercase tracking-wider font-semibold text-stamp hover:bg-stamp/8 transition-colors whitespace-nowrap disabled:opacity-40 border-r border-graphite/15"
+              className="flex items-center gap-2 min-h-12 px-5 font-story text-[14px] tracking-wide font-semibold text-stamp hover:bg-stamp/8 transition-colors whitespace-nowrap disabled:opacity-40 border-r border-graphite/15"
             >
               {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               <span>清理重复</span>
@@ -629,7 +624,7 @@ export function WardrobeList() {
               />
               <button
                 disabled={isSeeding}
-                className="flex items-center gap-2 px-4 py-2.5 font-tag text-[12px] uppercase tracking-wider font-semibold text-ink/65 hover:text-ink hover:bg-graphite/5 transition-colors whitespace-nowrap disabled:opacity-40 border-r border-graphite/15"
+                className="flex items-center gap-2 min-h-12 px-5 font-story text-[14px] tracking-wide font-semibold text-ink/70 hover:text-ink hover:bg-graphite/5 transition-colors whitespace-nowrap disabled:opacity-40 border-r border-graphite/15"
               >
                 {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
                 <span>导入数据</span>
@@ -638,7 +633,7 @@ export function WardrobeList() {
 
             <button
               onClick={() => { sfx.modalOpen(); openAddModal(); }}
-              className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-ink text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-ink/85 transition-colors whitespace-nowrap"
+              className="hidden sm:flex items-center gap-2 min-h-12 px-6 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>添加衣物</span>

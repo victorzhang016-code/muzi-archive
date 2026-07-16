@@ -19,7 +19,7 @@ import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
-import { Shirt, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
+import { Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
 const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|FBAN|FBAV|Instagram|Twitter|Snapchat|Pinterest|LinkedInApp/i.test(navigator.userAgent)
@@ -55,19 +55,26 @@ function LoginPage() {
         }}
       />
       <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-        {/* Logo mark */}
-        <div className="mb-8">
-          <Shirt className="w-14 h-14 text-stamp mx-auto mb-4" strokeWidth={1.5} />
-          <h1
-            className="font-tag font-bold text-ink"
-            style={{ fontSize: '1.7rem', letterSpacing: '0.12em' }}
-          >
-            {/* 「衣」用简洁有力的无衬线 CJK 字体，与 JetBrains Mono 的 LOG 视觉统一 */}
-            <span style={{ fontFamily: '"PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", sans-serif', fontWeight: 800 }}>衣</span>LOG
+        {/* Brand lockup: a quiet archive label, followed by the tag mark and wordmark. */}
+        <div className="login-brand mb-9">
+          <div className="login-brand__caption">
+            <span className="login-brand__index">01</span>
+            <div className="text-left">
+              <p className="font-story text-[15px] leading-none text-ink">标签 · 档案</p>
+              <p className="font-story text-[11px] text-graphite/60 mt-1.5">衣物如标签，记录与归档</p>
+            </div>
+          </div>
+
+          <svg className="login-brand__tag" viewBox="0 0 92 122" aria-hidden="true">
+            <path d="M21 17 39 1h29l19 19v63L67 105H39L21 86V17Z" fill="none" stroke="currentColor" strokeWidth="3.5" />
+            <circle cx="53.5" cy="20" r="5" fill="none" stroke="currentColor" strokeWidth="3.5" />
+            <path d="m59 63 20 20V67" fill="none" stroke="currentColor" strokeWidth="3.5" />
+          </svg>
+
+          <h1 className="login-brand__wordmark">
+            <span>衣</span>LOG
           </h1>
-          <p className="font-tag text-[10px] uppercase tracking-[0.45em] text-graphite/50 mt-1.5">
-            wearlog
-          </p>
+          <p className="login-brand__english">WEARLOG</p>
         </div>
 
         {/* Tagline */}
@@ -188,7 +195,7 @@ function AppRoutes() {
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
       <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-[4.5rem] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <h1 className="font-tag font-bold text-ink group-hover:text-stamp transition-colors" style={{ fontSize: '1.05rem', letterSpacing: '0.06em' }}>
               衣LOG
