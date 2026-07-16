@@ -55,16 +55,8 @@ function LoginPage() {
         }}
       />
       <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-        {/* Brand lockup: a quiet archive label, followed by the tag mark and wordmark. */}
+        {/* Brand lockup: tag mark, wordmark, and the English signature. */}
         <div className="login-brand mb-9">
-          <div className="login-brand__caption">
-            <span className="login-brand__index">01</span>
-            <div className="text-left">
-              <p className="font-story text-[15px] leading-none text-ink">标签 · 档案</p>
-              <p className="font-story text-[11px] text-graphite/60 mt-1.5">衣物如标签，记录与归档</p>
-            </div>
-          </div>
-
           <svg className="login-brand__tag" viewBox="0 0 92 122" aria-hidden="true">
             <path d="M21 17 39 1h29l19 19v63L67 105H39L21 86V17Z" fill="none" stroke="currentColor" strokeWidth="3.5" />
             <circle cx="53.5" cy="20" r="5" fill="none" stroke="currentColor" strokeWidth="3.5" />

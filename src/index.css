@@ -194,40 +194,20 @@ input[type=range]::-moz-range-thumb {
   width: min(100%, 286px);
   color: var(--color-stamp);
 }
-.login-brand__caption {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  color: var(--color-graphite);
-}
-.login-brand__index {
-  width: 38px;
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--color-stamp);
-  border-radius: 50%;
-  color: var(--color-stamp);
-  font-family: var(--font-display);
-  font-size: 19px;
-  line-height: 1;
-}
 .login-brand__tag {
   display: block;
-  width: 78px;
-  height: 104px;
-  margin: 34px auto 18px;
+  width: 62px;
+  height: 82px;
+  margin: 0 auto 9px;
   color: var(--color-stamp);
 }
 .login-brand__wordmark {
   margin: 0;
   color: var(--color-ink);
   font-family: var(--font-display);
-  font-size: clamp(2.65rem, 11vw, 3.8rem);
+  font-size: clamp(2.3rem, 9vw, 3.15rem);
   font-weight: 500;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.1em;
   line-height: 0.95;
 }
 .login-brand__wordmark span {
@@ -236,12 +216,12 @@ input[type=range]::-moz-range-thumb {
   letter-spacing: 0.04em;
 }
 .login-brand__english {
-  margin: 13px 0 0;
+  margin: 11px 0 0;
   color: var(--color-ink);
   font-family: var(--font-tag);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
-  letter-spacing: 0.58em;
+  letter-spacing: 0.48em;
   line-height: 1;
   text-indent: 0.58em;
 }
