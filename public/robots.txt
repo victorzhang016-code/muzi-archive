@@ -6,4 +6,4 @@ Disallow: /item/
 Disallow: /best-match/
 Disallow: /migrate
 
-Sitemap: https://wear-log.vercel.app/sitemap.xml
+Sitemap: https://www.wearlog.cn/sitemap.xml
