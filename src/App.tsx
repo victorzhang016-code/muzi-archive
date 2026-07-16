@@ -17,7 +17,7 @@ import { BestMatchProvider } from './contexts/BestMatchContext';
 import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
-import { supabase } from './lib/supabase';
+import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { Shirt, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
@@ -233,6 +233,7 @@ function RecoveryRedirect() {
     if (!supabase) return;
 
     const redirectToResetPassword = () => {
+      consumeRecoverySession();
       if (window.location.pathname !== '/reset-password') {
         navigate('/reset-password', { replace: true });
       }
@@ -243,6 +244,8 @@ function RecoveryRedirect() {
         redirectToResetPassword();
       }
     });
+
+    if (hasRecoverySession()) redirectToResetPassword();
 
     // The hash/query marker is useful as a fallback for a recovery link that
     // was opened after the Supabase client had already restored a session.

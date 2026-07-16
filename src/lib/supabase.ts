@@ -11,6 +11,15 @@ if (!supabaseUrl || !supabasePublishableKey) {
  * Browser client only. The service-role key must never be placed in Vite env
  * variables or bundled into the browser.
  */
+let recoverySessionDetected = false;
+
+export const hasRecoverySession = () => recoverySessionDetected;
+export const consumeRecoverySession = () => {
+  const detected = recoverySessionDetected;
+  recoverySessionDetected = false;
+  return detected;
+};
+
 export const supabase = supabaseUrl && supabasePublishableKey
   ? createClient(supabaseUrl, supabasePublishableKey, {
       auth: {
@@ -18,5 +27,13 @@ export const supabase = supabaseUrl && supabasePublishableKey
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
-    })
+  })
   : null;
+
+// Register as soon as the singleton is created so a recovery event cannot be
+// missed while React is still mounting the route tree.
+if (supabase) {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') recoverySessionDetected = true;
+  });
+}
