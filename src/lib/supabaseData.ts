@@ -83,4 +83,4 @@ export async function updateBestMatch(id: string, match: Record<string, any>) { 
 export async function deleteBestMatch(id: string) { const { error } = await client().from('best_matches').delete().eq('id', id); if (error) throw error; notifyDataChanged('best_matches'); }
 
 export async function getOwnProfile() { const { data, error } = await client().from('profiles').select('*').single(); if (error) throw error; return data; }
-export async function setWardrobePublic(value: boolean) { const { error } = await client().from('profiles').update({ wardrobe_public: value, updated_at: new Date().toISOString() }); if (error) throw error; }
+export async function setWardrobePublic(value: boolean) { const { error } = await client().rpc('set_wardrobe_public', { enabled: value }); if (error) throw error; }

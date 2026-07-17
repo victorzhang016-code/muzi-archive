@@ -18,10 +18,7 @@ export async function isWardrobePublic(): Promise<boolean> {
 export async function setWardrobePublic(enabled: boolean) {
   const user = getCachedUser();
   if (!user) throw new Error('未登录');
-  const { error } = await db()
-    .from('profiles')
-    .update({ wardrobe_public: enabled, updated_at: new Date().toISOString() })
-    .eq('id', user.uid);
+  const { error } = await db().rpc('set_wardrobe_public', { enabled });
   if (error) throw error;
 }
 export async function isItemShared(itemId: string) { const { data, error } = await db().from('wardrobe_items').select('shared').eq('id', itemId).single(); if (error) throw error; return !!data.shared; }

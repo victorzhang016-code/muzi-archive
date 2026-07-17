@@ -1,18 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { put } from '@vercel/blob';
 import { randomUUID } from 'crypto';
-import { blockDevProdServices } from './_lib/devGuard';
-import { verifySupabaseToken } from './_lib/supabase';
+import { blockDevProdServices } from './_lib/devGuard.js';
+import { verifySupabaseToken } from './_lib/supabase.js';
 
 /**
  * 图片上传端点（Phase 3：图片搬出 Firestore）。
  *
- * 客户端把压缩后的小图（~70KB JPEG）以 base64 传上来，服务端验证 Firebase 身份后
+ * 客户端把压缩后的小图（~70KB JPEG）以 base64 传上来，服务端验证 Supabase 身份后
  * 用 `put()` 存进 Vercel Blob（public），返回公开 URL；前端把这个 URL 存进 Firestore
  * 文档（不再存 base64）。公开看图直接走 Blob CDN，0 次 Firestore 读、发版不清。
  *
- * 鉴权：用 `jose` 验证 Firebase ID token（RS256，Google 公钥 JWKS），取 sub 作 uid，
- * 把 Blob 路径限定到 items/{uid}/，防越权。无需 firebase-admin。
+ * 鉴权：验证 Supabase access token，取 user id 作 uid，把 Blob 路径限定到
+ * items/{uid}/，防越权。无需 firebase-admin。
  */
 
 async function verifyUid(idToken: string): Promise<string> {

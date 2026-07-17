@@ -191,44 +191,95 @@ input[type=range]::-moz-range-thumb {
 
 /* ── Login brand lockup ── */
 .login-brand {
-  width: min(100%, 286px);
-  color: var(--color-stamp);
+  width: min(100%, 320px);
+  color: var(--color-ink);
 }
-.login-brand__tag {
+.login-tag-brand {
+  position: relative;
   display: block;
-  width: 54px;
-  height: 72px;
-  margin: 0 auto 6px;
-  color: var(--color-stamp);
+  width: clamp(208px, 48vw, 300px);
+  aspect-ratio: 942 / 1560;
+  margin: 0 auto;
+  isolation: isolate;
 }
-.login-brand__wordmark {
-  margin: 0;
-  color: var(--color-ink);
-  font-family: var(--font-display);
-  font-size: clamp(2.15rem, 8vw, 2.9rem);
+.login-tag-brand__material {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 20px rgba(52, 42, 30, .22));
+}
+.login-tag-brand__copy {
+  position: absolute;
+  z-index: 2;
+  top: 35%;
+  left: 25.4%;
+  display: flex;
+  width: 49.3%;
+  height: 54.5%;
+  align-items: center;
+  color: #fff0d1;
+  flex-direction: column;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(77, 31, 16, .24);
+}
+.login-tag-brand__eyebrow,
+.login-tag-brand__detail,
+.login-tag-brand__footer {
+  font-family: var(--font-tag);
+  font-size: clamp(.4rem, 1.35vw, .54rem);
   font-weight: 500;
-  letter-spacing: 0.08em;
-  line-height: 0.95;
+  letter-spacing: .14em;
+  line-height: 1.25;
+  white-space: nowrap;
 }
-.login-brand__wordmark span {
-  font-family: "Noto Serif SC", "Songti SC", serif;
-  font-weight: 500;
-  letter-spacing: 0.04em;
+.login-tag-brand__eyebrow {
+  margin-top: 9%;
+  opacity: .9;
 }
-.login-brand__wordmark em {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-}
-.login-brand__english {
-  margin: 9px 0 0;
-  color: var(--color-ink);
+.login-tag-brand__name {
+  margin-top: 19%;
   font-family: "Allura", "Segoe Script", cursive;
-  font-size: 2rem;
+  font-size: clamp(2.15rem, 8.5vw, 3.35rem);
   font-weight: 400;
-  letter-spacing: 0.02em;
-  line-height: .82;
+  letter-spacing: .01em;
+  line-height: .75;
+  white-space: nowrap;
+}
+.login-tag-brand__chinese {
+  margin-top: 7%;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: clamp(.7rem, 2vw, .86rem);
+  font-weight: 500;
+  letter-spacing: .18em;
+  line-height: 1;
+}
+.login-tag-brand__rule {
+  width: 18%;
+  margin-top: 7%;
+  border-top: 1px solid currentColor;
+  opacity: .75;
+}
+.login-tag-brand__detail {
+  margin-top: 7%;
+  font-size: clamp(.34rem, 1.05vw, .44rem);
+  letter-spacing: .1em;
+  opacity: .88;
+}
+.login-tag-brand__footer {
+  margin-top: auto;
+  margin-bottom: 7%;
+  font-size: clamp(.34rem, 1.05vw, .44rem);
+  letter-spacing: .11em;
+  opacity: .82;
+}
+@media (max-width: 480px) {
+  .login-tag-brand { width: clamp(194px, 66vw, 252px); }
+  .login-tag-brand__name { margin-top: 17%; }
+  .login-tag-brand__detail,
+  .login-tag-brand__footer { letter-spacing: .07em; }
 }
 .site-wordmark {
   display: inline-flex;

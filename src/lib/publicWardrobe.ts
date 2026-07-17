@@ -1,7 +1,7 @@
 import { WardrobeItem, BestMatch } from '../types';
 
 /**
- * 公开衣柜取数 —— 统一走 /api/public/:uid（Vercel 边缘缓存），不直连 Firestore。
+ * 公开衣柜取数 —— 统一走 /api/public/:uid（Vercel 边缘缓存），不直连 Supabase 表。
  * 所有公开页（卡墙 / 示例卡 / 公开衣柜 / 深链）都用它，省读取额度。
  */
 
@@ -17,8 +17,7 @@ export class SharingDisabledError extends Error {}
 export class BusyError extends Error {}
 
 /**
- * 时间戳兼容：缓存接口把 Firestore Timestamp 序列化成 millis(number)，
- * 而 owner 直连路径仍是 Firestore Timestamp。此工具同时兼容两者。
+ * 时间戳兼容：公开 RPC 返回 millis(number)，owner 查询适配层返回兼容 Timestamp。
  */
 export function toDateSafe(v: any): Date | null {
   if (v == null) return null;

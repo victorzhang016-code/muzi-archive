@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { get } from '@vercel/blob';
+import { blockDevProdServices } from '../_lib/devGuard.js';
 
 function blobPathFromQuery(path: string | string[] | undefined): string {
   const raw = Array.isArray(path) ? path.join('/') : (path || '');
@@ -7,10 +8,22 @@ function blobPathFromQuery(path: string | string[] | undefined): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (blockDevProdServices(res)) return;
+  if (req.method !== 'GET') return res.status(405).send('Method not allowed');
   const blobPath = blobPathFromQuery(req.query.path);
   if (!blobPath) return res.status(400).send('bad request');
+  if (!/^items\/[^/]+\/[^/]+$/.test(blobPath) || blobPath.includes('..')) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(400).send('bad blob path');
+  }
 
-  const blob = await get(blobPath, { access: 'public' });
+  let blob;
+  try {
+    blob = await get(blobPath, { access: 'public' });
+  } catch {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(503).send('storage unavailable');
+  }
   if (!blob || blob.statusCode !== 200) {
     res.setHeader('Cache-Control', 'no-store');
     return res.status(404).send('not found');

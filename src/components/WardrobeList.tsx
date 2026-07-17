@@ -4,6 +4,7 @@ import { deleteWardrobeItem, deleteWardrobeItems, insertWardrobeItems } from '..
 import { WardrobeItem, Category, Season, TopType, TOP_TYPES, AccessoryType, ACCESSORY_TYPES } from '../types';
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
+import { QuickAddItemModal } from './QuickAddItemModal';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { Plus, Loader2, Database, ArrowUpDown, Trash2, Check, Sparkles, Lock, X } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -78,6 +79,7 @@ export function WardrobeList() {
   const [brandStatsOpen, setBrandStatsOpen] = useState(false);
   const [importHelpOpen, setImportHelpOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<WardrobeItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
   const [subFilterSeason, setSubFilterSeason] = useState<'全部' | Season>('全部');
@@ -950,13 +952,21 @@ export function WardrobeList() {
             <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/35 mb-6">— No Tags —</p>
             <h3 className="text-2xl font-story font-bold text-ink mb-4">Archive Empty</h3>
             <p className="text-graphite mb-8 font-story">开始记录你的第一件衣物故事吧</p>
-            <button
-              onClick={openAddModal}
-              className="px-8 py-3 bg-ink text-white font-tag text-[10px] uppercase tracking-widest font-bold hover:bg-ink/90 transition-colors inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              添加衣物
-            </button>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <button
+                onClick={() => setIsQuickAddOpen(true)}
+                className="min-h-12 px-8 py-3 bg-ink text-white font-story text-[14px] font-semibold hover:bg-ink/90 transition-colors inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                先记录第一件
+              </button>
+              <button
+                onClick={openAddModal}
+                className="min-h-11 px-5 text-sm text-graphite border border-graphite/20 hover:border-ink transition-colors"
+              >
+                完整填写
+              </button>
+            </div>
           </div>
         ) : (
           <div className="masonry-grid pt-4">
@@ -994,6 +1004,10 @@ export function WardrobeList() {
         onClose={() => setIsModalOpen(false)}
         itemToEdit={itemToEdit}
         defaultCategory={itemToEdit ? undefined : (filterCategory !== '全部' ? filterCategory as Category : undefined)}
+      />
+      <QuickAddItemModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
       />
 
       {/* 卡片悬浮分享 → 分享卡 */}

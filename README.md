@@ -1,20 +1,29 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 衣LOG（wearlog）
 
-# Run and deploy your AI Studio app
+衣LOG 是 Victor 的个人衣物档案 app：记录衣物，也记录人与衣物之间的故事；通过 Best Match 保存“心中的最佳搭配”。历史目录和仓库仍可能出现「模子の衣柜」或 `muzi-archive`，均指同一项目。
 
-This contains everything you need to run your app locally.
+线上地址：<https://wear-log.vercel.app>
+当前状态：一阶段已完成。详见 [`docs/PROJECT-STATUS.md`](docs/PROJECT-STATUS.md)。
 
-View your app in AI Studio: https://ai.studio/apps/6fd5f2f5-eaa7-473f-b484-cc0b2cdcd9bb
+## 本地开发
 
-## Run Locally
+```bash
+npm install
+npm run dev
+```
 
-**Prerequisites:**  Node.js
+## 校验
 
+```bash
+npm run lint
+npm run build
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 现行技术栈
+
+- React + TypeScript + Vite
+- Supabase Auth + Postgres + RLS/RPC
+- Vercel Serverless + Vercel Blob
+- Kimi AI relay（`/api/ai-import`）
+
+Firebase 相关依赖和模拟器脚本仍作为迁移兼容遗留保留；新增业务不要重新接回 Firestore。

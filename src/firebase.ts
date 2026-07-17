@@ -16,17 +16,13 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 /**
- * 是否连接本地 Firebase 模拟器（Auth + Firestore）。
- *
- * **安全默认**：本地 dev **默认连模拟器**（额度恒 0），只有显式 `VITE_ALLOW_PROD=true`
- * （`npm run dev:prod`，加载 `.env.prod`）才在 dev 下连生产。这样 `npm run dev` 不会再
- * 静默直连生产库烧额度（owner app 用 onSnapshot 直连 Firestore，绕过 /api，Vercel 日志看不到）。
+ * Firebase 兼容层：当前业务数据已迁移到 Supabase，开发态永远只连接本地模拟器。
+ * 这里保留旧类型和旧数据兼容能力，但不再支持任何“本地切生产”的环境变量开关。
  *
  * 生产构建里 `import.meta.env.DEV` 被静态替换成 `false`，整段连接代码会被 tree-shake，
  * **生产物理上不可能连到模拟器**。
  */
-const ALLOW_PROD_IN_DEV = import.meta.env.VITE_ALLOW_PROD === 'true';
-const USE_EMULATOR = import.meta.env.DEV && !ALLOW_PROD_IN_DEV;
+const USE_EMULATOR = import.meta.env.DEV;
 
 let firestoreDb: Firestore;
 if (USE_EMULATOR) {
@@ -66,21 +62,4 @@ if (USE_EMULATOR) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   connectFirestoreEmulator(firestoreDb, '127.0.0.1', 8080);
   console.warn('[firebase] 🔌 已连接本地模拟器（Auth:9099 / Firestore:8080）—— 读写不碰生产库，额度恒为 0');
-}
-
-// 开发安全网：万一 dev 下连了【生产】库（显式 VITE_ALLOW_PROD=true），弹一条躲不掉的红条 + 报错，
-// 避免再次出现「本地调试静默烧生产额度」。生产构建里 import.meta.env.DEV=false → 整段被 tree-shake。
-if (import.meta.env.DEV && !USE_EMULATOR) {
-  console.error(
-    '[firebase] ⚠️ 本地正连【生产】Firestore —— 会消耗免费读写额度！本地开发请用 `npm run dev`（默认连模拟器，需先 `npm run emu`）。'
-  );
-  if (typeof document !== 'undefined') {
-    const banner = document.createElement('div');
-    banner.textContent = '⚠️ 本地正连「生产」Firestore，正在消耗额度 —— 本地开发请用 npm run dev（连模拟器）';
-    banner.style.cssText =
-      'position:fixed;top:0;left:0;right:0;z-index:99999;background:#C24127;color:#fff;font:600 13px/1.45 system-ui,sans-serif;padding:8px 14px;text-align:center;letter-spacing:.02em;box-shadow:0 1px 6px rgba(0,0,0,.25)';
-    const mount = () => document.body && document.body.prepend(banner);
-    if (document.body) mount();
-    else document.addEventListener('DOMContentLoaded', mount);
-  }
 }

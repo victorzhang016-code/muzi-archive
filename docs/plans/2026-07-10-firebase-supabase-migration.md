@@ -1,5 +1,7 @@
 # Firebase Enterprise to Supabase Migration Plan
 
+> **状态：已完成（2026-07-17）。** 本文件保留为迁移设计与安全决策记录，不再是待执行计划。当前实现状态见 `../PROJECT-STATUS.md`；若与代码冲突，以代码和该状态文档为准。
+
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Move wearlog's two real data owners from the Firebase Enterprise free-tier database to Supabase Free without data loss, while preserving existing public share URLs and adding email/password authentication.

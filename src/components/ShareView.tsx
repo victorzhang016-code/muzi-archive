@@ -7,6 +7,7 @@ import { TagBundle } from './TagBundle';
 import { bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { fetchPublicWardrobe, SharingDisabledError } from '../lib/publicWardrobe';
 import { resolveMediaUrl } from '../lib/media';
+import { startOnboardingIntent } from '../lib/onboarding';
 import { cn } from '../lib/utils';
 import { Loader2, X, Lock, Plus } from 'lucide-react';
 
@@ -64,6 +65,11 @@ export function ShareView() {
   const [view, setView] = useState<'items' | 'matches'>(
     (location.state as { view?: 'items' | 'matches' } | null)?.view === 'matches' ? 'matches' : 'items'
   );
+
+  const handleCreateOwn = () => {
+    startOnboardingIntent('author_wardrobe', location.pathname, '/');
+    navigate('/', { replace: true });
+  };
 
   useEffect(() => {
     document.title = '衣LOG · 穿搭档案 wearlog';
@@ -159,7 +165,7 @@ export function ShareView() {
             <p className="font-story text-graphite/70 text-[13px] mt-0.5">建一个只属于你的衣柜，记录每件衣服的故事。</p>
           </div>
           <button
-            onClick={() => navigate('/')}
+            onClick={handleCreateOwn}
             className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 bg-stamp text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
           >
             创建我自己的衣柜
@@ -243,7 +249,7 @@ export function ShareView() {
                   </button>
                 );
               })}
-              <CreateOwnCTA onClick={() => navigate('/')} />
+              <CreateOwnCTA onClick={handleCreateOwn} />
             </div>
           </section>
         )}
@@ -288,7 +294,7 @@ export function ShareView() {
                 onCardClick={(clickedItem) => setSelectedItem(clickedItem)}
               />
             ))}
-            <CreateOwnCTA onClick={() => navigate('/')} />
+            <CreateOwnCTA onClick={handleCreateOwn} />
           </div>
         )}
         </>
