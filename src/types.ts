@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 
 export type Category = '上装' | '下装' | '鞋子' | '配饰';
-export type Season = '春秋' | '春季' | '秋季' | '夏季' | '冬季' | '四季' | '无';
+export type Season = '春秋' | '春季' | '秋季' | '秋冬' | '夏季' | '冬季' | '四季' | '无';
 export type PantsLength = '长裤' | '短裤' | '裙子';
 export type TopType = '短袖' | '长袖' | '衬衫' | '卫衣' | '毛衣' | '针织衫' | '背心' | '夹克' | '外套' | '皮衣' | '风衣' | '大衣' | '羽绒服' | '西服' | '马甲' | '连衣裙' | '吊带';
 

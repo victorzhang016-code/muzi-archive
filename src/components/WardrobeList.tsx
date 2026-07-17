@@ -80,7 +80,6 @@ export function WardrobeList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<WardrobeItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
-  const [splitSpringAutumn, setSplitSpringAutumn] = useState(false);
   const [subFilterSeason, setSubFilterSeason] = useState<'全部' | Season>('全部');
   const [subFilterLength, setSubFilterLength] = useState<'全部' | '长裤' | '短裤' | '裙子'>('全部');
   const [subFilterTopType, setSubFilterTopType] = useState<'全部' | TopType>('全部');
@@ -88,6 +87,7 @@ export function WardrobeList() {
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc' | 'yearDesc' | 'yearAsc' | 'season' | 'brand' | 'category'>('default');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [wardrobePublic, setWardrobePublicState] = useState(false);
+  const [wardrobePublicLoading, setWardrobePublicLoading] = useState(true);
   const [sampleItem, setSampleItem] = useState<WardrobeItem | null>(null);
   const [shareTarget, setShareTarget] = useState<WardrobeItem | null>(null);
   const [shareHintSeen, setShareHintSeen] = useState(true);
@@ -128,15 +128,20 @@ export function WardrobeList() {
 
   useEffect(() => {
     if (!auth.currentUser) return;
-    isWardrobePublic().then(setWardrobePublicState).catch(() => {});
+    isWardrobePublic()
+      .then(setWardrobePublicState)
+      .catch(() => setWardrobePublicState(false))
+      .finally(() => setWardrobePublicLoading(false));
   }, []);
 
-  // 整柜公开关闭（开启在分享卡里勾选）
-  const disableWardrobePublic = async () => {
+  const toggleWardrobePublic = async () => {
+    if (wardrobePublicLoading) return;
+    const next = !wardrobePublic;
+    setWardrobePublicState(next);
     try {
-      await setWardrobePublic(false);
-      setWardrobePublicState(false);
+      await setWardrobePublic(next);
     } catch {
+      setWardrobePublicState(!next);
       alert('操作失败，请重试');
     }
   };
@@ -278,7 +283,7 @@ export function WardrobeList() {
           fileText = await file.text();
         }
         const aiData = await requestAi({
-          messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、brand（品牌名，字符串，可选）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
+          messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、brand（品牌名，字符串，可选）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"秋冬"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
         });
         const rawText = extractAiText(aiData);
         if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
@@ -339,21 +344,17 @@ export function WardrobeList() {
     }
   };
 
-  const mappedItems = items.map(item => {
-    let displaySeason = item.season;
-    if (!splitSpringAutumn) {
-      if (displaySeason === '春季' || displaySeason === '秋季') {
-        displaySeason = '春秋';
-      }
-    }
-    return { ...item, displaySeason };
-  });
+  const mappedItems = items.map(item => ({ ...item, displaySeason: item.season }));
 
   const filteredItems = mappedItems.filter(item => {
     if (sortOrder !== 'category' && filterCategory !== '全部' && item.category !== filterCategory) return false;
 
     if (filterCategory === '上装' && subFilterSeason !== '全部') {
-      if (item.displaySeason !== subFilterSeason) return false;
+      if (subFilterSeason === '秋冬') {
+        if (!['秋季', '秋冬', '冬季'].includes(item.displaySeason)) return false;
+      } else if (item.displaySeason !== subFilterSeason) {
+        return false;
+      }
     }
 
     if (filterCategory === '上装' && subFilterTopType !== '全部') {
@@ -377,7 +378,7 @@ export function WardrobeList() {
     return true;
   });
 
-  const SEASON_ORDER: Record<string, number> = { '夏季': 0, '春季': 1, '春秋': 2, '秋季': 3, '冬季': 4, '四季': 5, '无': 6 };
+  const SEASON_ORDER: Record<string, number> = { '夏季': 0, '春季': 1, '春秋': 2, '秋季': 3, '秋冬': 4, '冬季': 5, '四季': 6, '无': 7 };
   const CATEGORY_ORDER: Record<string, number> = { '上装': 0, '下装': 1, '鞋子': 2, '配饰': 3 };
 
   const sortedItems = [...filteredItems].sort((a, b) => {
@@ -473,18 +474,29 @@ export function WardrobeList() {
                 记录独属于你和衣服的故事
               </p>
             </div>
-            {/* Controls: spring toggle + sort */}
+            {/* Controls: wardrobe visibility + sort */}
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <button
-                onClick={() => { sfx.toggle(); setSplitSpringAutumn(!splitSpringAutumn); }}
+                type="button"
+                onClick={() => { sfx.toggle(); toggleWardrobePublic(); }}
+                disabled={wardrobePublicLoading}
+                aria-pressed={wardrobePublic}
+                aria-label={wardrobePublic ? '取消整柜公开' : '公开整柜'}
+                title={wardrobePublic ? '点击取消整柜公开' : '点击公开整个衣柜'}
                 className={cn(
-                  "min-h-11 px-4 sm:px-5 font-story text-[14px] tracking-wide font-medium border transition-all flex-1 sm:flex-none",
-                  splitSpringAutumn
+                  "min-h-11 px-3.5 sm:px-4 font-story text-[14px] tracking-wide font-medium border transition-all flex-1 sm:flex-none inline-flex items-center justify-center gap-2 disabled:opacity-60",
+                  wardrobePublic
                     ? "bg-stamp text-white border-stamp"
-                    : "bg-tag/70 text-ink/70 border-graphite/30 hover:border-graphite/60 hover:text-ink"
+                    : "bg-tag/70 text-ink/70 border-graphite/30 hover:border-stamp/60 hover:text-ink"
                 )}
               >
-                {splitSpringAutumn ? '已拆分春秋' : '合并春秋'}
+                <span className={cn(
+                  "w-5 h-5 flex items-center justify-center border transition-colors",
+                  wardrobePublic ? "border-white/70 bg-white/15" : "border-graphite/35"
+                )} aria-hidden="true">
+                  {wardrobePublic && <Check className="w-3.5 h-3.5" />}
+                </span>
+                <span>整柜公开</span>
               </button>
               <div className="flex items-center gap-2 min-h-11 px-4 bg-tag/70 border border-graphite/30 flex-1 sm:flex-none">
                 <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
@@ -675,18 +687,6 @@ export function WardrobeList() {
             )}
           </div>
 
-          {wardrobePublic && (
-            <button
-              type="button"
-              onClick={disableWardrobePublic}
-              className="wardrobe-public-badge"
-              title="取消整柜公开"
-              aria-label="取消整柜公开"
-            >
-              <span className="wardrobe-public-badge__check" aria-hidden="true"><Check className="w-3.5 h-3.5" /></span>
-              <span>整柜公开</span>
-            </button>
-          )}
         </div>
 
         {/* Category filter pills */}
@@ -739,7 +739,7 @@ export function WardrobeList() {
         {filterCategory === '上装' && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-tag text-[12px] uppercase tracking-widest text-graphite/55 shrink-0 mr-1">Season</span>
-            {['全部', ...(splitSpringAutumn ? ['春秋', '春季', '秋季'] : ['春秋']), '夏季', '冬季', '四季'].map(season => (
+            {['全部', '春秋', '春季', '秋季', '秋冬', '夏季', '冬季', '四季'].map(season => (
               <button
                 key={season}
                 onClick={() => { sfx.filterClick(); setSubFilterSeason(season as any); }}

@@ -18,7 +18,7 @@ interface Props {
 }
 
 const CATEGORIES: Category[] = ['上装', '下装', '鞋子', '配饰'];
-const SEASONS: Season[] = ['春秋', '春季', '秋季', '夏季', '冬季', '四季', '无'];
+const SEASONS: Season[] = ['春秋', '春季', '秋季', '秋冬', '夏季', '冬季', '四季', '无'];
 
 export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory }: Props) {
   const [name, setName] = useState('');

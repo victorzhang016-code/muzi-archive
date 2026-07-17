@@ -179,7 +179,9 @@ export function BestMatchBuilder() {
   const filteredCategoryItems = useMemo(() => {
     let arr = categoryItems;
     if (activeCategory === '上装' && filterSeason !== '全部') {
-      arr = arr.filter((i) => i.season === filterSeason);
+      arr = filterSeason === '秋冬'
+        ? arr.filter((i) => i.season === '秋季' || i.season === '秋冬' || i.season === '冬季')
+        : arr.filter((i) => i.season === filterSeason);
     }
     if (activeCategory === '上装' && filterTopType !== '全部') {
       arr = arr.filter((i) => i.topType === filterTopType);
@@ -369,7 +371,7 @@ export function BestMatchBuilder() {
     );
   }
 
-  const seasonOptions: ('全部' | Season)[] = ['全部', '春秋', '春季', '秋季', '夏季', '冬季', '四季'];
+  const seasonOptions: ('全部' | Season)[] = ['全部', '春秋', '春季', '秋季', '秋冬', '夏季', '冬季', '四季'];
   const lengthOptions: ('全部' | '长裤' | '短裤' | '裙子')[] = ['全部', '长裤', '短裤', '裙子'];
 
   return (

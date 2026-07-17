@@ -408,33 +408,6 @@ input[type=range]::-moz-range-thumb {
   }
 }
 
-.wardrobe-public-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 6px 12px 6px 8px;
-  border: 1px solid rgba(194, 65, 39, 0.28);
-  background: rgba(253, 252, 245, 0.72);
-  color: var(--color-stamp);
-  font-family: var(--font-story);
-  font-size: 13px;
-  transition: border-color .2s ease, background-color .2s ease;
-}
-.wardrobe-public-badge:hover {
-  border-color: rgba(194, 65, 39, 0.62);
-  background: var(--color-tag);
-}
-.wardrobe-public-badge__check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 21px;
-  height: 21px;
-  background: var(--color-stamp);
-  color: #fff;
-}
-
 /* Builder filters stay comfortable to scan and tap on smaller screens. */
 .best-match-builder button[class*="text-[10px]"] {
   min-height: 40px;
