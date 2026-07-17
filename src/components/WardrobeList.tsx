@@ -5,13 +5,15 @@ import { WardrobeItem, Category, Season, TopType, TOP_TYPES, AccessoryType, ACCE
 import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
-import { Plus, Loader2, Database, ArrowUpDown, Trash2, Copy, Check, Sparkles, Lock, X } from 'lucide-react';
+import { Plus, Loader2, Database, ArrowUpDown, Trash2, Check, Sparkles, Lock, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ShareCardModal } from './ShareCardModal';
 import { buildItemShareUrl, isWardrobePublic, setWardrobePublic } from '../lib/sharing';
 import { SEED_DATA } from '../data/seedData';
 import { fetchAuthorPreferredSample } from '../lib/sampleItems';
 import { parseCsv } from '../lib/csv';
+import { compressToBase64 } from '../lib/cropImage';
+import { uploadImageToBlob } from '../lib/blobUpload';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
@@ -30,6 +32,41 @@ function normalizeBrand(b: string): string {
 }
 function extractBrands(raw: string): string[] {
   return raw.split(/\s+[xX×]\s+/).map(normalizeBrand).filter(Boolean);
+}
+
+function extractAiText(data: any): string {
+  if (Array.isArray(data?.content)) {
+    return data.content
+      .map((part: any) => typeof part === 'string' ? part : part?.text || '')
+      .join('')
+      .trim();
+  }
+  if (typeof data?.content === 'string') return data.content.trim();
+  const openAiContent = data?.choices?.[0]?.message?.content;
+  if (Array.isArray(openAiContent)) {
+    return openAiContent.map((part: any) => part?.text || '').join('').trim();
+  }
+  return typeof openAiContent === 'string' ? openAiContent.trim() : '';
+}
+
+function parseAiItems(rawText: string): any[] {
+  const candidates: string[] = [];
+  const arrayMatch = rawText.match(/\[[\s\S]*\]/);
+  if (arrayMatch) candidates.push(arrayMatch[0]);
+  const objectMatch = rawText.match(/\{[\s\S]*\}/);
+  if (objectMatch) candidates.push(objectMatch[0]);
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate.replace(/,\s*([}\]])/g, '$1'));
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed?.items)) return parsed.items;
+    } catch {
+      // Try the next JSON-shaped fragment.
+    }
+  }
+
+  throw new Error(`AI 未返回可解析的 JSON。原始返回（前 600 字）：${rawText.slice(0, 600)}`);
 }
 
 export function WardrobeList() {
@@ -53,7 +90,6 @@ export function WardrobeList() {
   const [sortOrder, setSortOrder] = useState<'default' | 'ratingDesc' | 'ratingAsc' | 'yearDesc' | 'yearAsc' | 'season' | 'brand' | 'category'>('default');
   const [filterYear, setFilterYear] = useState<number | '全部'>('全部');
   const [wardrobePublic, setWardrobePublicState] = useState(false);
-  const [copyDone, setCopyDone] = useState(false);
   const [sampleItem, setSampleItem] = useState<WardrobeItem | null>(null);
   const [shareTarget, setShareTarget] = useState<WardrobeItem | null>(null);
   const [shareHintSeen, setShareHintSeen] = useState(true);
@@ -70,8 +106,6 @@ export function WardrobeList() {
     });
     return () => { alive = false; };
   }, [loading, items.length, error]);
-
-  const shareUrl = auth.currentUser ? `${window.location.origin}/share/${auth.currentUser.publicId}` : '';
 
   // 首次进入 Archive 的分享提示
   useEffect(() => {
@@ -107,12 +141,6 @@ export function WardrobeList() {
     } catch {
       alert('操作失败，请重试');
     }
-  };
-
-  const copyShareUrl = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopyDone(true);
-    setTimeout(() => setCopyDone(false), 2000);
   };
 
   useEffect(() => {
@@ -213,38 +241,14 @@ export function WardrobeList() {
       return;
     }
 
+    const isImageFile = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(file.name);
     setIsSeeding(true);
     try {
       let parsedData: any[] = [];
-
-      if (file.name.endsWith('.json')) {
-        const text = await file.text();
-        parsedData = JSON.parse(text);
-      } else if (file.name.endsWith('.csv')) {
-        const text = await file.text();
-        parsedData = parseCsv(text);
-      } else if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
-        let fileText: string;
-
-        let requestBody: object;
-
-        if (file.name.endsWith('.pdf')) {
-          const { extractText, getDocumentProxy } = await import('unpdf');
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
-          const { text } = await extractText(pdf, { mergePages: true });
-          if (!text || !text.trim()) {
-            throw new Error('PDF 文字提取失败：可能是图片型扫描件，请改用 TXT 或 JSON');
-          }
-          fileText = text;
-        } else {
-          fileText = await file.text();
-        }
-        requestBody = {
-          messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、brand（品牌名，字符串，可选）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
-        };
-
-        const idToken = await auth.currentUser.getIdToken();
+      let importedImageData: string | null = null;
+      let imageSaveFailed = false;
+      const idToken = await auth.currentUser.getIdToken();
+      const requestAi = async (requestBody: Record<string, unknown>) => {
         const aiRes = await fetch('/api/ai-import', {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'authorization': `Bearer ${idToken}` },
@@ -254,26 +258,48 @@ export function WardrobeList() {
           const errBody = await aiRes.text();
           throw new Error(`AI 解析失败: ${aiRes.status} — ${errBody.slice(0, 300)}`);
         }
-        const aiData = await aiRes.json();
-        const rawText = aiData.content?.[0]?.text ?? '';
+        return aiRes.json();
+      };
+
+      if (isImageFile) {
+        importedImageData = await compressToBase64(file, 1600, 0.82);
+        const aiData = await requestAi({
+          mode: 'vision',
+          image: importedImageData,
+          prompt: '识别这张图片中的衣物。请严格只返回 JSON 数组，每个对象包含 name（衣物名称）、brand（品牌，可选）、rating（1-10 的数字）、category（上装/下装/鞋子/配饰之一）、season（春季/秋季/春秋/夏季/冬季/四季之一）、story（对材质、版型、颜色、图案和可辨识细节的简短描述）。一张图里有多个清晰可分开的单品时分别返回。无法确定的字段使用空字符串或四季。不要 Markdown，不要解释。',
+        });
+        const rawText = extractAiText(aiData);
         if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
-        let jsonStr = '';
-        const fullMatch = rawText.match(/\[[\s\S]*\]/);
-        if (fullMatch) {
-          jsonStr = fullMatch[0];
+        parsedData = parseAiItems(rawText);
+      } else if (file.name.endsWith('.json')) {
+        const text = await file.text();
+        parsedData = JSON.parse(text);
+      } else if (file.name.endsWith('.csv')) {
+        const text = await file.text();
+        parsedData = parseCsv(text);
+      } else if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
+        let fileText: string;
+
+        if (file.name.endsWith('.pdf')) {
+          const { extractText, getDocumentProxy } = await import('unpdf');
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+          const { text } = await extractText(pdf, { mergePages: true });
+          if (!text || !text.trim()) {
+            throw new Error('PDF 文字提取失败：可能是图片型扫描件，请改用图片文件或 TXT');
+          }
+          fileText = text;
         } else {
-          // 兜底：返回被截断了，找到最后一个完整对象后手动闭合
-          const startIdx = rawText.indexOf('[');
-          if (startIdx === -1) throw new Error(`AI 未返回 JSON。原始返回（前 600 字）：${rawText.slice(0, 600)}`);
-          const partial = rawText.slice(startIdx);
-          const lastObjEnd = partial.lastIndexOf('},');
-          if (lastObjEnd === -1) throw new Error(`AI 返回内容无完整对象。原始返回（前 600 字）：${rawText.slice(0, 600)}`);
-          jsonStr = partial.slice(0, lastObjEnd + 1) + ']';
+          fileText = await file.text();
         }
-        const cleanJson = jsonStr.replace(/,\s*([}\]])/g, '$1');
-        parsedData = JSON.parse(cleanJson);
+        const aiData = await requestAi({
+          messages: [{ role: 'user', content: [{ type: 'text', text: `从以下文档中提取衣物信息，以 JSON 数组返回，每个对象包含：name（字符串）、brand（品牌名，字符串，可选）、rating（1-10的数字）、category（"上装"/"下装"/"鞋子"/"配饰" 之一）、season（"春季"/"秋季"/"春秋"/"夏季"/"冬季"/"四季" 之一）、story（描述或故事）。注意：输出必须是合法的 JSON 格式，严禁在对象末尾添加多余逗号，严禁添加任何 Markdown 标签，直接以 '[' 开始输出。\n\n${fileText}` }] }],
+        });
+        const rawText = extractAiText(aiData);
+        if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
+        parsedData = parseAiItems(rawText);
       } else {
-        alert('不支持的文件格式，请上传 JSON, CSV, TXT 或 PDF 文件。');
+        alert('不支持的文件格式，请上传 JSON, CSV, TXT, PDF 或图片文件。');
         return;
       }
 
@@ -303,6 +329,18 @@ export function WardrobeList() {
         alert(`单品上限为 ${ITEM_LIMIT} 件，本次仅导入前 ${remaining} 条，跳过 ${skipped} 条。`);
       }
 
+      // A single-image import represents one wardrobe item, so keep the
+      // compressed source image as the item's normal Blob-backed image.
+      let importedImagePath: string | null = null;
+      if (importedImageData && validItems.length === 1) {
+        try {
+          importedImagePath = await uploadImageToBlob(importedImageData);
+        } catch (error) {
+          imageSaveFailed = true;
+          console.warn('AI image parsed but source image could not be saved', error);
+        }
+      }
+
       const prepared = validItems.map((item, i) => ({
             name: item.name,
             ...(item.brand ? { brand: item.brand } : {}),
@@ -312,12 +350,14 @@ export function WardrobeList() {
             story: item.story || '',
             userId,
             orderIndex: items.length + i,
-            ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
+            ...(importedImagePath ? { imageUrl: importedImagePath } : item.imageUrl ? { imageUrl: item.imageUrl } : {}),
           }));
       await insertWardrobeItems(userId, prepared);
       const totalCount = prepared.length;
 
-      alert(`成功导入 ${totalCount} 条数据！`);
+      alert(imageSaveFailed
+        ? `成功导入 ${totalCount} 条数据，但图片保存失败，请稍后在单品详情中补传图片。`
+        : `成功导入 ${totalCount} 条数据！`);
     } catch (error: any) {
       console.error("Error importing data", error);
       const msg = error?.message || error?.code || String(error);
@@ -504,7 +544,9 @@ export function WardrobeList() {
             className="best-match-entry group w-full text-left"
           >
             <div className="best-match-entry__mark" aria-hidden="true">
-              <Sparkles className="w-7 h-7" strokeWidth={1.35} />
+              <span className="tag-stack-mark__tag tag-stack-mark__tag--back" />
+              <span className="tag-stack-mark__tag tag-stack-mark__tag--middle" />
+              <span className="tag-stack-mark__tag tag-stack-mark__tag--front" />
             </div>
             <div className="best-match-entry__copy">
               <p className="best-match-entry__eyebrow">Best Match · {matches.length} Looks</p>
@@ -513,7 +555,7 @@ export function WardrobeList() {
                 {matches.length === 0 ? '把那些“绝对没错”的组合，存成你的审美档案。' : '查看与继续添加你最认可的搭配组合。'}
               </p>
             </div>
-            <span className="best-match-entry__cta">进入档案 <span aria-hidden>→</span></span>
+            <span className="best-match-entry__cta">进入档案 <span aria-hidden>↗</span></span>
           </button>
         ) : (
           <div
@@ -616,11 +658,11 @@ export function WardrobeList() {
             <div className="relative">
               <input
                 type="file"
-                accept=".json,.csv,.txt,.pdf"
+                accept=".json,.csv,.txt,.pdf,image/*,.heic,.heif"
                 onChange={handleFileUpload}
                 disabled={isSeeding}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
-                title="支持格式: JSON, CSV, TXT, PDF"
+                title="支持格式: JSON, CSV, TXT, PDF, 图片"
               />
               <button
                 disabled={isSeeding}
@@ -653,9 +695,9 @@ export function WardrobeList() {
               <div className="mt-2 px-4 py-3 bg-tag/70 border border-graphite/20 text-left max-w-md sm:ml-auto">
                 <p className="font-tag text-[9px] uppercase tracking-widest text-graphite/45 mb-2">可导入的内容 / 边界</p>
                 <ul className="space-y-1 list-disc pl-4 font-story text-[12px] leading-relaxed text-ink/70">
-                  <li>支持 <strong>JSON / CSV / TXT / PDF</strong>；PDF 需为文字版（扫描图片提取不到文字）。</li>
+                  <li>支持 <strong>JSON / CSV / TXT / PDF / 图片</strong>；图片会由视觉模型识别衣物信息。</li>
                   <li>每条至少需 <strong>名称 + 品类</strong>；可含品牌 / 评分 / 季节 / 故事。</li>
-                  <li>TXT / PDF 由 AI 解析，<strong>尽力而为</strong>，可能漏或错，导入后请核对。</li>
+                  <li>TXT / PDF / 图片由 AI 解析，<strong>尽力而为</strong>，可能漏或错，导入后请核对。</li>
                   <li>单柜上限 <strong>200 件</strong>，超出部分不导入；单次文件不要过大。</li>
                 </ul>
               </div>
@@ -663,24 +705,15 @@ export function WardrobeList() {
           </div>
 
           {wardrobePublic && (
-            <div className="flex items-center gap-2 bg-tag border border-graphite/20 px-3 py-2 max-w-full">
-              <span className="font-tag text-[9px] uppercase tracking-[0.15em] text-stamp shrink-0">整柜公开</span>
-              <span className="font-tag text-[10px] text-ink/70 truncate">{shareUrl}</span>
-              <button
-                onClick={copyShareUrl}
-                className="shrink-0 p-1 text-graphite hover:text-ink transition-colors"
-                title="复制链接"
-              >
-                {copyDone ? <Check className="w-3.5 h-3.5 text-stamp" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={disableWardrobePublic}
-                className="shrink-0 font-tag text-[9px] uppercase tracking-wider text-graphite/50 hover:text-stamp transition-colors border-l border-graphite/15 pl-2"
-                title="关闭整柜公开"
-              >
-                关闭
-              </button>
-            </div>
+            <button
+              onClick={disableWardrobePublic}
+              className="wardrobe-public-badge"
+              title="取消整柜公开"
+              aria-label="取消整柜公开"
+            >
+              <span className="wardrobe-public-badge__check" aria-hidden="true"><Check className="w-3.5 h-3.5" /></span>
+              <span>整柜公开</span>
+            </button>
           )}
         </div>
 
@@ -697,14 +730,14 @@ export function WardrobeList() {
                 onMouseEnter={() => sfx.cardHover()}
                 onClick={() => { sfx.filterClick(); setFilterCategory(cat); }}
                 className={cn(
-                  "relative px-5 py-2 font-tag text-[12px] uppercase tracking-[0.12em] font-semibold border transition-all",
+                  "relative min-h-12 px-5 sm:px-6 font-story text-[14px] tracking-wide font-semibold border transition-all",
                   isActive
                     ? "bg-ink text-white border-ink shadow-sm"
                     : "bg-tag/60 text-ink/55 border-graphite/25 hover:text-ink hover:border-graphite/55 hover:bg-tag"
                 )}
               >
                 {cat}
-                <span className={cn("ml-2 text-[10px] font-normal", isActive ? "text-white/60" : "text-graphite/45")}>{count}</span>
+                <span className={cn("ml-2 text-[12px] font-normal", isActive ? "text-white/60" : "text-graphite/45")}>{count}</span>
               </button>
             );
           })}
@@ -713,13 +746,13 @@ export function WardrobeList() {
         {/* Sub-filters */}
         {filterCategory === '上装' && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Type</span>
+            <span className="font-tag text-[12px] uppercase tracking-widest text-graphite/55 shrink-0 mr-1">Type</span>
             {(['全部', ...TOP_TYPES] as ('全部' | TopType)[]).map(t => (
               <button
                 key={t}
                 onClick={() => { sfx.filterClick(); setSubFilterTopType(t); }}
                 className={cn(
-                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  "min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border transition-all whitespace-nowrap",
                   subFilterTopType === t
                     ? "bg-ink/10 text-ink border-ink/30"
                     : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
@@ -733,13 +766,13 @@ export function WardrobeList() {
 
         {filterCategory === '上装' && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Season</span>
+            <span className="font-tag text-[12px] uppercase tracking-widest text-graphite/55 shrink-0 mr-1">Season</span>
             {['全部', ...(splitSpringAutumn ? ['春秋', '春季', '秋季'] : ['春秋']), '夏季', '冬季', '四季'].map(season => (
               <button
                 key={season}
                 onClick={() => { sfx.filterClick(); setSubFilterSeason(season as any); }}
                 className={cn(
-                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  "min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border transition-all whitespace-nowrap",
                   subFilterSeason === season
                     ? "bg-ink/10 text-ink border-ink/30"
                     : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
@@ -753,13 +786,13 @@ export function WardrobeList() {
 
         {filterCategory === '配饰' && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Type</span>
+            <span className="font-tag text-[12px] uppercase tracking-widest text-graphite/55 shrink-0 mr-1">Type</span>
             {(['全部', ...ACCESSORY_TYPES] as ('全部' | AccessoryType)[]).map(t => (
               <button
                 key={t}
                 onClick={() => { sfx.filterClick(); setSubFilterAccessoryType(t); }}
                 className={cn(
-                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  "min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border transition-all whitespace-nowrap",
                   subFilterAccessoryType === t
                     ? "bg-ink/10 text-ink border-ink/30"
                     : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
@@ -773,13 +806,13 @@ export function WardrobeList() {
 
         {filterCategory === '下装' && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Type</span>
+            <span className="font-tag text-[12px] uppercase tracking-widest text-graphite/55 shrink-0 mr-1">Type</span>
             {['全部', '长裤', '短裤', '裙子'].map(length => (
               <button
                 key={length}
                 onClick={() => { sfx.filterClick(); setSubFilterLength(length as any); }}
                 className={cn(
-                  "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  "min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border transition-all whitespace-nowrap",
                   subFilterLength === length
                     ? "bg-ink/10 text-ink border-ink/30"
                     : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
@@ -794,13 +827,13 @@ export function WardrobeList() {
         {/* Year filter — only shown when items have purchase years */}
         {availableYears.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tag text-[10px] uppercase tracking-widest text-graphite/50 shrink-0 mr-1">Year</span>
+            <span className="font-tag text-[12px] uppercase tracking-widest text-graphite/55 shrink-0 mr-1">Year</span>
             {(['全部', ...availableYears] as (number | '全部')[]).map(y => (
               <button
                 key={y}
                 onClick={() => { sfx.filterClick(); setFilterYear(y); }}
                 className={cn(
-                  "px-3.5 py-1.5 font-tag text-[11px] tracking-wider font-semibold border transition-all whitespace-nowrap",
+                  "min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border transition-all whitespace-nowrap",
                   filterYear === y
                     ? "bg-ink text-white border-ink"
                     : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
@@ -818,7 +851,7 @@ export function WardrobeList() {
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setBrandFilterOpen(v => !v)}
-                className="flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors shrink-0"
+                className="flex min-h-9 items-center gap-1.5 font-tag text-[12px] uppercase tracking-widest text-graphite/55 hover:text-ink transition-colors shrink-0"
               >
                 <span>{brandFilterOpen ? '▾' : '▸'}</span>
                 <span>Brand</span>
@@ -829,7 +862,7 @@ export function WardrobeList() {
                 return b ? (
                   <button
                     onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
-                    className="px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30 flex items-center gap-1.5"
+                    className="min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border bg-ink/10 text-ink border-ink/30 flex items-center gap-1.5"
                   >
                     {b.display}
                     <span className="text-ink/40 text-[10px]">✕</span>
@@ -843,7 +876,7 @@ export function WardrobeList() {
                 {filterBrand !== null && (
                   <button
                     onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
-                    className="px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border bg-ink/10 text-ink border-ink/30"
+                    className="min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border bg-ink/10 text-ink border-ink/30"
                   >
                     全部
                   </button>
@@ -853,7 +886,7 @@ export function WardrobeList() {
                     key={key}
                     onClick={() => { sfx.filterClick(); setFilterBrand(filterBrand === key ? null : key); }}
                     className={cn(
-                      "px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all whitespace-nowrap",
+                      "min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border transition-all whitespace-nowrap",
                       filterBrand === key
                         ? "bg-ink/10 text-ink border-ink/30"
                         : "text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45"
@@ -873,7 +906,7 @@ export function WardrobeList() {
           <div>
             <button
               onClick={() => setBrandStatsOpen(v => !v)}
-              className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors"
+              className="flex min-h-9 items-center gap-2 font-tag text-[12px] uppercase tracking-widest text-graphite/55 hover:text-ink transition-colors"
             >
               <span>{brandStatsOpen ? '▾' : '▸'}</span>
               <span>品牌详情</span>

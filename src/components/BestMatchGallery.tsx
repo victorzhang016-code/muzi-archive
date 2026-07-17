@@ -62,9 +62,9 @@ export function BestMatchGallery() {
         <div className="border-b border-dashed border-graphite/25 pb-5">
           <button
             onClick={() => { sfx.filterClick(); navigate('/'); }}
-            className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors mb-4"
+            className="flex min-h-10 items-center gap-2 font-tag text-[12px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors mb-4"
           >
-            <ArrowLeft className="w-3 h-3" />
+            <ArrowLeft className="w-4 h-4" />
             <span>Archive</span>
           </button>
           <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">
@@ -84,25 +84,25 @@ export function BestMatchGallery() {
             </div>
             <button
               onClick={() => { sfx.modalOpen(); navigate('/best-match/new'); }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-ink text-white font-tag text-[12px] uppercase tracking-wider font-bold hover:bg-ink/85 transition-colors whitespace-nowrap"
+              className="flex min-h-12 items-center gap-2 px-6 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-[18px] h-[18px]" />
               <span>建立 Best Match</span>
             </button>
           </div>
         </div>
 
-        <div className="border border-dashed border-graphite/30 bg-tag/40 px-5 py-5 flex items-center gap-4">
-          <div className="w-10 h-10 border border-graphite/30 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-graphite" />
+        <div className="border border-dashed border-graphite/30 bg-tag/40 px-6 py-5 flex items-center gap-4">
+          <div className="w-11 h-11 border border-graphite/30 flex items-center justify-center shrink-0">
+            <Sparkles className="w-[18px] h-[18px] text-graphite" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-graphite/60 mb-1">
+            <p className="font-tag text-[11px] uppercase tracking-[0.25em] text-graphite/60 mb-1">
               Aesthetic Profile
             </p>
             {unlocked ? (
               <>
-                <p className="font-story text-sm text-ink mb-1">
+                <p className="font-story text-[15px] text-ink mb-1">
                   审美档案已解锁，AI 分析即将上线
                 </p>
                 <p className="font-story italic text-xs text-graphite/60">
@@ -114,7 +114,7 @@ export function BestMatchGallery() {
                 <p className="font-story text-sm text-ink mb-2">
                   再积累 <strong>{remaining}</strong> 套解锁审美分析
                 </p>
-                <div className="h-1 bg-graphite/15 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-graphite/15 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-ink transition-all"
                     style={{ width: `${(matches.length / AESTHETIC_THRESHOLD) * 100}%` }}
@@ -136,9 +136,9 @@ export function BestMatchGallery() {
           <p className="text-graphite mb-8 font-story">把心中那些"绝对没错"的搭配记下来吧</p>
           <button
             onClick={() => { sfx.modalOpen(); navigate('/best-match/new'); }}
-            className="px-8 py-3 bg-ink text-white font-tag text-[10px] uppercase tracking-widest font-bold hover:bg-ink/90 transition-colors inline-flex items-center gap-2"
+            className="min-h-12 px-8 py-3 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/90 transition-colors inline-flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-[18px] h-[18px]" />
             建立第一套
           </button>
         </div>
@@ -210,11 +210,20 @@ function MatchCard({ match, index, itemMap, exiting, onOpen, onShare }: MatchCar
           role="button"
           tabIndex={0}
           onClick={(e) => { e.stopPropagation(); sfx.modalOpen(); onShare({ kind: 'bestMatch', match, entries }); }}
-          className="absolute top-2 right-2 z-20 p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              sfx.modalOpen();
+              onShare({ kind: 'bestMatch', match, entries });
+            }
+          }}
+          className="absolute top-2 right-2 z-20 w-10 h-10 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shadow-sm"
           style={{ background: 'rgba(194,65,39,0.9)', color: '#fff' }}
           title="分享"
+          aria-label="分享这套搭配"
         >
-          <Share2 className="w-3.5 h-3.5" />
+          <Share2 className="w-4 h-4" />
         </span>
         {entries.length > 0 ? (
           <TagBundle entries={entries} size="mini" variant="stacked" />

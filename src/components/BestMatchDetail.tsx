@@ -198,7 +198,9 @@ export function BestMatchDetail() {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={photoUploading}
-          className="font-tag text-[9px] uppercase tracking-wider text-graphite hover:text-ink disabled:opacity-40 transition-colors"
+          className="min-h-10 px-3 font-story text-[13px] tracking-wide text-graphite hover:text-ink disabled:opacity-40 transition-colors"
+          title="更换整套照片"
+          aria-label="更换整套照片"
         >
           {photoUploading ? '上传中…' : '更换'}
         </button>
@@ -208,10 +210,12 @@ export function BestMatchDetail() {
     <button
       onClick={() => fileInputRef.current?.click()}
       disabled={photoUploading}
-      className="flex flex-col items-center gap-2 px-6 py-5 border border-dashed border-graphite/30 hover:border-graphite/60 transition-colors text-graphite/55 hover:text-ink disabled:opacity-40"
+      className="min-h-12 flex flex-col items-center gap-2 px-6 py-4 border border-dashed border-graphite/30 hover:border-graphite/60 transition-colors text-graphite/55 hover:text-ink disabled:opacity-40"
+      title="上传整套 Look 照片"
+      aria-label="上传整套 Look 照片"
     >
       {photoUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
-      <span className="font-tag text-[10px] uppercase tracking-wider">
+      <span className="font-story text-[13px] tracking-wide">
         {photoUploading ? '上传中…' : '上传整套 Look 照片'}
       </span>
     </button>
@@ -227,9 +231,9 @@ export function BestMatchDetail() {
         backSlot={
           <button
             onClick={() => closeWithAnimation()}
-            className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
+            className="flex min-h-10 items-center gap-2 font-tag text-[12px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
           >
-            <ArrowLeft className="w-3 h-3" />
+            <ArrowLeft className="w-4 h-4" />
             <span>Best Match</span>
           </button>
         }
@@ -237,23 +241,28 @@ export function BestMatchDetail() {
           <>
             <button
               onClick={() => { sfx.modalOpen(); setShareOpen(true); }}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
+              className="flex min-h-11 items-center gap-2 px-4 bg-stamp text-white font-story text-[14px] tracking-wide font-semibold hover:bg-stamp/90 transition-colors shadow-sm"
               title="分享"
+              aria-label="分享这套搭配"
             >
-              <Share2 className="w-3.5 h-3.5" />
+              <Share2 className="w-[18px] h-[18px]" />
               <span>分享</span>
             </button>
             <button
               onClick={() => { sfx.modalOpen(); navigate(`/best-match/new?edit=${match.id}`); }}
-              className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+              className="w-11 h-11 flex items-center justify-center text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+              title="编辑搭配"
+              aria-label="编辑搭配"
             >
-              <Edit2 className="w-3.5 h-3.5" />
+              <Edit2 className="w-[18px] h-[18px]" />
             </button>
             <button
               onClick={handleDelete}
-              className="p-2 text-graphite hover:text-stamp transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+              className="w-11 h-11 flex items-center justify-center text-graphite hover:text-stamp transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+              title="删除搭配"
+              aria-label="删除搭配"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-[18px] h-[18px]" />
             </button>
           </>
         }

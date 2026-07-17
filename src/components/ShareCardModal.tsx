@@ -191,9 +191,11 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
           <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-tag/90">分享卡片</p>
           <button
             onClick={onClose}
-            className="p-2 text-tag/70 hover:text-tag transition-colors border border-tag/20 bg-black/20 hover:bg-black/30"
+            className="w-10 h-10 flex items-center justify-center text-tag/70 hover:text-tag transition-colors border border-tag/20 bg-black/20 hover:bg-black/30"
+            title="关闭分享卡片"
+            aria-label="关闭分享卡片"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-[18px] h-[18px]" />
           </button>
         </div>
 
@@ -241,33 +243,33 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
           {/* 这一条的公开状态 */}
           <div className="rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3">
             {thisShared === null ? (
-              <p className="font-story text-[13px] text-tag/70 flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> 正在生成可分享链接…
+              <p className="min-h-11 font-story text-[14px] text-tag/70 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> 正在生成可分享链接…
               </p>
             ) : thisShared ? (
               <div className="flex items-center justify-between gap-3">
-                <p className="font-story text-[13px] text-tag/85 flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-stamp" />
+                <p className="font-story text-[14px] text-tag/85 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-stamp" />
                   {target.kind === 'item' ? '这件已可被链接公开访问' : '这套搭配已可被链接公开访问'}
                 </p>
                 <button
                   onClick={handleUnshareThis}
                   disabled={togglingThis}
-                  className="shrink-0 inline-flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-wider text-tag/60 hover:text-tag transition-colors disabled:opacity-50"
+                  className="min-h-10 shrink-0 inline-flex items-center gap-1.5 px-3 font-story text-[13px] text-tag/60 hover:text-tag transition-colors disabled:opacity-50"
                 >
-                  {togglingThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <EyeOff className="w-3 h-3" />}
+                  {togglingThis ? <Loader2 className="w-4 h-4 animate-spin" /> : <EyeOff className="w-4 h-4" />}
                   取消分享
                 </button>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3">
-                <p className="font-story text-[13px] text-tag/70">已取消分享，链接暂时打不开</p>
+                <p className="font-story text-[14px] text-tag/70">已取消分享，链接暂时打不开</p>
                 <button
                   onClick={handleReshareThis}
                   disabled={togglingThis}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors disabled:opacity-50"
+                  className="min-h-11 shrink-0 inline-flex items-center gap-1.5 px-4 bg-stamp text-white font-story text-[13px] font-semibold hover:bg-stamp/90 transition-colors disabled:opacity-50"
                 >
-                  {togglingThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
+                  {togglingThis ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
                   重新分享
                 </button>
               </div>
@@ -278,24 +280,24 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
           <button
             onClick={handleToggleWardrobe}
             disabled={togglingWardrobe || wardrobePublic === null}
-            className="w-full flex items-center gap-3 rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"
+            className="w-full min-h-14 flex items-center gap-3 rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"
           >
             <span
-              className={`w-5 h-5 shrink-0 border flex items-center justify-center transition-colors ${
+              className={`w-6 h-6 shrink-0 border flex items-center justify-center transition-colors ${
                 wardrobePublic ? 'bg-stamp border-stamp' : 'border-tag/40'
               }`}
             >
               {togglingWardrobe ? (
-                <Loader2 className="w-3 h-3 animate-spin text-tag" />
+                <Loader2 className="w-4 h-4 animate-spin text-tag" />
               ) : wardrobePublic ? (
-                <Check className="w-3.5 h-3.5 text-white" />
+                <Check className="w-4 h-4 text-white" />
               ) : null}
             </span>
             <span className="min-w-0">
-              <span className="font-story text-[13px] text-tag/90 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 shrink-0" /> 公开我的整个衣柜
+              <span className="font-story text-[14px] text-tag/90 flex items-center gap-1.5">
+                <Globe className="w-4 h-4 shrink-0" /> 公开我的整个衣柜
               </span>
-              <span className="font-story text-[11px] text-tag/55 block mt-0.5">
+              <span className="font-story text-[12px] text-tag/55 block mt-0.5">
                 勾选后，别人可浏览你的全部单品与搭配；可随时取消。
               </span>
             </span>
@@ -305,7 +307,7 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             <button
               onClick={handleDownload}
               disabled={generating}
-              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-ink text-tag font-tag text-[11px] uppercase tracking-wider font-bold hover:bg-ink/85 transition-colors disabled:opacity-50"
+              className="flex-1 min-h-12 flex items-center justify-center gap-2 px-5 bg-ink text-tag font-story text-[14px] font-semibold hover:bg-ink/85 transition-colors disabled:opacity-50"
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               保存图片
@@ -313,14 +315,14 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             <button
               onClick={handleShare}
               disabled={generating}
-              className="flex items-center justify-center gap-2 px-5 py-3 border border-tag/30 bg-black/20 text-tag font-tag text-[11px] uppercase tracking-wider font-bold hover:bg-black/30 transition-colors disabled:opacity-50"
+              className="min-h-12 flex items-center justify-center gap-2 px-5 border border-tag/30 bg-black/20 text-tag font-story text-[14px] font-semibold hover:bg-black/30 transition-colors disabled:opacity-50"
             >
               <Share2 className="w-4 h-4" />
               分享
             </button>
             <button
               onClick={copyLink}
-              className="flex items-center justify-center gap-2 px-4 py-3 border border-tag/30 bg-black/20 text-tag font-tag text-[11px] uppercase tracking-wider font-bold hover:bg-black/30 transition-colors"
+              className="min-h-12 min-w-12 flex items-center justify-center gap-2 px-4 border border-tag/30 bg-black/20 text-tag font-story text-[14px] font-semibold hover:bg-black/30 transition-colors"
               title="复制链接"
             >
               {copied ? <Check className="w-4 h-4 text-stamp" /> : <Copy className="w-4 h-4" />}

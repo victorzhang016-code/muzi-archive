@@ -373,14 +373,14 @@ export function BestMatchBuilder() {
   const lengthOptions: ('全部' | '长裤' | '短裤' | '裙子')[] = ['全部', '长裤', '短裤', '裙子'];
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="best-match-builder space-y-8 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-dashed border-graphite/25 pb-5">
         <button
           onClick={() => { sfx.filterClick(); navigate(editId ? `/best-match/${editId}` : '/best-match'); }}
-          className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
+          className="flex min-h-10 items-center gap-2 font-tag text-[12px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
         >
-          <ArrowLeft className="w-3 h-3" />
+          <ArrowLeft className="w-4 h-4" />
           <span>返回</span>
         </button>
         <div className="text-center">
@@ -393,7 +393,7 @@ export function BestMatchBuilder() {
           onClick={handleSave}
           disabled={!canSave || saving}
           className={cn(
-            'px-5 py-2 font-tag text-[11px] uppercase tracking-wider font-bold border transition-all',
+            'min-h-11 px-6 font-story text-[14px] tracking-wide font-semibold border transition-all',
             canSave && !saving
               ? 'bg-ink text-white border-ink hover:bg-ink/85'
               : 'bg-tag/60 text-graphite/40 border-graphite/20 cursor-not-allowed'
@@ -442,18 +442,22 @@ export function BestMatchBuilder() {
                   <img src={resolveMediaUrl(photoBase64)} alt="outfit" className="w-full h-full object-cover border border-graphite/20" />
                   <button
                     onClick={() => setPhotoBase64(null)}
-                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-ink flex items-center justify-center"
+                    className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-ink flex items-center justify-center"
+                    title="移除整套照片"
+                    aria-label="移除整套照片"
                   >
-                    <X className="w-3 h-3 text-white" />
+                    <X className="w-4 h-4 text-white" />
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-32 h-32 border border-dashed border-graphite/30 flex flex-col items-center justify-center gap-1 text-graphite/50 hover:text-ink hover:border-graphite/60 transition-colors"
+                  className="w-32 h-32 border border-dashed border-graphite/30 flex flex-col items-center justify-center gap-2 text-graphite/50 hover:text-ink hover:border-graphite/60 transition-colors"
+                  title="上传整套 Look 照片"
+                  aria-label="上传整套 Look 照片"
                 >
-                  <ImageIcon className="w-5 h-5" />
-                  <span className="font-tag text-[9px] uppercase tracking-wider">Upload</span>
+                  <ImageIcon className="w-[18px] h-[18px]" />
+                  <span className="font-tag text-[12px] uppercase tracking-wider">Upload</span>
                 </button>
               )}
               <input
@@ -493,7 +497,7 @@ export function BestMatchBuilder() {
                   key={slot.key}
                   onClick={() => { sfx.filterClick(); setActiveCategory(slot.category); }}
                   className={cn(
-                    'flex flex-col items-start gap-1 px-3 py-3 border transition-all text-left',
+                    'flex min-h-16 flex-col items-start gap-1 px-3 py-3 border transition-all text-left',
                     isActive
                       ? 'bg-ink text-white border-ink'
                       : count > 0
@@ -502,14 +506,14 @@ export function BestMatchBuilder() {
                   )}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className="font-tag text-[10px] uppercase tracking-[0.15em] font-semibold">
+                    <span className="font-tag text-[12px] uppercase tracking-[0.15em] font-semibold">
                       {slot.label}
                     </span>
                     {required && count === 0 && (
                       <span className={cn('text-[9px]', isActive ? 'text-white/60' : 'text-stamp/80')}>*</span>
                     )}
                   </div>
-                  <span className={cn('font-tag text-[11px]', isActive ? 'text-white/70' : 'text-graphite/55')}>
+                  <span className={cn('font-tag text-[12px]', isActive ? 'text-white/70' : 'text-graphite/55')}>
                     {count} / {cap}
                   </span>
                 </button>
@@ -534,13 +538,13 @@ export function BestMatchBuilder() {
                       {/* Primary chip */}
                       <button
                         onClick={() => removeSlot(activeSlotKey, slot.primary)}
-                        className="flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 border-2 bg-tag font-semibold"
+                        className="min-h-11 flex items-center gap-2 pl-3 pr-2 py-2 border-2 bg-tag font-semibold"
                         style={{ borderColor: theme.accentColor }}
                       >
                         <span className="font-story text-sm text-ink truncate max-w-[160px]">
                           {primary.name || '未命名'}
                         </span>
-                        <X className="w-3.5 h-3.5 text-graphite" />
+                        <X className="w-4 h-4 text-graphite" />
                       </button>
                       <span className="font-tag text-[10px] text-graphite/40 uppercase tracking-wider">→</span>
                       {/* Variants */}
@@ -552,14 +556,14 @@ export function BestMatchBuilder() {
                           <button
                             key={vid}
                             onClick={() => removeVariant(activeSlotKey, slot.primary, vid)}
-                            className="flex items-center gap-1.5 pl-2 pr-1 py-1 border bg-tag/60"
+                            className="min-h-10 flex items-center gap-1.5 pl-3 pr-2 py-2 border bg-tag/60"
                             style={{ borderColor: vTheme.accentColor + '80' }}
                           >
                             <GitBranch className="w-3 h-3 text-graphite/60" />
                             <span className="font-story text-xs text-ink/80 truncate max-w-[120px]">
                               {v.name || '未命名'}
                             </span>
-                            <X className="w-3 h-3 text-graphite" />
+                            <X className="w-4 h-4 text-graphite" />
                           </button>
                         );
                       })}
@@ -567,7 +571,7 @@ export function BestMatchBuilder() {
                       <button
                         onClick={() => startAddVariant(activeSlotKey, slot.primary)}
                         className={cn(
-                          'flex items-center gap-1 px-2 py-1 border border-dashed font-tag text-[10px] uppercase tracking-wider transition-colors',
+                          'flex min-h-10 items-center gap-1 px-3 py-2 border border-dashed font-story text-[13px] tracking-wide transition-colors',
                           isAddingHere
                             ? 'border-ink bg-ink text-white'
                             : 'border-graphite/40 text-graphite/60 hover:text-ink hover:border-graphite/70'
@@ -880,7 +884,7 @@ export function BestMatchBuilder() {
                     setSceneTags(active ? sceneTags.filter((t) => t !== tag) : [...sceneTags, tag]);
                   }}
                   className={cn(
-                    'px-3.5 py-1.5 font-tag text-[11px] uppercase tracking-wider font-semibold border transition-all',
+                    'min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-semibold border transition-all',
                     active
                       ? 'bg-ink/10 text-ink border-ink/30'
                       : 'text-graphite/55 border-graphite/20 hover:text-ink hover:border-graphite/45'

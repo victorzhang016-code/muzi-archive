@@ -64,9 +64,9 @@ function LoginPage() {
           </svg>
 
           <h1 className="login-brand__wordmark">
-            <span>衣</span>LOG
+            <span>衣</span><em>LOG</em>
           </h1>
-          <p className="login-brand__english">WEARLOG</p>
+          <p className="login-brand__english">wearlog</p>
         </div>
 
         {/* Tagline */}
