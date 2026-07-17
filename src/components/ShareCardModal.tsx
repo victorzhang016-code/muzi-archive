@@ -278,6 +278,7 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
 
           {/* 整柜公开（可选） */}
           <button
+            type="button"
             onClick={handleToggleWardrobe}
             disabled={togglingWardrobe || wardrobePublic === null}
             className="w-full min-h-14 flex items-center gap-3 rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"

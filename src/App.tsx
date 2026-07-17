@@ -189,8 +189,8 @@ function AppRoutes() {
       <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-[4.5rem] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <h1 className="font-tag font-bold text-ink group-hover:text-stamp transition-colors" style={{ fontSize: '1.05rem', letterSpacing: '0.06em' }}>
-              衣LOG
+            <h1 className="site-wordmark group-hover:text-stamp transition-colors" aria-label="衣LOG">
+              <span>衣</span><em>LOG</em>
             </h1>
           </Link>
           <AuthButton />

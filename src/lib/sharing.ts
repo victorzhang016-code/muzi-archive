@@ -4,8 +4,26 @@ import { getCachedUser } from '../components/Auth';
 import { notifyDataChanged } from './supabaseData';
 
 const db = () => { if (!supabase) throw new Error('Supabase 未配置'); return supabase; };
-export async function isWardrobePublic(): Promise<boolean> { const { data, error } = await db().from('profiles').select('wardrobe_public').single(); if (error) throw error; return !!data.wardrobe_public; }
-export async function setWardrobePublic(enabled: boolean) { if (!getCachedUser()) throw new Error('未登录'); const { error } = await db().from('profiles').update({ wardrobe_public: enabled, updated_at: new Date().toISOString() }); if (error) throw error; }
+export async function isWardrobePublic(): Promise<boolean> {
+  const user = getCachedUser();
+  if (!user) throw new Error('未登录');
+  const { data, error } = await db()
+    .from('profiles')
+    .select('wardrobe_public')
+    .eq('id', user.uid)
+    .single();
+  if (error) throw error;
+  return !!data.wardrobe_public;
+}
+export async function setWardrobePublic(enabled: boolean) {
+  const user = getCachedUser();
+  if (!user) throw new Error('未登录');
+  const { error } = await db()
+    .from('profiles')
+    .update({ wardrobe_public: enabled, updated_at: new Date().toISOString() })
+    .eq('id', user.uid);
+  if (error) throw error;
+}
 export async function isItemShared(itemId: string) { const { data, error } = await db().from('wardrobe_items').select('shared').eq('id', itemId).single(); if (error) throw error; return !!data.shared; }
 export async function setItemShared(itemId: string, shared: boolean) { const { error } = await db().from('wardrobe_items').update({ shared }).eq('id', itemId); if (error) throw error; notifyDataChanged('wardrobe_items'); }
 export async function isItemReferencedByOtherSharedMatches(itemId: string, excludeMatchId?: string) { const { data, error } = await db().from('best_matches').select('id').eq('shared', true).contains('all_item_ids', [itemId]); if (error) throw error; return (data ?? []).some((x) => x.id !== excludeMatchId); }

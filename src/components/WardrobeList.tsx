@@ -12,8 +12,6 @@ import { buildItemShareUrl, isWardrobePublic, setWardrobePublic } from '../lib/s
 import { SEED_DATA } from '../data/seedData';
 import { fetchAuthorPreferredSample } from '../lib/sampleItems';
 import { parseCsv } from '../lib/csv';
-import { compressToBase64 } from '../lib/cropImage';
-import { uploadImageToBlob } from '../lib/blobUpload';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
@@ -241,12 +239,9 @@ export function WardrobeList() {
       return;
     }
 
-    const isImageFile = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(file.name);
     setIsSeeding(true);
     try {
       let parsedData: any[] = [];
-      let importedImageData: string | null = null;
-      let imageSaveFailed = false;
       const idToken = await auth.currentUser.getIdToken();
       const requestAi = async (requestBody: Record<string, unknown>) => {
         const aiRes = await fetch('/api/ai-import', {
@@ -261,17 +256,7 @@ export function WardrobeList() {
         return aiRes.json();
       };
 
-      if (isImageFile) {
-        importedImageData = await compressToBase64(file, 1600, 0.82);
-        const aiData = await requestAi({
-          mode: 'vision',
-          image: importedImageData,
-          prompt: '识别这张图片中的衣物。请严格只返回 JSON 数组，每个对象包含 name（衣物名称）、brand（品牌，可选）、rating（1-10 的数字）、category（上装/下装/鞋子/配饰之一）、season（春季/秋季/春秋/夏季/冬季/四季之一）、story（对材质、版型、颜色、图案和可辨识细节的简短描述）。一张图里有多个清晰可分开的单品时分别返回。无法确定的字段使用空字符串或四季。不要 Markdown，不要解释。',
-        });
-        const rawText = extractAiText(aiData);
-        if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
-        parsedData = parseAiItems(rawText);
-      } else if (file.name.endsWith('.json')) {
+      if (file.name.endsWith('.json')) {
         const text = await file.text();
         parsedData = JSON.parse(text);
       } else if (file.name.endsWith('.csv')) {
@@ -299,7 +284,7 @@ export function WardrobeList() {
         if (!rawText) throw new Error(`AI 返回空内容: ${JSON.stringify(aiData).slice(0, 200)}`);
         parsedData = parseAiItems(rawText);
       } else {
-        alert('不支持的文件格式，请上传 JSON, CSV, TXT, PDF 或图片文件。');
+        alert('不支持的文件格式，请上传 JSON, CSV, TXT 或 PDF 文件。');
         return;
       }
 
@@ -329,18 +314,6 @@ export function WardrobeList() {
         alert(`单品上限为 ${ITEM_LIMIT} 件，本次仅导入前 ${remaining} 条，跳过 ${skipped} 条。`);
       }
 
-      // A single-image import represents one wardrobe item, so keep the
-      // compressed source image as the item's normal Blob-backed image.
-      let importedImagePath: string | null = null;
-      if (importedImageData && validItems.length === 1) {
-        try {
-          importedImagePath = await uploadImageToBlob(importedImageData);
-        } catch (error) {
-          imageSaveFailed = true;
-          console.warn('AI image parsed but source image could not be saved', error);
-        }
-      }
-
       const prepared = validItems.map((item, i) => ({
             name: item.name,
             ...(item.brand ? { brand: item.brand } : {}),
@@ -350,14 +323,12 @@ export function WardrobeList() {
             story: item.story || '',
             userId,
             orderIndex: items.length + i,
-            ...(importedImagePath ? { imageUrl: importedImagePath } : item.imageUrl ? { imageUrl: item.imageUrl } : {}),
+            ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
           }));
       await insertWardrobeItems(userId, prepared);
       const totalCount = prepared.length;
 
-      alert(imageSaveFailed
-        ? `成功导入 ${totalCount} 条数据，但图片保存失败，请稍后在单品详情中补传图片。`
-        : `成功导入 ${totalCount} 条数据！`);
+      alert(`成功导入 ${totalCount} 条数据！`);
     } catch (error: any) {
       console.error("Error importing data", error);
       const msg = error?.message || error?.code || String(error);
@@ -658,11 +629,11 @@ export function WardrobeList() {
             <div className="relative">
               <input
                 type="file"
-                accept=".json,.csv,.txt,.pdf,image/*,.heic,.heif"
+                accept=".json,.csv,.txt,.pdf"
                 onChange={handleFileUpload}
                 disabled={isSeeding}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
-                title="支持格式: JSON, CSV, TXT, PDF, 图片"
+                title="支持格式: JSON, CSV, TXT, PDF"
               />
               <button
                 disabled={isSeeding}
@@ -695,9 +666,9 @@ export function WardrobeList() {
               <div className="mt-2 px-4 py-3 bg-tag/70 border border-graphite/20 text-left max-w-md sm:ml-auto">
                 <p className="font-tag text-[9px] uppercase tracking-widest text-graphite/45 mb-2">可导入的内容 / 边界</p>
                 <ul className="space-y-1 list-disc pl-4 font-story text-[12px] leading-relaxed text-ink/70">
-                  <li>支持 <strong>JSON / CSV / TXT / PDF / 图片</strong>；图片会由视觉模型识别衣物信息。</li>
+                  <li>支持 <strong>JSON / CSV / TXT / PDF</strong>；图片分析接口暂不接入本入口。</li>
                   <li>每条至少需 <strong>名称 + 品类</strong>；可含品牌 / 评分 / 季节 / 故事。</li>
-                  <li>TXT / PDF / 图片由 AI 解析，<strong>尽力而为</strong>，可能漏或错，导入后请核对。</li>
+                  <li>TXT / PDF 由 AI 解析，<strong>尽力而为</strong>，可能漏或错，导入后请核对。</li>
                   <li>单柜上限 <strong>200 件</strong>，超出部分不导入；单次文件不要过大。</li>
                 </ul>
               </div>
@@ -706,6 +677,7 @@ export function WardrobeList() {
 
           {wardrobePublic && (
             <button
+              type="button"
               onClick={disableWardrobePublic}
               className="wardrobe-public-badge"
               title="取消整柜公开"

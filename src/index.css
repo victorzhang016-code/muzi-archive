@@ -230,6 +230,27 @@ input[type=range]::-moz-range-thumb {
   letter-spacing: 0.02em;
   line-height: .82;
 }
+.site-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.42rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: .9;
+}
+.site-wordmark span {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.site-wordmark em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
 /* ── Best Match primary entry ── */
 .best-match-entry {
   position: relative;
