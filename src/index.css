@@ -191,13 +191,24 @@ input[type=range]::-moz-range-thumb {
 
 /* ── Login brand lockup ── */
 .login-brand {
-  width: min(100%, 320px);
+  width: min(100%, 260px);
   color: var(--color-ink);
+}
+.login-webview-note > p {
+  display: none;
+}
+.login-webview-note__hint {
+  display: block;
+  margin-top: .25rem;
+  color: rgba(70, 67, 61, .58);
+  font-family: var(--font-story);
+  font-size: 11px;
+  line-height: 1.4;
 }
 .login-tag-brand {
   position: relative;
   display: block;
-  width: clamp(208px, 48vw, 300px);
+  width: clamp(188px, 40vw, 250px);
   aspect-ratio: 942 / 1560;
   margin: 0 auto;
   isolation: isolate;
@@ -214,11 +225,11 @@ input[type=range]::-moz-range-thumb {
 .login-tag-brand__copy {
   position: absolute;
   z-index: 2;
-  top: 35%;
+  top: 36.5%;
   left: 25.4%;
   display: flex;
   width: 49.3%;
-  height: 54.5%;
+  height: 52.5%;
   align-items: center;
   color: #fff0d1;
   flex-direction: column;
@@ -236,11 +247,11 @@ input[type=range]::-moz-range-thumb {
   white-space: nowrap;
 }
 .login-tag-brand__eyebrow {
-  margin-top: 9%;
+  margin-top: 2%;
   opacity: .9;
 }
 .login-tag-brand__name {
-  margin-top: 19%;
+  margin-top: 14%;
   font-family: "Allura", "Segoe Script", cursive;
   font-size: clamp(2.15rem, 8.5vw, 3.35rem);
   font-weight: 400;
@@ -263,20 +274,20 @@ input[type=range]::-moz-range-thumb {
   opacity: .75;
 }
 .login-tag-brand__detail {
-  margin-top: 7%;
-  font-size: clamp(.34rem, 1.05vw, .44rem);
-  letter-spacing: .1em;
+  margin-top: 6%;
+  font-size: clamp(.29rem, .95vw, .4rem);
+  letter-spacing: .08em;
   opacity: .88;
 }
 .login-tag-brand__footer {
   margin-top: auto;
-  margin-bottom: 7%;
-  font-size: clamp(.34rem, 1.05vw, .44rem);
-  letter-spacing: .11em;
+  margin-bottom: 3%;
+  font-size: clamp(.28rem, .9vw, .38rem);
+  letter-spacing: .07em;
   opacity: .82;
 }
 @media (max-width: 480px) {
-  .login-tag-brand { width: clamp(194px, 66vw, 252px); }
+  .login-tag-brand { width: clamp(180px, 54vw, 220px); }
   .login-tag-brand__name { margin-top: 17%; }
   .login-tag-brand__detail,
   .login-tag-brand__footer { letter-spacing: .07em; }

@@ -17,8 +17,8 @@ export function LoginBrandTag() {
         <span className="login-tag-brand__name">wearlog</span>
         <span className="login-tag-brand__chinese">衣 LOG</span>
         <span className="login-tag-brand__rule" />
-        <span className="login-tag-brand__detail">PERSONAL WARDROBE RECORDS</span>
-        <span className="login-tag-brand__footer">KEEP WHAT YOU WEAR</span>
+        <span className="login-tag-brand__detail">PERSONAL FASHION ARCHIVE</span>
+        <span className="login-tag-brand__footer">KEEP YOUR WEARING STORY</span>
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ import { ResetPassword } from './components/ResetPassword';
 import { LoginBrandTag } from './components/LoginBrandTag';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
 const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|FBAN|FBAV|Instagram|Twitter|Snapchat|Pinterest|LinkedInApp/i.test(navigator.userAgent)
@@ -50,7 +50,7 @@ function LoginPage() {
         }}
       />
       <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-        <div className="login-brand mb-9">
+        <div className="login-brand mb-5 sm:mb-6">
           <LoginBrandTag />
         </div>
 
@@ -58,15 +58,16 @@ function LoginPage() {
         <h2 className="text-2xl sm:text-3xl font-story font-bold text-ink tracking-tight mb-3">
           记录你的穿搭与衣橱故事
         </h2>
-        <p className="text-sm sm:text-base text-graphite mb-10 leading-relaxed font-story">
+        <p className="text-sm sm:text-base text-graphite mb-6 leading-relaxed font-story">
           每一件衣服都有它的故事。<br />
           登录后开始记录购买经历、穿搭感受和那些难忘的瞬间。
         </p>
 
         {isWebView ? (
           /* 微信 / WebView 内直接走邮箱登录，不要求跳转到外部浏览器 */
-          <div className="w-full max-w-xs rounded-2xl border border-dashed border-graphite/30 bg-white/50 px-5 py-4 text-center">
-            <ExternalLink className="w-6 h-6 text-graphite mx-auto mb-3" />
+          <div className="login-webview-note w-full max-w-xs text-center">
+            <GoogleSignInButton />
+            <span className="login-webview-note__hint">请在浏览器中使用 Google 登录。</span>
             <p className="text-sm font-story text-ink font-medium mb-1">微信内可以直接使用</p>
             <p className="text-xs text-graphite leading-relaxed">
               请在下方使用邮箱和密码登录。Google 登录受微信内置浏览器和网络环境限制，不影响邮箱登录。
