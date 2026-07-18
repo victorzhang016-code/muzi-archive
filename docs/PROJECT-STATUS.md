@@ -7,7 +7,7 @@
 
 衣LOG（wearlog，历史目录名「模子の衣柜」）是 Victor 的个人衣物档案 app。它用实体服装吊牌作为视觉隐喻，帮助人记录衣物、理解自己的审美，并把“心中最佳搭配”保存成可分享的个人档案。它不是自动推荐穿搭的工具。
 
-线上地址：<https://wear-log.vercel.app>
+线上主地址：<https://www.wearlog.cn>；Vercel 备用地址：<https://wear-log.vercel.app>
 代码仓库：<https://github.com/victorzhang016-code/muzi-archive>（仓库名仍保留历史名）
 
 ## 一阶段已完成

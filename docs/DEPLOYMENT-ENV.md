@@ -12,6 +12,8 @@
 
 开发环境与生产环境必须是两个 Supabase 项目。不要把生产 URL 或 key 放进 `.env.local`，也不要让 Preview 指向生产项目。
 
+当前项目映射：Preview / Development 使用 `wearlog-dev`（ref `mazsopbfpqchzhyuaron`），Production 使用 `wearlog`（ref `cfnkhilwpkfqebrticqe`）。生产主域名为 `www.wearlog.cn`，`wear-log.vercel.app` 为备用别名。
+
 ## Vercel 必填变量
 
 在 Vercel Project Settings → Environment Variables 中，按环境分别设置并重新部署：
@@ -59,6 +61,7 @@ Production 不需要、也不应设置 `ALLOW_HOSTED_SUPABASE_DEV`。`SUPABASE_S
 3. 修改 Vercel 变量后重新部署；VITE_* 是构建时注入。
 4. 访问 Preview 和 Production，分别确认登录、读写和分享权限。
 5. 生产环境不要开启 ALLOW_DEV_PROD_SERVICES 或 ALLOW_HOSTED_SUPABASE_DEV。
+6. 邮箱 onboarding 发布前，用受控测试邮箱验证注册、收信、点击 `/auth/confirm`、重复点击、过期链接和回跳路径。
 ```
 
 ## 最近一次线上配置检查
@@ -66,3 +69,5 @@ Production 不需要、也不应设置 `ALLOW_HOSTED_SUPABASE_DEV`。`SUPABASE_S
 2026-07-17 通过 Vercel CLI 确认原配置把同一组 `VITE_SUPABASE_*` 变量同时覆盖 Preview / Production，实际没有环境隔离。现在已完成以下处理：Production 已补齐 `VITE_VERCEL_ENV=production`、`VITE_SUPABASE_ENV=production`、`SUPABASE_ENV=production`、服务端 Supabase URL / publishable key；Preview 已移除原有 Supabase URL / key，并标记为 `preview` / `development`，因此在没有独立开发 Supabase 项目之前会安全地构建失败。
 
 生产 Supabase 已完成迁移基线修复，并执行全部 4 个 migrations，包含 `202607170001_security_hardening.sql`。开发项目 `wearlog-dev` 已创建（ref：`mazsopbfpqchzhyuaron`），同样执行了全部 4 个 migrations；Preview Vercel 变量已切换到该项目。Production 已部署并绑定 `www.wearlog.cn`。
+
+2026-07-18 复核：两套 Supabase Auth settings 均为 `mailer_autoconfirm=false`；密码登录和找回密码 API 可达，但尚未用真实收件箱证明 SMTP 投递、回跳白名单和浏览器端到端流程。Preview 部署默认受 Vercel Deployment Protection 保护，匿名探测不能等同于 Preview 构建失败。
