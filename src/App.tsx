@@ -153,6 +153,7 @@ function EmailConfirmPage() {
         }
         const { data, error } = await supabase.auth.getUser();
         if (error || !data.user) throw error || new Error('missing confirmed user');
+        consumeOnboardingIntent();
         if (alive) { setStatus('success'); setMessage('邮箱验证完成，正在进入你的衣柜…'); }
         window.setTimeout(() => { if (alive) navigate(next, { replace: true }); }, 500);
       } catch {
