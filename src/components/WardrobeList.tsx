@@ -727,6 +727,7 @@ export function WardrobeList() {
             </div>
 
           </div>
+          </div>
 
             <WardrobePublicButton
               wardrobePublic={wardrobePublic}
@@ -780,7 +781,6 @@ export function WardrobeList() {
             )}
           </div>
 
-        </div>
         </div>
 
         <button
