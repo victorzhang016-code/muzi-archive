@@ -342,8 +342,8 @@ input[type=range]::-moz-range-thumb {
   display: flex;
   align-items: center;
   gap: 15px;
-  min-height: 78px;
-  padding: 11px 16px 11px 18px;
+  min-height: 64px;
+  padding: 8px 12px 8px 14px;
   overflow: hidden;
   border: 1px solid rgba(107, 106, 101, 0.28);
   border-left: 2px solid rgba(194, 65, 39, 0.78);

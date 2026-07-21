@@ -256,6 +256,14 @@ export function WardrobeList() {
     setIsModalOpen(true);
   };
 
+  const openQuickAddModal = () => {
+    if (items.length >= ITEM_LIMIT) {
+      alert(`已达单品上限 ${ITEM_LIMIT} 件。如需继续记录，请先删除一些不再需要的单品。`);
+      return;
+    }
+    setIsQuickAddOpen(true);
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -477,11 +485,10 @@ export function WardrobeList() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-10">
-      <AuthorWardrobeEntry />
+    <div className="space-y-5 sm:space-y-7">
       {/* Header */}
-      <div className="flex flex-col gap-5">
-        <div className="border-b border-dashed border-graphite/25 pb-5">
+        <div className="flex flex-col gap-3">
+        <div className="border-b border-dashed border-graphite/25 pb-4">
           <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">
             D-Tag Archive · {items.length} Items
           </p>
@@ -497,8 +504,9 @@ export function WardrobeList() {
                 记录独属于你和衣服的故事
               </p>
             </div>
-            {/* Controls: wardrobe visibility + sort */}
-            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            {/* Workspace 1: author link, sharing, and sorting */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <AuthorWardrobeEntry />
               <button
                 type="button"
                 onClick={() => { sfx.toggle(); toggleWardrobePublic(); }}
@@ -507,7 +515,7 @@ export function WardrobeList() {
                 aria-label={wardrobePublic ? '取消整柜公开' : '公开整柜'}
                 title={wardrobePublic ? '点击取消整柜公开' : '点击公开整个衣柜'}
                 className={cn(
-                  "min-h-11 px-3.5 sm:px-4 font-story text-[14px] tracking-wide font-medium border transition-all flex-1 sm:flex-none inline-flex items-center justify-center gap-2 disabled:opacity-60",
+                  "min-h-10 px-3 sm:px-4 font-story text-[14px] tracking-wide font-medium border transition-all flex-1 sm:flex-none inline-flex items-center justify-center gap-2 disabled:opacity-60",
                   wardrobePublic
                     ? "bg-stamp text-white border-stamp"
                     : "bg-tag/70 text-ink/70 border-graphite/30 hover:border-stamp/60 hover:text-ink"
@@ -521,7 +529,7 @@ export function WardrobeList() {
                 </span>
                 <span>整柜公开</span>
               </button>
-              <div className="flex items-center gap-2 min-h-11 px-4 bg-tag/70 border border-graphite/30 flex-1 sm:flex-none">
+              <div className="hidden">
                 <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
                 <select
                   value={sortOrder}
@@ -597,11 +605,11 @@ export function WardrobeList() {
         )}
 
         {/* Actions row */}
-        <div className="flex flex-col items-stretch sm:items-end gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           {/* Mobile-only primary action */}
           <button
-            onClick={() => { sfx.modalOpen(); openAddModal(); }}
-            className="sm:hidden w-full min-h-12 flex items-center justify-center gap-2 px-5 py-3 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors"
+            onClick={() => { sfx.modalOpen(); openQuickAddModal(); }}
+            className="hidden"
           >
             <Plus className="w-4 h-4" />
             <span>添加衣物</span>
@@ -680,8 +688,8 @@ export function WardrobeList() {
             </div>
 
             <button
-              onClick={() => { sfx.modalOpen(); openAddModal(); }}
-              className="hidden sm:flex items-center gap-2 min-h-12 px-6 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
+              onClick={() => { sfx.modalOpen(); openQuickAddModal(); }}
+              className="flex items-center gap-2 min-h-11 px-5 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>添加衣物</span>
@@ -689,7 +697,7 @@ export function WardrobeList() {
           </div>
 
           {/* 导入说明：可导入内容与边界，降低批量导入的困惑 */}
-          <div className="w-full sm:w-auto sm:text-right">
+          <div className="w-auto sm:text-right">
             <button
               onClick={() => setImportHelpOpen(v => !v)}
               className="inline-flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors"
@@ -714,6 +722,23 @@ export function WardrobeList() {
 
         {/* Category filter pills */}
         <div className="flex items-center gap-2 overflow-x-auto flex-nowrap hide-scrollbar -mx-3.5 px-3.5 sm:mx-0 sm:px-0 sm:flex-wrap">
+          <div className="flex items-center gap-2 min-h-10 px-3 sm:px-4 bg-tag/70 border border-graphite/30 shrink-0">
+            <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
+            <select
+              value={sortOrder}
+              onChange={(e) => { sfx.toggle(); setSortOrder(e.target.value as any); }}
+              className="bg-transparent font-story text-[14px] tracking-wide text-ink/75 outline-none cursor-pointer hover:text-ink transition-colors"
+            >
+              <option value="default">默认排序</option>
+              <option value="ratingDesc">评分 ↓</option>
+              <option value="ratingAsc">评分 ↑</option>
+              <option value="yearDesc">年份 ↓</option>
+              <option value="yearAsc">年份 ↑</option>
+              <option value="season">季节</option>
+              <option value="brand">品牌</option>
+              <option value="category">品类</option>
+            </select>
+          </div>
           {CATEGORIES.map(cat => {
             const isActive = filterCategory === cat;
             const count = cat === '全部'
@@ -982,8 +1007,8 @@ export function WardrobeList() {
                 先记录第一件
               </button>
               <button
-                onClick={openAddModal}
-                className="min-h-11 px-5 text-sm text-graphite border border-graphite/20 hover:border-ink transition-colors"
+                onClick={openQuickAddModal}
+                className="hidden"
               >
                 完整填写
               </button>
@@ -1005,7 +1030,7 @@ export function WardrobeList() {
             {/* Add New Tag */}
             <div
               className="cursor-pointer"
-              onClick={openAddModal}
+              onClick={openQuickAddModal}
               style={{ transform: 'rotate(0.8deg)' }}
             >
               <div className="group tag-card-bg tag-shadow flex flex-col items-center justify-center min-h-[280px] hover:translate-y-[-3px] transition-all duration-300 border border-dashed border-graphite/20 hover:border-graphite/40">
