@@ -10,7 +10,7 @@ export function AuthorWardrobeEntry({ label = '查看作者衣柜', className = 
   return (
     <Link
       to="/author"
-      className={`author-wardrobe-entry ${className}`}
+      className={`header-action-button author-wardrobe-entry ${className}`}
     >
       {label}
       <ArrowRight className="w-3 h-3" />

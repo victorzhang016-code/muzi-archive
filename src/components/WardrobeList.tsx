@@ -513,9 +513,11 @@ export function WardrobeList() {
                 记录独属于你和衣服的故事
               </p>
             </div>
-            {/* Workspace 1: author link, sharing, and sorting */}
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <AuthorWardrobeEntry />
+            {/* Workspace 1: account sits above the two peer actions. */}
+            <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+              <AuthButton />
+              <div className="flex flex-wrap justify-end items-center gap-2 w-full sm:w-auto">
+                <AuthorWardrobeEntry />
               <button
                 type="button"
                 onClick={() => { sfx.toggle(); toggleWardrobePublic(); }}
@@ -524,7 +526,7 @@ export function WardrobeList() {
                 aria-label={wardrobePublic ? '取消整柜公开' : '公开整柜'}
                 title={wardrobePublic ? '点击取消整柜公开' : '点击公开整个衣柜'}
                 className={cn(
-                  "min-h-10 px-3 sm:px-4 font-story text-[14px] tracking-wide font-medium border transition-all flex-1 sm:flex-none inline-flex items-center justify-center gap-2 disabled:opacity-60",
+                  "header-action-button font-medium border transition-all disabled:opacity-60",
                   wardrobePublic
                     ? "bg-stamp text-white border-stamp"
                     : "bg-tag/70 text-ink/70 border-graphite/30 hover:border-stamp/60 hover:text-ink"
@@ -538,7 +540,7 @@ export function WardrobeList() {
                 </span>
                 <span>整柜公开</span>
               </button>
-              <AuthButton />
+              </div>
               <div className="hidden">
                 <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
                 <select

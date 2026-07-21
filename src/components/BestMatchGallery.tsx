@@ -84,16 +84,18 @@ export function BestMatchGallery() {
                 心中的最佳搭配
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <AuthorWardrobeEntry />
-              <button
-                onClick={() => { sfx.modalOpen(); navigate('/best-match/new'); }}
-                className="flex min-h-12 items-center gap-2 px-6 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
-              >
-                <Plus className="w-[18px] h-[18px]" />
-                <span>建立 Best Match</span>
-              </button>
+            <div className="flex flex-col items-end gap-2">
               <AuthButton />
+              <div className="flex flex-wrap justify-end items-center gap-2">
+                <AuthorWardrobeEntry />
+                <button
+                  onClick={() => { sfx.modalOpen(); navigate('/best-match/new'); }}
+                  className="header-action-button bg-ink text-white font-semibold hover:bg-ink/85 transition-colors"
+                >
+                  <Plus className="w-[18px] h-[18px]" />
+                  <span>建立 Best Match</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
