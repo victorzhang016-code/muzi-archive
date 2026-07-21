@@ -18,7 +18,6 @@ import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
 import { useNavigate } from 'react-router';
 import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
-import { AuthButton } from './Auth';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
 
@@ -115,6 +114,8 @@ export function WardrobeList() {
   const [shareTarget, setShareTarget] = useState<WardrobeItem | null>(null);
   const [shareHintSeen, setShareHintSeen] = useState(true);
   const [bmUnlockPopup, setBmUnlockPopup] = useState(false);
+  const [batchMenuOpen, setBatchMenuOpen] = useState(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
 
   // 新用户空衣柜：拉一张作者的真实卡片作为「示例」
   // 注意：仅在「真·空衣柜」时拉示例；若是加载失败（额度/网络）导致的空，
@@ -501,7 +502,7 @@ export function WardrobeList() {
           <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">
             D-Tag Archive · {items.length} Items
           </p>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 sm:gap-4">
+          <div className="archive-title-row flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 sm:gap-4">
             <div>
               <h2
                 className="text-[2.75rem] sm:text-[3.5rem] leading-none text-ink"
@@ -514,10 +515,8 @@ export function WardrobeList() {
               </p>
             </div>
             {/* Workspace 1: account sits above the two peer actions. */}
-            <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
-              <AuthButton />
-              <div className="flex flex-wrap justify-end items-center gap-2 w-full sm:w-auto">
-                <AuthorWardrobeEntry />
+            <div className="archive-header-actions flex flex-wrap justify-end items-center gap-2 w-full sm:w-auto">
+                <AuthorWardrobeEntry className="archive-utility-button" />
               <button
                 type="button"
                 onClick={() => { sfx.toggle(); toggleWardrobePublic(); }}
@@ -526,7 +525,7 @@ export function WardrobeList() {
                 aria-label={wardrobePublic ? '取消整柜公开' : '公开整柜'}
                 title={wardrobePublic ? '点击取消整柜公开' : '点击公开整个衣柜'}
                 className={cn(
-                  "header-action-button font-medium border transition-all disabled:opacity-60",
+                  "header-action-button archive-utility-button font-medium border transition-all disabled:opacity-60",
                   wardrobePublic
                     ? "bg-stamp text-white border-stamp"
                     : "bg-tag/70 text-ink/70 border-graphite/30 hover:border-stamp/60 hover:text-ink"
@@ -540,7 +539,6 @@ export function WardrobeList() {
                 </span>
                 <span>整柜公开</span>
               </button>
-              </div>
               <div className="hidden">
                 <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
                 <select
@@ -581,7 +579,11 @@ export function WardrobeList() {
                 {matches.length === 0 ? '把那些“绝对没错”的组合，存成你的审美档案。' : '查看与继续添加你最认可的搭配组合。'}
               </p>
             </div>
-            <span className="best-match-entry__cta">进入档案 <span aria-hidden>↗</span></span>
+            <span className="best-match-entry__cta">
+              <span className="best-match-entry__cta-full">进入档案</span>
+              <span className="best-match-entry__cta-short">查看搭配</span>
+              <span aria-hidden>↗</span>
+            </span>
           </button>
         ) : (
           <div
@@ -618,15 +620,19 @@ export function WardrobeList() {
 
         {/* Actions row */}
         <div className="flex flex-wrap items-center gap-0 w-full">
-          {/* Mobile-only primary action */}
-          <button
-            onClick={() => { sfx.modalOpen(); openQuickAddModal(); }}
-            className="hidden"
-          >
-            <Plus className="w-4 h-4" />
-            <span>添加衣物</span>
-          </button>
-          <div className="contents">
+          <div className="archive-actions w-full">
+          <div className="archive-batch-actions">
+            <button
+              type="button"
+              onClick={() => setBatchMenuOpen(v => !v)}
+              className="archive-batch-trigger"
+              aria-expanded={batchMenuOpen}
+            >
+              <Database className="w-4 h-4" />
+              <span>批量导入</span>
+              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", batchMenuOpen && "rotate-180")} />
+            </button>
+          <div className={cn("archive-batch-menu", batchMenuOpen && "archive-batch-menu--open")}>
             {/* 清理重复：对空衣柜无意义，新用户先聚焦「添加衣物」。整柜公开改由分享卡里勾选控制。 */}
             {items.length > 0 && (<>
             <button
@@ -674,18 +680,19 @@ export function WardrobeList() {
                 }
               }}
               disabled={isSeeding}
-              className="order-2 flex items-center gap-2 min-h-12 px-5 bg-tag border-y border-r border-graphite/20 font-story text-[14px] tracking-wide font-semibold text-stamp hover:bg-stamp/8 transition-colors whitespace-nowrap disabled:opacity-40"
+              className="archive-deduplicate flex items-center gap-2 min-h-12 px-5 bg-tag border-y border-r border-graphite/20 font-story text-[14px] tracking-wide font-semibold text-stamp hover:bg-stamp/8 transition-colors whitespace-nowrap disabled:opacity-40"
             >
               {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               <span>清理重复</span>
             </button>
             </>)}
 
-            <div className="relative order-1 bg-tag border border-graphite/20 shadow-sm">
+            <div className="relative archive-import-control bg-tag border border-graphite/20 shadow-sm">
               <input
                 type="file"
                 accept=".json,.csv,.txt,.pdf"
                 onClick={() => {
+                  setBatchMenuOpen(false);
                   if (!importHelpDismissed) setImportHelpOpen(true);
                 }}
                 onChange={handleFileUpload}
@@ -702,9 +709,11 @@ export function WardrobeList() {
               </button>
             </div>
 
+          </div>
+
             <button
               onClick={() => { sfx.modalOpen(); openQuickAddModal(); }}
-              className="order-3 ml-auto flex items-center gap-2 min-h-12 px-5 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
+              className="archive-add-button ml-auto flex items-center gap-2 min-h-12 px-5 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>添加衣物</span>
@@ -749,9 +758,22 @@ export function WardrobeList() {
           </div>
 
         </div>
+        </div>
 
+        <button
+          type="button"
+          className="archive-filter-toggle sm:hidden"
+          onClick={() => setFilterPanelOpen(v => !v)}
+          aria-expanded={filterPanelOpen}
+        >
+          <span>筛选与排序</span>
+          <span className="archive-filter-toggle__summary">{filterCategory}{filterBrand ? ` · ${filterBrand}` : ''}</span>
+          <ChevronDown className={cn("w-4 h-4 transition-transform", filterPanelOpen && "rotate-180")} />
+        </button>
+
+        <div className={cn("archive-filter-panel", filterPanelOpen && "archive-filter-panel--open")}>
         {/* Category filter pills */}
-        <div className="flex items-center gap-2 overflow-x-auto flex-nowrap hide-scrollbar -mx-3.5 px-3.5 sm:mx-0 sm:px-0 sm:flex-wrap">
+        <div className="archive-category-filters flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 min-h-10 px-3 sm:px-4 bg-tag/70 border border-graphite/30 shrink-0">
             <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
             <select
@@ -992,6 +1014,7 @@ export function WardrobeList() {
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* ── 筛选结果描述句 ─────────────────────────────────── */}

@@ -11,7 +11,6 @@ import { buildBestMatchShareUrl } from '../lib/sharing';
 import { auth } from '../lib/authCompat';
 import { BestMatch, WardrobeItem } from '../types';
 import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
-import { AuthButton } from './Auth';
 
 const AESTHETIC_THRESHOLD = 10;
 // 与 WardrobeList 保持一致：单品满 3 件才解锁 Best Match
@@ -59,9 +58,9 @@ export function BestMatchGallery() {
   const unlocked = remaining === 0;
 
   return (
-    <div className="space-y-10">
+    <div className="best-match-gallery space-y-5 sm:space-y-10">
       <div className="flex flex-col gap-5">
-        <div className="border-b border-dashed border-graphite/25 pb-5">
+        <div className="border-b border-dashed border-graphite/25 pb-4 sm:pb-5">
           <button
             onClick={() => { sfx.filterClick(); navigate('/'); }}
             className="flex min-h-10 items-center gap-2 font-tag text-[12px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors mb-4"
@@ -75,7 +74,7 @@ export function BestMatchGallery() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <h2
-                className="text-[3.5rem] leading-none text-ink"
+                className="text-[clamp(2.35rem,11vw,3.5rem)] leading-none text-ink"
                 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, letterSpacing: '0.04em' }}
               >
                 Best Match
@@ -84,9 +83,7 @@ export function BestMatchGallery() {
                 心中的最佳搭配
               </p>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <AuthButton />
-              <div className="flex flex-wrap justify-end items-center gap-2">
+            <div className="flex flex-wrap justify-end items-center gap-2">
                 <AuthorWardrobeEntry />
                 <button
                   onClick={() => { sfx.modalOpen(); navigate('/best-match/new'); }}
@@ -95,13 +92,12 @@ export function BestMatchGallery() {
                   <Plus className="w-[18px] h-[18px]" />
                   <span>建立 Best Match</span>
                 </button>
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="border border-dashed border-graphite/30 bg-tag/40 px-6 py-5 flex items-center gap-4">
-          <div className="w-11 h-11 border border-graphite/30 flex items-center justify-center shrink-0">
+        <div className="best-match-profile border border-dashed border-graphite/30 bg-tag/40 px-4 py-4 sm:px-6 sm:py-5 flex items-center gap-3 sm:gap-4">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 border border-graphite/30 flex items-center justify-center shrink-0">
             <Sparkles className="w-[18px] h-[18px] text-graphite" />
           </div>
           <div className="flex-1 min-w-0">

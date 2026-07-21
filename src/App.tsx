@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { useAuth } from './components/Auth';
+import { AuthButton, useAuth } from './components/Auth';
 import { GoogleSignInButton } from './components/GoogleSignInButton';
 import { WardrobeList } from './components/WardrobeList';
 import { ItemDetail } from './components/ItemDetail';
@@ -47,7 +47,7 @@ function LoginPage() {
   }, [user, navigate]);
 
   return (
-    <div className="relative min-h-screen bg-kraft flex flex-col items-center justify-center px-6 overflow-hidden selection:bg-stamp selection:text-white">
+    <div className="login-page relative min-h-screen bg-kraft flex flex-col items-center justify-center px-6 overflow-hidden selection:bg-stamp selection:text-white">
       {/* 背景卡墙（模糊、持续滚动） */}
       <LoginMarquee />
       {/* 可读性渐隐遮罩：保证中部文字清晰 */}
@@ -59,15 +59,15 @@ function LoginPage() {
         }}
       />
       <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-        <div className="login-brand mb-5 sm:mb-6">
+        <div className="login-brand mb-3 sm:mb-6">
           <LoginBrandTag />
         </div>
 
         {/* Tagline */}
-        <h2 className="text-2xl sm:text-3xl font-story font-bold text-ink tracking-tight mb-3">
+        <h2 className="text-xl sm:text-3xl font-story font-bold text-ink tracking-tight mb-2 sm:mb-3">
           记录你的穿搭与衣橱故事
         </h2>
-        <p className="text-sm sm:text-base text-graphite mb-6 leading-relaxed font-story">
+        <p className="text-[13px] sm:text-base text-graphite mb-3 sm:mb-6 leading-relaxed font-story">
           每一件衣服都有它的故事。<br />
           登录后开始记录购买经历、穿搭感受和那些难忘的瞬间。
         </p>
@@ -114,13 +114,13 @@ function LoginPage() {
         {/* onboarding 入口保留原有圆角按钮；登录后的页面 CTA 使用统一的档案按钮。 */}
         <button
           onClick={() => navigate('/author')}
-          className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-stamp text-white hover:bg-stamp/90 transition-colors text-sm font-medium shadow-sm"
+          className="login-author-entry mt-3 sm:mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-stamp text-white hover:bg-stamp/90 transition-colors text-sm font-medium shadow-sm"
         >
           先看看作者的衣柜
           <span aria-hidden>→</span>
         </button>
 
-        <p className="mt-6 text-xs text-graphite/60 font-story leading-relaxed">
+        <p className="mt-3 sm:mt-6 text-[11px] sm:text-xs text-graphite/60 font-story leading-relaxed">
           {isWebView
             ? '微信内推荐使用邮箱和密码登录；首次使用可点“忘记密码”设置密码。'
             : '可使用 Google 或邮箱密码登录；登录即代表你的衣柜数据将与账号绑定。'}
@@ -224,10 +224,11 @@ function AppRoutes() {
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
       <header className="relative z-40 bg-kraft/80 border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center">
+        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center group">
             <SiteBrandLockup />
           </Link>
+          <AuthButton className="site-header-auth--topbar" />
         </div>
       </header>
 

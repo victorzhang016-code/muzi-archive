@@ -12,7 +12,8 @@ export function AuthorWardrobeEntry({ label = '查看作者衣柜', className = 
       to="/author"
       className={`header-action-button author-wardrobe-entry ${className}`}
     >
-      {label}
+      <span className="author-wardrobe-entry__label-full">{label}</span>
+      <span className="author-wardrobe-entry__label-short">作者衣柜</span>
       <ArrowRight className="w-3 h-3" />
     </Link>
   );
