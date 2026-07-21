@@ -5,15 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "dev:local": "vite --port=3000 --host=127.0.0.1",
     "dev:emu": "vite --mode emulator --port=3000 --host=0.0.0.0",
     "emu": "firebase emulators:start --import=./.emulator-data --export-on-exit=./.emulator-data",
     "emu:fresh": "firebase emulators:start --export-on-exit=./.emulator-data",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit",
-    "check:aesthetic-analysis": "tsx scripts/aesthetic-lab/validate-analysis.ts"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -51,7 +49,6 @@
     "autoprefixer": "^10.4.21",
     "google-auth-library": "^10.6.1",
     "pg": "^8.22.0",
-    "supabase": "^2.109.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

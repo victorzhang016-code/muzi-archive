@@ -19,11 +19,9 @@ import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
 import { LoginBrandTag } from './components/LoginBrandTag';
-import { AestheticLabPage } from './components/AestheticLabPage';
-import { LocalAestheticLabPage } from './components/LocalAestheticLabPage';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
 const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|FBAN|FBAV|Instagram|Twitter|Snapchat|Pinterest|LinkedInApp/i.test(navigator.userAgent)
@@ -121,14 +119,6 @@ function LoginPage() {
           <span aria-hidden>→</span>
         </button>
 
-        <button
-          onClick={() => navigate('/aesthetic-lab/local')}
-          className="mt-3 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-stamp/45 text-stamp hover:bg-stamp/5 transition-colors text-sm font-medium"
-        >
-          进入本地审美分析台
-          <span aria-hidden>→</span>
-        </button>
-
         <p className="mt-6 text-xs text-graphite/60 font-story leading-relaxed">
           {isWebView
             ? '微信内推荐使用邮箱和密码登录；首次使用可点“忘记密码”设置密码。'
@@ -209,7 +199,6 @@ function PageRoutes() {
           <Route path="/best-match" element={<BestMatchGallery />} />
           <Route path="/best-match/new" element={<BestMatchBuilder />} />
           <Route path="/best-match/:id" element={<BestMatchDetail />} />
-          <Route path="/aesthetic-lab" element={<AestheticLabPage />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
@@ -239,19 +228,6 @@ function AppRoutes() {
             <h1 className="site-wordmark group-hover:text-stamp transition-colors" aria-label="衣LOG">
               <span>衣</span><em>LOG</em>
             </h1>
-          </Link>
-          {import.meta.env.VITE_AUTHOR_UID && (
-            <Link
-              to="/author"
-              className="inline-flex items-center justify-center gap-1.5 min-h-10 px-2.5 sm:px-4 bg-stamp text-white font-tag text-[9px] sm:text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm whitespace-nowrap"
-            >
-              查看作者衣柜
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          )}
-          <Link to="/aesthetic-lab" className="hidden sm:inline-flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.18em] text-graphite/65 hover:text-stamp transition-colors">
-            <span className="h-1.5 w-1.5 rounded-full bg-stamp/70" />
-            Aesthetic Lab
           </Link>
           <AuthButton />
         </div>
@@ -318,7 +294,6 @@ export default function App() {
       <BrowserRouter>
         <RecoveryRedirect />
         <Routes>
-          <Route path="/aesthetic-lab/local" element={<LocalAestheticLabPage />} />
           <Route path="/share/:userId/item/:itemId" element={<SharedItemView />} />
           <Route path="/share/:userId/best-match/:matchId" element={<SharedBestMatchView />} />
           <Route path="/share/:userId" element={<ShareView />} />

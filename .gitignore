@@ -5,6 +5,22 @@ coverage/
 .DS_Store
 *.log
 .env*
+
+# Unreleased local aesthetic workbench. Keep experiments out of production commits.
+api/aesthetic/
+docs/AESTHETIC-*.md
+docs/examples/local-aesthetic-snapshot.example.json
+scripts/aesthetic-lab/
+src/components/AestheticLabPage.tsx
+src/components/AestheticUnderstandingDashboard.tsx
+src/components/LocalAestheticLabPage.tsx
+src/lib/aestheticAnalysis.ts
+src/lib/aestheticSourceSupabase.ts
+src/lib/aestheticVision.ts
+src/lib/localAestheticLab.ts
+supabase/.gitignore
+supabase/config.toml
+supabase/migrations/202607190001_aesthetic_vision.sql
 !.env.example
 !.env.emulator
 !.env.prod
