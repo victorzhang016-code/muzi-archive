@@ -60,6 +60,39 @@ function extractAiText(data: any): string {
   return typeof openAiContent === 'string' ? openAiContent.trim() : '';
 }
 
+function WardrobePublicButton({
+  wardrobePublic,
+  loading,
+  onToggle,
+  placement,
+}: {
+  wardrobePublic: boolean;
+  loading: boolean;
+  onToggle: () => void;
+  placement: 'header' | 'actions';
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => { sfx.toggle(); onToggle(); }}
+      disabled={loading}
+      aria-pressed={wardrobePublic}
+      aria-label={wardrobePublic ? '取消整柜公开' : '公开整柜'}
+      title={wardrobePublic ? '点击取消整柜公开' : '点击公开整个衣柜'}
+      className={cn(
+        'header-action-button archive-utility-button archive-public-button font-medium border transition-all disabled:opacity-60',
+        placement === 'header' ? 'archive-public-button--header' : 'archive-public-button--actions',
+        'bg-tag/90 text-stamp border-stamp/35 hover:border-stamp/70 hover:bg-white'
+      )}
+    >
+      <span className="w-5 h-5 flex items-center justify-center border border-stamp/65 text-stamp transition-colors" aria-hidden="true">
+        {wardrobePublic && <Check className="w-3.5 h-3.5" />}
+      </span>
+      <span>整柜公开</span>
+    </button>
+  );
+}
+
 function parseAiItems(rawText: string): any[] {
   const candidates: string[] = [];
   const arrayMatch = rawText.match(/\[[\s\S]*\]/);
@@ -517,28 +550,12 @@ export function WardrobeList() {
             {/* Workspace 1: account sits above the two peer actions. */}
             <div className="archive-header-actions flex flex-wrap justify-end items-center gap-2 w-full sm:w-auto">
                 <AuthorWardrobeEntry className="archive-utility-button" />
-              <button
-                type="button"
-                onClick={() => { sfx.toggle(); toggleWardrobePublic(); }}
-                disabled={wardrobePublicLoading}
-                aria-pressed={wardrobePublic}
-                aria-label={wardrobePublic ? '取消整柜公开' : '公开整柜'}
-                title={wardrobePublic ? '点击取消整柜公开' : '点击公开整个衣柜'}
-                className={cn(
-                  "header-action-button archive-utility-button font-medium border transition-all disabled:opacity-60",
-                  wardrobePublic
-                    ? "bg-stamp text-white border-stamp"
-                    : "bg-tag/70 text-ink/70 border-graphite/30 hover:border-stamp/60 hover:text-ink"
-                )}
-              >
-                <span className={cn(
-                  "w-5 h-5 flex items-center justify-center border transition-colors",
-                  wardrobePublic ? "border-white/70 bg-white/15" : "border-graphite/35"
-                )} aria-hidden="true">
-                  {wardrobePublic && <Check className="w-3.5 h-3.5" />}
-                </span>
-                <span>整柜公开</span>
-              </button>
+              <WardrobePublicButton
+                wardrobePublic={wardrobePublic}
+                loading={wardrobePublicLoading}
+                onToggle={toggleWardrobePublic}
+                placement="header"
+              />
               <div className="hidden">
                 <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
                 <select
@@ -711,6 +728,12 @@ export function WardrobeList() {
 
           </div>
 
+            <WardrobePublicButton
+              wardrobePublic={wardrobePublic}
+              loading={wardrobePublicLoading}
+              onToggle={toggleWardrobePublic}
+              placement="actions"
+            />
             <button
               onClick={() => { sfx.modalOpen(); openQuickAddModal(); }}
               className="archive-add-button ml-auto flex items-center gap-2 min-h-12 px-5 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"

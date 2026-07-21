@@ -100,7 +100,7 @@ export function BestMatchGallery() {
           <div className="w-9 h-9 sm:w-11 sm:h-11 border border-graphite/30 flex items-center justify-center shrink-0">
             <Sparkles className="w-[18px] h-[18px] text-graphite" />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="best-match-profile__copy flex-1 min-w-0">
             <p className="font-tag text-[11px] uppercase tracking-[0.25em] text-graphite/60 mb-1">
               Aesthetic Profile
             </p>
@@ -147,7 +147,7 @@ export function BestMatchGallery() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12 pt-2">
+        <div className="best-match-gallery__grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 sm:gap-x-6 gap-y-6 sm:gap-y-12 pt-2">
           {sortedMatches.map((match, idx) => (
             <MatchCard
               key={match.id}
@@ -205,7 +205,7 @@ function MatchCard({ match, index, itemMap, exiting, onOpen, onShare }: MatchCar
       whileTap={{ scale: 0.97 }}
     >
       <motion.div
-        className="relative w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 transition-colors"
+        className="best-match-card-surface relative w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 transition-colors"
         whileHover={{ y: -4 }}
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       >
