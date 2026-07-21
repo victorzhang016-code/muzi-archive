@@ -6,7 +6,7 @@ import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
 import { QuickAddItemModal } from './QuickAddItemModal';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
-import { Plus, Loader2, Database, ArrowUpDown, Trash2, Check, Sparkles, Lock, X } from 'lucide-react';
+import { Plus, Loader2, Database, ArrowUpDown, Trash2, Check, Sparkles, Lock, X, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ShareCardModal } from './ShareCardModal';
 import { buildItemShareUrl, isWardrobePublic, setWardrobePublic } from '../lib/sharing';
@@ -88,8 +88,16 @@ export function WardrobeList() {
   const [filterCategory, setFilterCategory] = useState<'全部' | Category>(getSavedArchiveCategory);
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [brandFilterOpen, setBrandFilterOpen] = useState(false);
+  const [yearFilterOpen, setYearFilterOpen] = useState(false);
   const [brandStatsOpen, setBrandStatsOpen] = useState(false);
   const [importHelpOpen, setImportHelpOpen] = useState(false);
+  const [importHelpDismissed, setImportHelpDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('wearlog-import-help-hidden') === '1';
+    } catch {
+      return false;
+    }
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<WardrobeItem | null>(null);
@@ -605,7 +613,7 @@ export function WardrobeList() {
         )}
 
         {/* Actions row */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-0 w-full">
           {/* Mobile-only primary action */}
           <button
             onClick={() => { sfx.modalOpen(); openQuickAddModal(); }}
@@ -614,7 +622,7 @@ export function WardrobeList() {
             <Plus className="w-4 h-4" />
             <span>添加衣物</span>
           </button>
-          <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar bg-tag border border-graphite/20 shadow-sm">
+          <div className="contents">
             {/* 清理重复：对空衣柜无意义，新用户先聚焦「添加衣物」。整柜公开改由分享卡里勾选控制。 */}
             {items.length > 0 && (<>
             <button
@@ -662,17 +670,20 @@ export function WardrobeList() {
                 }
               }}
               disabled={isSeeding}
-              className="flex items-center gap-2 min-h-12 px-5 font-story text-[14px] tracking-wide font-semibold text-stamp hover:bg-stamp/8 transition-colors whitespace-nowrap disabled:opacity-40 border-r border-graphite/15"
+              className="order-2 flex items-center gap-2 min-h-12 px-5 bg-tag border-y border-r border-graphite/20 font-story text-[14px] tracking-wide font-semibold text-stamp hover:bg-stamp/8 transition-colors whitespace-nowrap disabled:opacity-40"
             >
               {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               <span>清理重复</span>
             </button>
             </>)}
 
-            <div className="relative">
+            <div className="relative order-1 bg-tag border border-graphite/20 shadow-sm">
               <input
                 type="file"
                 accept=".json,.csv,.txt,.pdf"
+                onClick={() => {
+                  if (!importHelpDismissed) setImportHelpOpen(true);
+                }}
                 onChange={handleFileUpload}
                 disabled={isSeeding}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
@@ -689,7 +700,7 @@ export function WardrobeList() {
 
             <button
               onClick={() => { sfx.modalOpen(); openQuickAddModal(); }}
-              className="flex items-center gap-2 min-h-11 px-5 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
+              className="order-3 ml-auto flex items-center gap-2 min-h-12 px-5 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>添加衣物</span>
@@ -697,10 +708,10 @@ export function WardrobeList() {
           </div>
 
           {/* 导入说明：可导入内容与边界，降低批量导入的困惑 */}
-          <div className="w-auto sm:text-right">
+          <div className="order-4 basis-full w-full sm:text-right">
             <button
               onClick={() => setImportHelpOpen(v => !v)}
-              className="inline-flex items-center gap-1.5 font-tag text-[10px] uppercase tracking-widest text-graphite/50 hover:text-ink transition-colors"
+              className="hidden"
             >
               <span>{importHelpOpen ? '▾' : '▸'}</span>
               <span>导入说明</span>
@@ -714,6 +725,21 @@ export function WardrobeList() {
                   <li>TXT / PDF 由 AI 解析，<strong>尽力而为</strong>，可能漏或错，导入后请核对。</li>
                   <li>单柜上限 <strong>200 件</strong>，超出部分不导入；单次文件不要过大。</li>
                 </ul>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportHelpDismissed(true);
+                    setImportHelpOpen(false);
+                    try {
+                      localStorage.setItem('wearlog-import-help-hidden', '1');
+                    } catch {
+                      // The preference is optional when storage is unavailable.
+                    }
+                  }}
+                  className="mt-3 font-story text-[12px] text-graphite/60 underline underline-offset-4 hover:text-ink transition-colors"
+                >
+                  不再显示
+                </button>
               </div>
             )}
           </div>
@@ -761,6 +787,26 @@ export function WardrobeList() {
               </button>
             );
           })}
+          {availableYears.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setYearFilterOpen(v => !v)}
+              className="ml-auto flex min-h-10 sm:min-h-12 items-center gap-1.5 px-3 sm:px-4 font-tag text-[11px] uppercase tracking-widest text-graphite/60 border border-graphite/20 hover:text-ink hover:border-graphite/45 transition-colors shrink-0"
+            >
+              <span>Year</span>
+              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", yearFilterOpen && "rotate-180")} />
+            </button>
+          )}
+          {brandIndex.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setBrandFilterOpen(v => !v)}
+              className="flex min-h-10 sm:min-h-12 items-center gap-1.5 px-3 sm:px-4 font-tag text-[11px] uppercase tracking-widest text-graphite/60 border border-graphite/20 hover:text-ink hover:border-graphite/45 transition-colors shrink-0"
+            >
+              <span>Brand</span>
+              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", brandFilterOpen && "rotate-180")} />
+            </button>
+          )}
         </div>
 
         {/* Sub-filters */}
@@ -845,7 +891,7 @@ export function WardrobeList() {
         )}
 
         {/* Year filter — only shown when items have purchase years */}
-        {availableYears.length > 0 && (
+        {availableYears.length > 0 && yearFilterOpen && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-tag text-[12px] uppercase tracking-widest text-graphite/55 shrink-0 mr-1">Year</span>
             {(['全部', ...availableYears] as (number | '全部')[]).map(y => (
@@ -865,10 +911,10 @@ export function WardrobeList() {
           </div>
         )}
         {/* Brand filter — 折叠式，默认只显示标题行 */}
-        {brandIndex.length > 0 && (
+        {brandIndex.length > 0 && brandFilterOpen && (
           <div className="flex flex-col gap-2">
             {/* 标题行：Brand 标签 + 展开箭头 + 当前选中品牌（如有） */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="hidden">
               <button
                 onClick={() => setBrandFilterOpen(v => !v)}
                 className="flex min-h-9 items-center gap-1.5 font-tag text-[12px] uppercase tracking-widest text-graphite/55 hover:text-ink transition-colors shrink-0"
