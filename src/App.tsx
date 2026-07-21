@@ -20,7 +20,6 @@ import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
 import { LoginBrandTag } from './components/LoginBrandTag';
 import { SiteBrandLockup } from './components/SiteBrandLockup';
-import { AuthorWardrobeEntry } from './components/AuthorWardrobeEntry';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
 import { Loader2 } from 'lucide-react';
@@ -112,10 +111,14 @@ function LoginPage() {
           </p>
         )}
 
-        {/* 不登录也能看：作者的公开衣柜。与 Archive / Best Match 复用同一 CTA。 */}
-        <div className="mt-4 w-full max-w-xs">
-          <AuthorWardrobeEntry label="先看看作者的衣柜" className="w-full" />
-        </div>
+        {/* onboarding 入口保留原有圆角按钮；登录后的页面 CTA 使用统一的档案按钮。 */}
+        <button
+          onClick={() => navigate('/author')}
+          className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-stamp text-white hover:bg-stamp/90 transition-colors text-sm font-medium shadow-sm"
+        >
+          先看看作者的衣柜
+          <span aria-hidden>→</span>
+        </button>
 
         <p className="mt-6 text-xs text-graphite/60 font-story leading-relaxed">
           {isWebView
