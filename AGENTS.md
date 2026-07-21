@@ -112,3 +112,16 @@ Firebase `npm run emu`、`dev:emu` 是历史兼容脚本；不要把它们写成
 - `踩坑经验.md`、`容量评估.md`：历史运维经验，涉及 Firebase 的部分需结合 Supabase 迁移现状阅读。
 - `docs/plans/2026-07-10-firebase-supabase-migration.md`：迁移设计记录，不再是待执行计划。
 - 根目录 `PRD-best-match.md`：产品设计与历史验收记录，末尾“实现状态校正”覆盖旧的 Firebase/开发中表述。
+
+## 二阶段唯一执行计划
+
+审美关系基座及其后续产品能力的唯一执行依据为：
+
+`docs/AESTHETIC-FOUNDATION-EXECUTION-PLAN.md`
+
+该计划已经确认。后续涉及图片识别、RGB 风格字段、审美证据、关系计算、统计洞察、审计台、快速模式、实验模式或好友搭配的任务，必须先读取：
+
+1. `docs/PROJECT-STATUS.md`
+2. `docs/AESTHETIC-FOUNDATION-EXECUTION-PLAN.md`
+
+执行时必须遵守计划中的阶段闸门。未经过 Victor 确认的图片识别或 AI 提取结果，不得写入正式个人审美画像或作为确认关系参与推荐排序。

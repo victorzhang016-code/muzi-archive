@@ -9,8 +9,9 @@ function isTruthy(value: string): boolean {
 }
 
 /**
- * 本地 / Vercel Preview 下，默认禁止 serverless API 访问任何生产侧外部服务。
- * 只有显式设置 ALLOW_DEV_PROD_SERVICES=true 时允许穿透。
+ * 本地 / Vercel Preview 下，只允许 serverless API 访问明确配置的
+ * Development Supabase；Production 侧必须明确配置为 Production。
+ * ALLOW_DEV_PROD_SERVICES 仅保留给历史兼容场景，不作为 Development 的前置条件。
  */
 export function blockDevProdServices(res: VercelResponse): boolean {
   // Do not trust NODE_ENV here: a local `vercel dev` process can be started with
@@ -37,7 +38,7 @@ export function blockDevProdServices(res: VercelResponse): boolean {
     return true;
   }
 
-  if (isProduction || explicitlyAllowed) return false;
+  if (isProduction || supabaseEnvironment === 'development' || explicitlyAllowed) return false;
 
   res.setHeader('Cache-Control', 'no-store');
   res.status(503).json({

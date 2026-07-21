@@ -40,7 +40,7 @@ const configurationError = !supabaseUrl || !supabasePublishableKey
       || (!isLocalSupabaseUrl(supabaseUrl) && !allowHostedDevSupabase)
     )
     ? '开发环境只允许连接本地 Supabase；如需连接独立的托管开发项目，显式设置 VITE_ALLOW_HOSTED_SUPABASE_DEV=true'
-    : import.meta.env.PROD && supabaseEnvironment !== 'production'
+    : import.meta.env.PROD && deploymentEnvironment === 'production' && supabaseEnvironment !== 'production'
       ? '生产构建必须设置 VITE_SUPABASE_ENV=production'
       : deploymentMismatch
         ? 'Vercel 部署环境与 Supabase 环境不匹配：Production 只能连接 production，Preview 只能连接 development'

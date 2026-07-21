@@ -67,7 +67,30 @@
   align-items: start;
 }
 @media (max-width: 1024px) { .masonry-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 640px)  { .masonry-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px)  {
+  .masonry-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+/* Mobile archive cards should read as complete objects, not long desktop cards
+   squeezed into a single column. Keep the tag identity while shortening the
+   image and story zones enough for one card to fit in a phone viewport. */
+@media (max-width: 640px) {
+  .tag-card-wrapper .tag-card-image-frame { aspect-ratio: 5 / 4; }
+  .tag-card-wrapper .mx-3.mb-3 { margin: 0 .55rem .55rem; }
+  .tag-card-wrapper .px-3\.5.pb-4 { padding: 0 .7rem .75rem; }
+  .tag-card-wrapper .tag-card-story { -webkit-line-clamp: 1; line-clamp: 1; margin-bottom: .55rem; }
+  .tag-card-wrapper h3 { font-size: 14px; }
+  .tag-card-wrapper .font-tag.text-\[9px\] { font-size: 8px; }
+  .item-detail-image-frame { aspect-ratio: 4 / 5; }
+  .shared-item-page .shared-item-image-frame { aspect-ratio: 4 / 5; }
+  .shared-item-page .shared-item-card > div { border-radius: 0; }
+  .shared-item-page .shared-item-card h1 { font-size: 1.8rem; margin-bottom: 1rem; }
+  .shared-item-page .shared-item-card > div:last-child { padding: 1rem; }
+  .shared-match-page .best-match-view-shell { padding-bottom: 1.5rem; }
+}
 
 /* ── Card wrapper: straight by default, tilt on hover ── */
 .tag-card-wrapper {

@@ -17,6 +17,7 @@ import { useWardrobe } from '../contexts/WardrobeContext';
 import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
 import { useNavigate } from 'react-router';
+import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
 
@@ -25,6 +26,17 @@ const ITEM_LIMIT = 200;
 
 // Best Match 解锁门槛：上传满 3 件单品才解锁该功能
 const BEST_MATCH_UNLOCK = 3;
+const ARCHIVE_FILTER_KEY = 'wearlog-archive-filter-category';
+
+function getSavedArchiveCategory(): '全部' | Category {
+  try {
+    const saved = sessionStorage.getItem(ARCHIVE_FILTER_KEY);
+    if (saved === '全部' || CATEGORIES.includes(saved as Category)) return saved as '全部' | Category;
+  } catch {
+    // Storage can be unavailable in private browsing; fall back to the default tab.
+  }
+  return '全部';
+}
 
 function normalizeBrand(b: string): string {
   return b.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ' ').replace(/\s+/g, ' ').trim();
@@ -73,7 +85,7 @@ export function WardrobeList() {
   const { matches } = useBestMatches();
   const navigate = useNavigate();
   const scrollYRef = useRef(0);
-  const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
+  const [filterCategory, setFilterCategory] = useState<'全部' | Category>(getSavedArchiveCategory);
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [brandFilterOpen, setBrandFilterOpen] = useState(false);
   const [brandStatsOpen, setBrandStatsOpen] = useState(false);
@@ -153,6 +165,14 @@ export function WardrobeList() {
     setSubFilterLength('全部');
     setSubFilterTopType('全部');
     setSubFilterAccessoryType('全部');
+  }, [filterCategory]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(ARCHIVE_FILTER_KEY, filterCategory);
+    } catch {
+      // Storage is a convenience; filtering must still work without it.
+    }
   }, [filterCategory]);
 
   // 滚动位置保存（离开时）/ 恢复（回来时）
@@ -457,17 +477,18 @@ export function WardrobeList() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6 sm:space-y-10">
+      <AuthorWardrobeEntry />
       {/* Header */}
       <div className="flex flex-col gap-5">
         <div className="border-b border-dashed border-graphite/25 pb-5">
           <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">
             D-Tag Archive · {items.length} Items
           </p>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 sm:gap-4">
             <div>
               <h2
-                className="text-[3.5rem] leading-none text-ink"
+                className="text-[2.75rem] sm:text-[3.5rem] leading-none text-ink"
                 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, letterSpacing: '0.04em' }}
               >
                 Archive
@@ -692,7 +713,7 @@ export function WardrobeList() {
         </div>
 
         {/* Category filter pills */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto flex-nowrap hide-scrollbar -mx-3.5 px-3.5 sm:mx-0 sm:px-0 sm:flex-wrap">
           {CATEGORIES.map(cat => {
             const isActive = filterCategory === cat;
             const count = cat === '全部'
@@ -704,7 +725,7 @@ export function WardrobeList() {
                 onMouseEnter={() => sfx.cardHover()}
                 onClick={() => { sfx.filterClick(); setFilterCategory(cat); }}
                 className={cn(
-                  "relative min-h-12 px-5 sm:px-6 font-story text-[14px] tracking-wide font-semibold border transition-all",
+                  "relative min-h-10 sm:min-h-12 px-4 sm:px-6 font-story text-[13px] sm:text-[14px] tracking-wide font-semibold border transition-all shrink-0",
                   isActive
                     ? "bg-ink text-white border-ink shadow-sm"
                     : "bg-tag/60 text-ink/55 border-graphite/25 hover:text-ink hover:border-graphite/55 hover:bg-tag"
@@ -969,7 +990,7 @@ export function WardrobeList() {
             </div>
           </div>
         ) : (
-          <div className="masonry-grid pt-4">
+          <div className="masonry-grid pt-1 sm:pt-4">
             {sortedItems.map((item, i) => (
               <WardrobeItemCard
                 key={item.id}

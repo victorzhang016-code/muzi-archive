@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { WardrobeItem } from '../types';
 import { SharedItemCard } from './SharedItemCard';
-import { fetchPublicItem, SharingDisabledError } from '../lib/publicWardrobe';
-import { isWardrobePublic } from '../lib/sharing';
-import { Loader2, Lock, ArrowRight } from 'lucide-react';
+import { fetchPublicItem, fetchPublicWardrobeVisibility, SharingDisabledError } from '../lib/publicWardrobe';
+import { Loader2, Lock, ArrowLeft, ArrowRight } from 'lucide-react';
 
 export function SharedItemView() {
   const { userId, itemId } = useParams<{ userId: string; itemId: string }>();
@@ -36,6 +35,7 @@ export function SharedItemView() {
   useEffect(() => {
     if (!userId) return;
     setWardrobePublic(false);
+    void fetchPublicWardrobeVisibility(userId).then(setWardrobePublic);
   }, [userId]);
 
   if (loading) {
@@ -76,8 +76,16 @@ export function SharedItemView() {
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
       <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link
+              to={wardrobePublic ? `/share/${userId}` : '/'}
+              replace={!wardrobePublic}
+              className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              <span>{wardrobePublic ? '完整衣柜' : '返回登录'}</span>
+            </Link>
             <h1 className="site-wordmark" aria-label="衣LOG">
               <span>衣</span><em>LOG</em>
             </h1>
@@ -88,7 +96,7 @@ export function SharedItemView() {
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="shared-item-page max-w-xl mx-auto px-3.5 sm:px-6 lg:px-8 py-6 sm:py-10">
         <SharedItemCard item={item} />
 
         {wardrobePublic && (

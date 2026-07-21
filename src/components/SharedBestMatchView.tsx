@@ -1,31 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { BestMatch, BestMatchItems, BestMatchSlot, WardrobeItem } from '../types';
-import { fetchPublicMatch, SharingDisabledError } from '../lib/publicWardrobe';
-import { isWardrobePublic } from '../lib/sharing';
+import { BestMatch, WardrobeItem } from '../types';
+import { fetchPublicMatch, fetchPublicWardrobeVisibility, SharingDisabledError } from '../lib/publicWardrobe';
 import { resolveMediaUrl } from '../lib/media';
 import { BestMatchView } from './BestMatchView';
 import { Loader2, Lock, ArrowLeft, ArrowRight } from 'lucide-react';
 
 /** 公开接口返回的 items 是 Firestore 原样解码，可能是 v1 string[] 或 v2 对象 —— 统一成 v2。 */
-function normalizeSlots(raw: unknown): BestMatchSlot[] {
-  if (!Array.isArray(raw)) return [];
-  const out: BestMatchSlot[] = [];
-  for (const entry of raw) {
-    if (typeof entry === 'string') {
-      out.push({ primary: entry });
-    } else if (entry && typeof entry === 'object' && typeof (entry as any).primary === 'string') {
-      const variants = Array.isArray((entry as any).variants)
-        ? ((entry as any).variants as unknown[]).filter((v): v is string => typeof v === 'string')
-        : undefined;
-      out.push(variants && variants.length > 0
-        ? { primary: (entry as any).primary, variants }
-        : { primary: (entry as any).primary });
-    }
-  }
-  return out;
-}
-
 export function SharedBestMatchView() {
   const { userId, matchId } = useParams<{ userId: string; matchId: string }>();
   const navigate = useNavigate();
@@ -41,15 +22,7 @@ export function SharedBestMatchView() {
     // 单条公开搭配接口：拿到这套搭配 + 它引用的单品（落地页渲染吊牌串 / 点开单品）
     fetchPublicMatch(userId, matchId)
       .then(({ match: m, items }) => {
-        setMatch({
-          ...m,
-          items: {
-            tops: normalizeSlots((m.items as any)?.tops),
-            bottoms: normalizeSlots((m.items as any)?.bottoms),
-            shoes: normalizeSlots((m.items as any)?.shoes),
-            accessories: normalizeSlots((m.items as any)?.accessories),
-          } as BestMatchItems,
-        });
+        setMatch(m);
         setItems(items);
       })
       .catch((e) => {
@@ -62,6 +35,7 @@ export function SharedBestMatchView() {
   useEffect(() => {
     if (!userId) return;
     setWardrobePublic(false);
+    void fetchPublicWardrobeVisibility(userId).then(setWardrobePublic);
   }, [userId]);
 
   const itemMap = useMemo(() => {
@@ -124,7 +98,7 @@ export function SharedBestMatchView() {
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
       <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="site-wordmark" aria-label="衣LOG">
               <span>衣</span><em>LOG</em>
@@ -136,7 +110,7 @@ export function SharedBestMatchView() {
         </div>
       </header>
 
-      <main className="px-4 sm:px-6 lg:px-8 py-8">
+      <main className="shared-match-page px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
         <BestMatchView
           match={match}
           itemMap={itemMap}
@@ -144,12 +118,13 @@ export function SharedBestMatchView() {
           photoSlot={photoSlot}
           backSlot={
             <Link
-              to={`/share/${userId}`}
-              state={{ view: 'matches' }}
+              to={wardrobePublic ? `/share/${userId}` : '/'}
+              replace={!wardrobePublic}
+              state={wardrobePublic ? { view: 'matches' } : undefined}
               className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
             >
               <ArrowLeft className="w-3 h-3" />
-              <span>Best Match</span>
+              <span>{wardrobePublic ? 'Best Match' : '返回登录'}</span>
             </Link>
           }
         />

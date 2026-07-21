@@ -153,7 +153,7 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onShare, onCar
           {/* Polaroid photo */}
           <div className="mx-3 mb-3">
             <div style={{ padding: '5px 5px 16px 5px', ...polaroidInner }}>
-              <div className="aspect-[3/4] overflow-hidden">
+              <div className="tag-card-image-frame aspect-[3/4] overflow-hidden">
                 {item.imageUrl ? (
                   <img
                     src={resolveMediaUrl(item.imageUrl)}
@@ -204,7 +204,7 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onShare, onCar
             )}
 
             {item.story ? (
-              <p className="text-[12px] leading-[1.75] line-clamp-2 font-story mb-3" style={{ color: theme.textSecondary }}>
+              <p className="tag-card-story text-[12px] leading-[1.75] line-clamp-2 font-story mb-3" style={{ color: theme.textSecondary }}>
                 {item.story}
               </p>
             ) : onEdit ? (

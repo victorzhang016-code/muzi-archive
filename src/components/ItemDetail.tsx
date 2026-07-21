@@ -137,7 +137,7 @@ export function ItemDetail() {
     >
 
       {/* Back nav */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-5 sm:mb-8">
         <button
           onClick={() => { sfx.filterClick(); navigate('/'); }}
           className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors font-medium"
@@ -148,7 +148,7 @@ export function ItemDetail() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => { sfx.modalOpen(); setIsShareModalOpen(true); }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
+            className="min-h-10 flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
             title="分享"
           >
             <Share2 className="w-3.5 h-3.5" />
@@ -232,7 +232,7 @@ export function ItemDetail() {
           <div className="mx-4 mb-4">
             <div style={{ padding: '8px 8px 28px 8px', ...polaroidInner }}>
               {item.imageUrl ? (
-                <div className="aspect-[3/4] overflow-hidden">
+                <div className="item-detail-image-frame aspect-[3/4] overflow-hidden">
                   <img
                     src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name}
@@ -305,7 +305,7 @@ export function ItemDetail() {
 
       {/* ── Wash Label ── */}
       <div
-        className="wash-label px-6 py-5"
+        className="wash-label px-4 sm:px-6 py-4 sm:py-5"
         style={{
           background: theme.isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.25)',
           borderStyle: 'solid',
@@ -345,14 +345,14 @@ export function ItemDetail() {
 
       {/* ── 出现在 N 套搭配里 ── */}
       {relatedMatches.length > 0 && (
-        <div className="mt-12 pt-8 border-t border-dashed border-graphite/25">
+        <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-dashed border-graphite/25">
           <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-1">
             Appears In
           </p>
-          <h3 className="font-story text-lg text-ink mb-5">
+          <h3 className="font-story text-base sm:text-lg text-ink mb-4 sm:mb-5">
             出现在 <strong>{relatedMatches.length}</strong> 套搭配里
           </h3>
-          <div className="flex flex-wrap items-start gap-5 pb-3">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-start sm:gap-5 pb-3">
             {relatedMatches.map((m) => {
               const entries = bundleEntriesFromMatch(m, wardrobeMap);
               return (
@@ -360,17 +360,18 @@ export function ItemDetail() {
                   key={m.id}
                   onMouseEnter={() => sfx.cardHover()}
                   onClick={() => { sfx.cardClick(); navigate(`/best-match/${m.id}`); }}
-                  className="shrink-0 rounded-xl bg-white/30 border border-dashed border-graphite/20 hover:border-graphite/45 hover:-translate-y-1 transition-all p-3 cursor-pointer"
+                  className="min-w-0 rounded-xl bg-white/30 border border-dashed border-graphite/20 hover:border-graphite/45 hover:-translate-y-1 transition-all p-2 sm:p-3 cursor-pointer"
                 >
                   {entries.length > 0 && (
                     <TagBundle
                       entries={entries}
                       size="mini"
+                      className="mx-auto"
                       onItemClick={(it) => { sfx.cardClick(); navigate(`/item/${it.id}`); }}
                     />
                   )}
                   {m.name && (
-                    <p className="font-story font-bold text-sm text-ink mt-2 text-center max-w-[220px] line-clamp-1">
+                    <p className="font-story font-bold text-xs sm:text-sm text-ink mt-2 text-center max-w-full line-clamp-1">
                       {m.name}
                     </p>
                   )}

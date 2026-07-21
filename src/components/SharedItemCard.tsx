@@ -21,7 +21,7 @@ export function SharedItemCard({ item }: { item: WardrobeItem }) {
     : { background: 'rgba(255,255,255,0.08)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.10), 0 2px 6px rgba(0,0,0,0.35)' };
 
   return (
-    <div>
+    <div className="shared-item-card">
       <div
         className="tag-shadow relative overflow-hidden"
         style={{
@@ -79,7 +79,7 @@ export function SharedItemCard({ item }: { item: WardrobeItem }) {
           <div className="mx-4 mb-4">
             <div style={{ padding: '8px 8px 28px 8px', ...polaroidInner }}>
               {item.imageUrl ? (
-                <div className="aspect-[3/4] overflow-hidden">
+                <div className="shared-item-image-frame aspect-[3/4] overflow-hidden">
                   <img
                     src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name}

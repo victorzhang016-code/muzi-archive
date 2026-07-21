@@ -19,6 +19,8 @@ import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
 import { LoginBrandTag } from './components/LoginBrandTag';
+import { AestheticLabPage } from './components/AestheticLabPage';
+import { LocalAestheticLabPage } from './components/LocalAestheticLabPage';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
 import { Loader2 } from 'lucide-react';
@@ -31,11 +33,19 @@ const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|
   || (/iPhone|iPad/.test(navigator.userAgent) && !/Safari\//.test(navigator.userAgent) && /AppleWebKit/.test(navigator.userAgent));
 
 function LoginPage() {
-  const { emailLogin, emailRegister, resendSignupEmail, resetPassword, authError, pendingEmail, emailVerificationRequired } = useAuth();
+  const { user, emailLogin, emailRegister, resendSignupEmail, resetPassword, authError, pendingEmail, emailVerificationRequired } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailNote, setEmailNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const intent = getOnboardingIntent();
+    if (!intent) return;
+    consumeOnboardingIntent();
+    navigate(safeOnboardingPath(intent.next, '/'), { replace: true });
+  }, [user, navigate]);
 
   return (
     <div className="relative min-h-screen bg-kraft flex flex-col items-center justify-center px-6 overflow-hidden selection:bg-stamp selection:text-white">
@@ -108,6 +118,14 @@ function LoginPage() {
           className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-stamp text-white hover:bg-stamp/90 transition-colors text-sm font-medium shadow-sm"
         >
           先看看作者的衣柜
+          <span aria-hidden>→</span>
+        </button>
+
+        <button
+          onClick={() => navigate('/aesthetic-lab/local')}
+          className="mt-3 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-stamp/45 text-stamp hover:bg-stamp/5 transition-colors text-sm font-medium"
+        >
+          进入本地审美分析台
           <span aria-hidden>→</span>
         </button>
 
@@ -191,6 +209,7 @@ function PageRoutes() {
           <Route path="/best-match" element={<BestMatchGallery />} />
           <Route path="/best-match/new" element={<BestMatchBuilder />} />
           <Route path="/best-match/:id" element={<BestMatchDetail />} />
+          <Route path="/aesthetic-lab" element={<AestheticLabPage />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
@@ -215,17 +234,21 @@ function AppRoutes() {
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
       <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-[4.5rem] flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-[4.5rem] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <h1 className="site-wordmark group-hover:text-stamp transition-colors" aria-label="衣LOG">
               <span>衣</span><em>LOG</em>
             </h1>
           </Link>
+          <Link to="/aesthetic-lab" className="hidden sm:inline-flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.18em] text-graphite/65 hover:text-stamp transition-colors">
+            <span className="h-1.5 w-1.5 rounded-full bg-stamp/70" />
+            Aesthetic Lab
+          </Link>
           <AuthButton />
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
+      <main className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-16">
         <WardrobeProvider uid={user.uid}>
           <BestMatchProvider uid={user.uid}>
             <PageRoutes />
@@ -286,6 +309,7 @@ export default function App() {
       <BrowserRouter>
         <RecoveryRedirect />
         <Routes>
+          <Route path="/aesthetic-lab/local" element={<LocalAestheticLabPage />} />
           <Route path="/share/:userId/item/:itemId" element={<SharedItemView />} />
           <Route path="/share/:userId/best-match/:matchId" element={<SharedBestMatchView />} />
           <Route path="/share/:userId" element={<ShareView />} />

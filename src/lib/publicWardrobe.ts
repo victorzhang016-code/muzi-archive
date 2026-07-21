@@ -1,4 +1,4 @@
-import { WardrobeItem, BestMatch } from '../types';
+import { WardrobeItem, BestMatch, BestMatchItems, BestMatchSlot } from '../types';
 
 /**
  * 公开衣柜取数 —— 统一走 /api/public/:uid（Vercel 边缘缓存），不直连 Supabase 表。
@@ -15,6 +15,35 @@ export interface PublicWardrobe {
 export class SharingDisabledError extends Error {}
 /** 服务繁忙 / 额度用尽 / 网络错误（可重试） */
 export class BusyError extends Error {}
+
+/** Normalize legacy and incomplete public match payloads at the API boundary. */
+function normalizeSlots(raw: unknown): BestMatchSlot[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) => {
+    if (typeof entry === 'string') return [{ primary: entry }];
+    if (!entry || typeof entry !== 'object' || typeof (entry as any).primary !== 'string') return [];
+    const variants = Array.isArray((entry as any).variants)
+      ? ((entry as any).variants as unknown[]).filter((v): v is string => typeof v === 'string')
+      : [];
+    return [{ primary: (entry as any).primary as string, ...(variants.length > 0 ? { variants } : {}) }];
+  });
+}
+
+function normalizeBestMatch(raw: any): BestMatch {
+  const rawItems = raw?.items ?? {};
+  const items: BestMatchItems = {
+    tops: normalizeSlots(rawItems.tops),
+    bottoms: normalizeSlots(rawItems.bottoms),
+    shoes: normalizeSlots(rawItems.shoes),
+    accessories: normalizeSlots(rawItems.accessories),
+  };
+  const allItemIds = Array.isArray(raw?.allItemIds) && raw.allItemIds.length > 0
+    ? raw.allItemIds.filter((id: unknown): id is string => typeof id === 'string')
+    : (['tops', 'bottoms', 'shoes', 'accessories'] as (keyof BestMatchItems)[]).flatMap((key) =>
+      items[key].flatMap((slot) => [slot.primary, ...(slot.variants ?? [])])
+    );
+  return { ...raw, items, allItemIds } as BestMatch;
+}
 
 /**
  * 时间戳兼容：公开 RPC 返回 millis(number)，owner 查询适配层返回兼容 Timestamp。
@@ -37,11 +66,23 @@ export async function fetchPublicWardrobe(
   if (res.status === 403) throw new SharingDisabledError('not shared');
   if (!res.ok) throw new BusyError(`status ${res.status}`);
   const data = await res.json();
+  const rawItems = Array.isArray(data.items) ? data.items : [];
+  const rawMatches = Array.isArray(data.matches) ? data.matches : [];
   return {
-    items: (data.items ?? []) as WardrobeItem[],
-    matches: (data.matches ?? []) as BestMatch[],
+    items: rawItems as WardrobeItem[],
+    matches: rawMatches.map(normalizeBestMatch),
     wardrobePublic: data.wardrobePublic === true,
   };
+}
+
+/** Check full-wardrobe visibility without querying private tables from the visitor. */
+export async function fetchPublicWardrobeVisibility(uid: string): Promise<boolean> {
+  try {
+    return (await fetchPublicWardrobe(uid, { limit: 1 })).wardrobePublic;
+  } catch {
+    // A private wardrobe intentionally returns 403; individual shared links remain valid.
+    return false;
+  }
 }
 
 /** 单条公开单品（按单品分享）—— 走 /api/public-item/:uid/:id。 */
@@ -63,7 +104,7 @@ export async function fetchPublicMatch(
   if (!res.ok) throw new BusyError(`status ${res.status}`);
   const data = await res.json();
   return {
-    match: data.match as BestMatch,
-    items: (data.items ?? []) as WardrobeItem[],
+    match: normalizeBestMatch(data.match),
+    items: (Array.isArray(data.items) ? data.items : []) as WardrobeItem[],
   };
 }

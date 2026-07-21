@@ -55,13 +55,19 @@ export function BestMatchView({
   bundleCollapsed = false,
   animateIn = true,
 }: Props) {
+  const safeItems: BestMatchItems = {
+    tops: Array.isArray(match.items?.tops) ? match.items.tops : [],
+    bottoms: Array.isArray(match.items?.bottoms) ? match.items.bottoms : [],
+    shoes: Array.isArray(match.items?.shoes) ? match.items.shoes : [],
+    accessories: Array.isArray(match.items?.accessories) ? match.items.accessories : [],
+  };
   // 变体切换状态：切换会同时影响明细高亮与吊牌串展示（与主人视角一致）
   const [slotDisplay, setSlotDisplay] = useState<Record<string, string>>({});
 
   const entries = useMemo<BundleEntry[]>(() => {
     const out: BundleEntry[] = [];
     (['tops', 'bottoms', 'shoes', 'accessories'] as SlotKey[]).forEach((k) => {
-      match.items[k].forEach((slot) => {
+      safeItems[k].forEach((slot) => {
         const displayId = slotDisplay[slot.primary] ?? slot.primary;
         const item = itemMap.get(displayId);
         if (item) out.push({ item, variantCount: slot.variants?.length ?? 0 });
@@ -76,18 +82,18 @@ export function BestMatchView({
     : '—';
 
   const counts = {
-    tops: match.items.tops.length,
-    bottoms: match.items.bottoms.length,
-    shoes: match.items.shoes.length,
-    accessories: match.items.accessories.length,
+    tops: safeItems.tops.length,
+    bottoms: safeItems.bottoms.length,
+    shoes: safeItems.shoes.length,
+    accessories: safeItems.accessories.length,
   };
   const totalVariants = (['tops', 'bottoms', 'shoes', 'accessories'] as SlotKey[]).reduce(
-    (sum, k) => sum + match.items[k].reduce((s, slot) => s + (slot.variants?.length ?? 0), 0),
+    (sum, k) => sum + safeItems[k].reduce((s, slot) => s + (slot.variants?.length ?? 0), 0),
     0
   );
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
+    <div className="best-match-view-shell max-w-6xl mx-auto pb-12">
       {/* Top nav — full width */}
       <div className="flex items-center justify-between mb-6">
         {backSlot}
@@ -175,7 +181,7 @@ export function BestMatchView({
 
             <div className="space-y-3">
               {SLOT_LABELS.map(({ key, label }) => {
-                const slots = match.items[key];
+                const slots = safeItems[key];
                 if (slots.length === 0) return null;
                 return (
                   <div key={key} className="border-l-2 border-graphite/15 pl-3">

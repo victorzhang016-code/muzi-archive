@@ -40,14 +40,32 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
   const [togglingWardrobe, setTogglingWardrobe] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(CAPTURE_WIDTH + 32);
+  const [captureHeight, setCaptureHeight] = useState(760);
 
   const shortUrl = shareUrl.replace(/^https?:\/\//, '');
+
+  const previewScale = Math.min(1, Math.max(0.62, (viewportWidth - 24) / CAPTURE_WIDTH));
+  const previewWidth = CAPTURE_WIDTH * previewScale;
 
   useEffect(() => {
     QRCode.toDataURL(shareUrl, { margin: 1, width: 240, color: { dark: '#1C1C1A', light: '#FDFCF5' } })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(''));
   }, [shareUrl]);
+
+  // Keep the export canvas at 480px, but scale only the on-screen preview on narrow devices.
+  useEffect(() => {
+    const measure = () => {
+      setViewportWidth(window.innerWidth);
+      requestAnimationFrame(() => {
+        if (cardRef.current) setCaptureHeight(cardRef.current.offsetHeight);
+      });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [qrDataUrl, target.kind, target.kind === 'item' ? target.item.id : target.match.id]);
 
   // 打开分享卡即自动让这一条可公开访问（链接默认就能打开）
   useEffect(() => {
@@ -183,11 +201,11 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-6 px-4"
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-3 sm:py-6 px-3 sm:px-4"
       onClick={onClose}
     >
-      <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+      <div className="w-full max-w-md min-w-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2 sm:mb-4">
           <p className="font-tag text-[10px] uppercase tracking-[0.25em] text-tag/90">分享卡片</p>
           <button
             onClick={onClose}
@@ -200,12 +218,16 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
         </div>
 
         {/* ── 截图卡片 ── */}
-        <div className="mx-auto" style={{ width: CAPTURE_WIDTH, maxWidth: '100%' }}>
-          <div
-            ref={cardRef}
-            style={{ width: CAPTURE_WIDTH }}
-            className="bg-kraft px-6 pt-6 pb-5"
-          >
+        <div
+          className="mx-auto overflow-hidden"
+          style={{ width: previewWidth, height: captureHeight * previewScale }}
+        >
+          <div style={{ width: CAPTURE_WIDTH, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}>
+            <div
+              ref={cardRef}
+              style={{ width: CAPTURE_WIDTH }}
+              className="bg-kraft px-6 pt-6 pb-5"
+            >
             {/* 顶部 wordmark */}
             <div className="text-center mb-5">
               <p className="font-tag font-bold text-ink tracking-[0.08em]" style={{ fontSize: '1.05rem' }}>
@@ -235,19 +257,20 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
                 <p className="font-tag text-[10px] text-ink/75 break-all leading-snug">{shortUrl}</p>
               </div>
             </div>
+            </div>
           </div>
         </div>
 
         {/* ── 操作区 ── */}
         <div className="mt-5 space-y-3">
           {/* 这一条的公开状态 */}
-          <div className="rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3">
+          <div className="border border-dashed border-tag/30 bg-black/20 px-3 sm:px-4 py-3">
             {thisShared === null ? (
               <p className="min-h-11 font-story text-[14px] text-tag/70 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> 正在生成可分享链接…
               </p>
             ) : thisShared ? (
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                 <p className="font-story text-[14px] text-tag/85 flex items-center gap-2">
                   <Check className="w-4 h-4 text-stamp" />
                   {target.kind === 'item' ? '这件已可被链接公开访问' : '这套搭配已可被链接公开访问'}
@@ -255,14 +278,14 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
                 <button
                   onClick={handleUnshareThis}
                   disabled={togglingThis}
-                  className="min-h-10 shrink-0 inline-flex items-center gap-1.5 px-3 font-story text-[13px] text-tag/60 hover:text-tag transition-colors disabled:opacity-50"
+                  className="min-h-10 self-start shrink-0 inline-flex items-center gap-1.5 px-0 sm:px-3 font-story text-[13px] text-tag/60 hover:text-tag transition-colors disabled:opacity-50"
                 >
                   {togglingThis ? <Loader2 className="w-4 h-4 animate-spin" /> : <EyeOff className="w-4 h-4" />}
                   取消分享
                 </button>
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                 <p className="font-story text-[14px] text-tag/70">已取消分享，链接暂时打不开</p>
                 <button
                   onClick={handleReshareThis}
@@ -281,7 +304,7 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             type="button"
             onClick={handleToggleWardrobe}
             disabled={togglingWardrobe || wardrobePublic === null}
-            className="w-full min-h-14 flex items-center gap-3 rounded-lg border border-dashed border-tag/30 bg-black/20 px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"
+            className="w-full min-h-14 flex items-center gap-3 border border-dashed border-tag/30 bg-black/20 px-3 sm:px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"
           >
             <span
               className={`w-6 h-6 shrink-0 border flex items-center justify-center transition-colors ${
@@ -304,11 +327,11 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             </span>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
             <button
               onClick={handleDownload}
               disabled={generating}
-              className="flex-1 min-h-12 flex items-center justify-center gap-2 px-5 bg-ink text-tag font-story text-[14px] font-semibold hover:bg-ink/85 transition-colors disabled:opacity-50"
+              className="min-w-0 min-h-12 flex items-center justify-center gap-1.5 px-2 sm:px-5 bg-ink text-tag font-story text-[13px] sm:text-[14px] font-semibold hover:bg-ink/85 transition-colors disabled:opacity-50"
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               保存图片
@@ -316,14 +339,14 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             <button
               onClick={handleShare}
               disabled={generating}
-              className="min-h-12 flex items-center justify-center gap-2 px-5 border border-tag/30 bg-black/20 text-tag font-story text-[14px] font-semibold hover:bg-black/30 transition-colors disabled:opacity-50"
+              className="min-w-0 min-h-12 flex items-center justify-center gap-1.5 px-2 sm:px-5 border border-tag/30 bg-black/20 text-tag font-story text-[13px] sm:text-[14px] font-semibold hover:bg-black/30 transition-colors disabled:opacity-50"
             >
               <Share2 className="w-4 h-4" />
               分享
             </button>
             <button
               onClick={copyLink}
-              className="min-h-12 min-w-12 flex items-center justify-center gap-2 px-4 border border-tag/30 bg-black/20 text-tag font-story text-[14px] font-semibold hover:bg-black/30 transition-colors"
+              className="min-h-12 min-w-11 flex items-center justify-center border border-tag/30 bg-black/20 text-tag font-story text-[14px] font-semibold hover:bg-black/30 transition-colors"
               title="复制链接"
             >
               {copied ? <Check className="w-4 h-4 text-stamp" /> : <Copy className="w-4 h-4" />}

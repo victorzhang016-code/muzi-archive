@@ -10,6 +10,7 @@ import { ShareCardModal, ShareTarget } from './ShareCardModal';
 import { buildBestMatchShareUrl } from '../lib/sharing';
 import { auth } from '../lib/authCompat';
 import { BestMatch, WardrobeItem } from '../types';
+import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
 
 const AESTHETIC_THRESHOLD = 10;
 // 与 WardrobeList 保持一致：单品满 3 件才解锁 Best Match
@@ -58,6 +59,7 @@ export function BestMatchGallery() {
 
   return (
     <div className="space-y-10">
+      <AuthorWardrobeEntry />
       <div className="flex flex-col gap-5">
         <div className="border-b border-dashed border-graphite/25 pb-5">
           <button

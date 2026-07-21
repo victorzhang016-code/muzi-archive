@@ -17,7 +17,7 @@ const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋�
 function CreateOwnCTA({ onClick }: { onClick: () => void }) {
   return (
     <div className="cursor-pointer" onClick={onClick} style={{ transform: 'rotate(0.8deg)' }}>
-      <div className="group tag-card-bg tag-shadow flex flex-col items-center justify-center min-h-[280px] hover:translate-y-[-3px] transition-all duration-300 border border-dashed border-graphite/25 hover:border-stamp/50">
+      <div className="group tag-card-bg tag-shadow flex flex-col items-center justify-center min-h-[240px] sm:min-h-[280px] px-2 hover:translate-y-[-3px] transition-all duration-300 border border-dashed border-graphite/25 hover:border-stamp/50">
         <div className="w-12 h-12 border border-dashed border-stamp/40 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
           <Plus className="w-5 h-5 text-stamp/70" />
         </div>
@@ -31,11 +31,11 @@ function CreateOwnCTA({ onClick }: { onClick: () => void }) {
 function ReadOnlyItemModal({ item, onClose }: { item: WardrobeItem; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-8 px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-3 sm:py-8 px-3 sm:px-4"
       onClick={onClose}
     >
-      <div className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-end mb-4">
+      <div className="shared-item-page w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-end mb-2 sm:mb-4">
           <button
             onClick={onClose}
             className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/80 hover:bg-tag shadow-sm"
@@ -59,7 +59,15 @@ export function ShareView() {
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [filterCategory, setFilterCategory] = useState<'全部' | Category>('全部');
+  const shareFilterKey = userId ? `wearlog-share-filter-category:${userId}` : 'wearlog-share-filter-category';
+  const [filterCategory, setFilterCategory] = useState<'全部' | Category>(() => {
+    try {
+      const saved = sessionStorage.getItem(shareFilterKey);
+      return saved === '全部' || CATEGORIES.includes(saved as Category) ? saved as '全部' | Category : '全部';
+    } catch {
+      return '全部';
+    }
+  });
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   // 从 Best Match 详情返回时带 state.view='matches'，落在对应 tab 而非默认单品 tab
   const [view, setView] = useState<'items' | 'matches'>(
@@ -98,6 +106,14 @@ export function ShareView() {
   const filteredItems = items.filter(item =>
     filterCategory === '全部' || item.category === filterCategory
   );
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(shareFilterKey, filterCategory);
+    } catch {
+      // Storage is a convenience; browsing should still work without it.
+    }
+  }, [filterCategory, shareFilterKey]);
 
   if (loading) {
     return (
@@ -142,7 +158,7 @@ export function ShareView() {
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
       <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="site-wordmark" aria-label="衣LOG">
               <span>衣</span><em>LOG</em>
@@ -157,9 +173,9 @@ export function ShareView() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-6 sm:py-12">
         {/* CTA：创建我自己的衣柜 —— 站点设计语言（直角 / 虚线 / tag 底），红实心按钮为唯一焦点 */}
-        <div className="mb-10 border border-dashed border-graphite/30 bg-tag/60 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="mb-6 sm:mb-10 border border-dashed border-graphite/30 bg-tag/60 px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <p className="font-story text-ink text-[15px] font-semibold">喜欢这种记录方式？</p>
             <p className="font-story text-graphite/70 text-[13px] mt-0.5">建一个只属于你的衣柜，记录每件衣服的故事。</p>
@@ -175,7 +191,7 @@ export function ShareView() {
 
         {/* 视图切换：单品 / Best Match */}
         {matches.length > 0 && (
-          <div className="flex items-center gap-2 mb-8">
+          <div className="flex items-center gap-2 mb-5 sm:mb-8">
             <button
               onClick={() => setView('items')}
               className={cn(
@@ -209,7 +225,7 @@ export function ShareView() {
             <p className="font-story italic text-graphite/75 text-[14px] leading-relaxed mb-8 max-w-2xl">
               Best Match 是 TA 心中「绝对没错」的搭配——把那些固定会一起穿、怎么搭都不会出错的单品组合记下来。点开任意一套，看看它由哪些单品构成。
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 sm:gap-x-6 gap-y-6 sm:gap-y-10">
               {matches.map((match) => {
                 const entries = bundleEntriesFromMatch(match, wardrobeMap);
                 return (
@@ -218,7 +234,7 @@ export function ShareView() {
                     onClick={() => navigate(`/share/${userId}/best-match/${match.id}`)}
                     className="flex flex-col items-start gap-3 group text-left"
                   >
-                    <div className="w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
+                    <div className="w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-3 sm:p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
                       {entries.length > 0 ? (
                         <TagBundle entries={entries} size="mini" variant="stacked" />
                       ) : match.photoBase64 ? (
@@ -257,7 +273,7 @@ export function ShareView() {
         {/* ── 单品视图 ── */}
         {view === 'items' && (
         <>
-        <div className="flex items-center gap-2 flex-wrap mb-10">
+        <div className="flex items-center gap-2 overflow-x-auto flex-nowrap hide-scrollbar -mx-3.5 px-3.5 sm:mx-0 sm:px-0 sm:flex-wrap mb-5 sm:mb-10">
           {CATEGORIES.map(cat => {
             const isActive = filterCategory === cat;
             const count = cat === '全部' ? items.length : items.filter(i => i.category === cat).length;
@@ -266,7 +282,7 @@ export function ShareView() {
                 key={cat}
                 onClick={() => setFilterCategory(cat)}
                 className={cn(
-                  "relative px-5 py-2 font-tag text-[12px] uppercase tracking-[0.12em] font-semibold border transition-all",
+                  "relative px-4 sm:px-5 py-2 font-tag text-[11px] sm:text-[12px] uppercase tracking-[0.12em] font-semibold border transition-all shrink-0",
                   isActive
                     ? "bg-ink text-white border-ink shadow-sm"
                     : "bg-tag/60 text-ink/55 border-graphite/25 hover:text-ink hover:border-graphite/55 hover:bg-tag"
