@@ -392,7 +392,7 @@ input[type=range]::-moz-range-thumb {
   min-width: 0;
 }
 .archive-batch-actions {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   position: relative;
   display: block;
   min-width: 0;
@@ -430,14 +430,14 @@ input[type=range]::-moz-range-thumb {
   white-space: nowrap;
 }
 .archive-add-button {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   order: 2;
   margin-left: 0 !important;
   width: auto !important;
   min-width: 0;
 }
 .archive-public-button--actions {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   order: 3;
   min-width: 0;
 }
@@ -595,6 +595,7 @@ input[type=range]::-moz-range-thumb {
     gap: .5rem;
   }
   .archive-batch-actions { order: 1; }
+  .archive-batch-actions { flex: 1 1 0; }
   .archive-batch-trigger {
     display: flex;
     width: 100%;
@@ -628,10 +629,10 @@ input[type=range]::-moz-range-thumb {
   .archive-batch-menu .archive-deduplicate { width: 100%; border: 0; border-bottom: 1px solid rgba(107, 106, 101, .14); }
   .archive-batch-menu .archive-deduplicate { min-height: 2.75rem; justify-content: flex-start; padding: .625rem .8rem; }
   .archive-batch-menu .archive-import-control button { width: 100%; min-height: 2.75rem; justify-content: flex-start; padding: .625rem .8rem; border: 0; }
-  .archive-add-button { order: 2; width: auto !important; min-height: 2.75rem; justify-content: center; gap: .25rem; padding: .625rem .35rem; margin-left: 0 !important; font-size: 12px; }
+  .archive-add-button { flex: 1 1 0; order: 2; width: auto !important; min-height: 2.75rem; justify-content: center; gap: .25rem; padding: .625rem .35rem; margin-left: 0 !important; font-size: 12px; }
   .archive-add-button .w-4 { width: .9rem; height: .9rem; }
   .archive-public-button--header { display: none; }
-  .archive-public-button--actions { display: inline-flex; order: 3; width: auto; min-height: 2.75rem; gap: .25rem; padding: .625rem .35rem; font-size: 12px; }
+  .archive-public-button--actions { display: inline-flex; flex: 1 1 0; order: 3; width: auto; min-height: 2.75rem; gap: .25rem; padding: .625rem .35rem; font-size: 12px; }
   .archive-public-button--actions .w-5 { width: .9rem; height: .9rem; }
   .archive-filter-toggle {
     display: flex;
