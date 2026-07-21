@@ -384,11 +384,15 @@ input[type=range]::-moz-range-thumb {
 
 /* Archive controls are one desktop row, but one compact mobile workspace. */
 .archive-actions {
-  display: flex;
+  display: flex !important;
   align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
   gap: .5rem;
+  min-width: 0;
 }
 .archive-batch-actions {
+  flex: 1 1 0;
   position: relative;
   display: block;
   min-width: 0;
@@ -426,11 +430,16 @@ input[type=range]::-moz-range-thumb {
   white-space: nowrap;
 }
 .archive-add-button {
+  flex: 1 1 0;
   order: 2;
   margin-left: 0 !important;
+  width: auto !important;
+  min-width: 0;
 }
 .archive-public-button--actions {
+  flex: 1 1 0;
   order: 3;
+  min-width: 0;
 }
 .archive-batch-menu .archive-import-control,
 .archive-batch-menu .archive-deduplicate {
@@ -579,10 +588,11 @@ input[type=range]::-moz-range-thumb {
   .archive-header-actions .author-wardrobe-entry__label-short { display: inline; }
   .archive-header-actions .archive-utility-button .w-5 { width: .9rem; height: .9rem; }
   .archive-actions {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex !important;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
     gap: .5rem;
-    align-items: start;
   }
   .archive-batch-actions { order: 1; }
   .archive-batch-trigger {
@@ -618,10 +628,10 @@ input[type=range]::-moz-range-thumb {
   .archive-batch-menu .archive-deduplicate { width: 100%; border: 0; border-bottom: 1px solid rgba(107, 106, 101, .14); }
   .archive-batch-menu .archive-deduplicate { min-height: 2.75rem; justify-content: flex-start; padding: .625rem .8rem; }
   .archive-batch-menu .archive-import-control button { width: 100%; min-height: 2.75rem; justify-content: flex-start; padding: .625rem .8rem; border: 0; }
-  .archive-add-button { order: 2; width: 100%; min-height: 2.75rem; justify-content: center; gap: .25rem; padding: .625rem .35rem; margin-left: 0 !important; font-size: 12px; }
+  .archive-add-button { order: 2; width: auto !important; min-height: 2.75rem; justify-content: center; gap: .25rem; padding: .625rem .35rem; margin-left: 0 !important; font-size: 12px; }
   .archive-add-button .w-4 { width: .9rem; height: .9rem; }
   .archive-public-button--header { display: none; }
-  .archive-public-button--actions { display: inline-flex; order: 3; width: 100%; min-height: 2.75rem; gap: .25rem; padding: .625rem .35rem; font-size: 12px; }
+  .archive-public-button--actions { display: inline-flex; order: 3; width: auto; min-height: 2.75rem; gap: .25rem; padding: .625rem .35rem; font-size: 12px; }
   .archive-public-button--actions .w-5 { width: .9rem; height: .9rem; }
   .archive-filter-toggle {
     display: flex;
