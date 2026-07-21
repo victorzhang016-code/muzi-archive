@@ -18,6 +18,7 @@ import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
 import { useNavigate } from 'react-router';
 import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
+import { AuthButton } from './Auth';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
 
@@ -537,6 +538,7 @@ export function WardrobeList() {
                 </span>
                 <span>整柜公开</span>
               </button>
+              <AuthButton />
               <div className="hidden">
                 <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
                 <select

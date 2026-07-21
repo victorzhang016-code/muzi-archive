@@ -77,9 +77,9 @@ export function useAuth() {
   return { user, loading, login, emailLogin, emailRegister, resendSignupEmail, resetPassword, logout, authError, pendingEmail, emailVerificationRequired };
 }
 
-export function AuthButton() {
+export function AuthButton({ className = '' }: { className?: string }) {
   const { user, loading, logout } = useAuth();
-  if (loading) return <button disabled className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-100 text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /></button>;
+  if (loading) return <button disabled className={`flex items-center gap-2 min-h-10 px-3 border border-graphite/20 bg-tag/60 text-graphite/50 ${className}`}><Loader2 className="w-4 h-4 animate-spin" /></button>;
   if (!user) return null;
-  return <div className="flex items-center gap-3">{user.photoURL && <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" />}<span className="text-sm font-medium text-gray-700 hidden sm:block">{user.displayName}</span><button onClick={logout} className="flex min-h-11 items-center gap-2 px-4 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors text-sm font-medium"><LogOut className="w-4 h-4" /><span className="hidden sm:inline">退出</span></button></div>;
+  return <div className={`flex items-center gap-2 ${className}`}>{user.photoURL && <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />}<span className="font-story text-[13px] text-graphite/75 hidden sm:block max-w-28 truncate">{user.displayName}</span><button onClick={logout} className="flex min-h-10 items-center gap-2 px-3 border border-graphite/20 bg-tag/60 hover:border-graphite/45 hover:text-ink text-graphite/75 transition-colors font-story text-[13px] whitespace-nowrap"><LogOut className="w-4 h-4" /><span>退出</span></button></div>;
 }

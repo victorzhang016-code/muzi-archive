@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { AuthButton, useAuth } from './components/Auth';
+import { useAuth } from './components/Auth';
 import { GoogleSignInButton } from './components/GoogleSignInButton';
 import { WardrobeList } from './components/WardrobeList';
 import { ItemDetail } from './components/ItemDetail';
@@ -19,6 +19,8 @@ import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
 import { LoginBrandTag } from './components/LoginBrandTag';
+import { SiteBrandLockup } from './components/SiteBrandLockup';
+import { AuthorWardrobeEntry } from './components/AuthorWardrobeEntry';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
 import { Loader2 } from 'lucide-react';
@@ -110,14 +112,10 @@ function LoginPage() {
           </p>
         )}
 
-        {/* 不登录也能看：作者的公开衣柜（理想态示例）—— 红色强引导，与深色登录按钮形成双主按钮 */}
-        <button
-          onClick={() => navigate('/author')}
-          className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-stamp text-white hover:bg-stamp/90 transition-colors text-sm font-medium shadow-sm"
-        >
-          先看看作者的衣柜
-          <span aria-hidden>→</span>
-        </button>
+        {/* 不登录也能看：作者的公开衣柜。与 Archive / Best Match 复用同一 CTA。 */}
+        <div className="mt-4 w-full max-w-xs">
+          <AuthorWardrobeEntry label="先看看作者的衣柜" className="w-full" />
+        </div>
 
         <p className="mt-6 text-xs text-graphite/60 font-story leading-relaxed">
           {isWebView
@@ -222,18 +220,15 @@ function AppRoutes() {
 
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
-      <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-[4.5rem] flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <h1 className="site-wordmark group-hover:text-stamp transition-colors" aria-label="衣LOG">
-              <span>衣</span><em>LOG</em>
-            </h1>
+      <header className="relative z-40 bg-kraft/80 border-b border-dashed border-graphite/15">
+        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center">
+          <Link to="/" className="flex items-center group">
+            <SiteBrandLockup />
           </Link>
-          <AuthButton />
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-16">
+      <main className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-3 sm:py-7">
         <WardrobeProvider uid={user.uid}>
           <BestMatchProvider uid={user.uid}>
             <PageRoutes />

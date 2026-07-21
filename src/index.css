@@ -3,6 +3,7 @@
 
 @theme {
   --color-kraft:    #DDD8CC;
+  --color-linen:    #D2CCBE;
   --color-tag:      #FDFCF5;
   --color-ink:      #1C1C1A;
   --color-graphite: #6B6A65;
@@ -19,7 +20,7 @@
 
 @layer base {
   body {
-    background-color: #D2CCBE;   /* warm linen base — lighter than before */
+    background-color: var(--color-linen);
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -335,6 +336,112 @@ input[type=range]::-moz-range-thumb {
   font-style: italic;
   font-weight: 400;
   letter-spacing: 0.05em;
+}
+
+/* A single discovery CTA keeps Archive and Best Match semantically aligned. */
+.author-wardrobe-entry {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .75rem 1.25rem;
+  background: var(--color-stamp);
+  color: #fff;
+  font-family: var(--font-story);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .025em;
+  line-height: 1.25;
+  white-space: nowrap;
+  transition: background-color .2s ease, transform .2s ease;
+}
+.author-wardrobe-entry:hover {
+  background: #a93620;
+  transform: translateY(-1px);
+}
+.author-wardrobe-entry:focus-visible {
+  outline: 2px solid var(--color-stamp);
+  outline-offset: 3px;
+}
+
+/* Header lockup: the physical tag stays close to the wordmark instead of becoming a hero. */
+.site-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--color-ink);
+  line-height: 1;
+}
+.site-brand-lockup__tag {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 30px;
+  flex: 0 0 18px;
+}
+.site-brand-lockup__tag > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(52, 42, 30, .18));
+}
+.site-brand-lockup__tag-copy {
+  position: absolute;
+  inset: 11px 2px 4px;
+  display: flex;
+  align-items: center;
+  color: #fff0d1;
+  flex-direction: column;
+  font-family: var(--font-tag);
+  font-size: 3px;
+  font-weight: 500;
+  justify-content: center;
+  letter-spacing: .08em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 1px 1px rgba(77, 31, 16, .24);
+  white-space: nowrap;
+}
+.site-brand-lockup__tag-copy small {
+  margin-top: 2px;
+  font-size: 2.4px;
+  letter-spacing: .06em;
+}
+.site-brand-lockup__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.42rem;
+  font-weight: 500;
+  letter-spacing: .06em;
+  line-height: .9;
+  transition: color .2s ease;
+}
+.site-brand-lockup__wordmark em {
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: .05em;
+}
+.group:hover .site-brand-lockup__wordmark { color: var(--color-stamp); }
+
+@media (max-width: 640px) {
+  .author-wardrobe-entry {
+    min-height: 2.75rem;
+    padding: .625rem .875rem;
+    font-size: 13px;
+  }
+  .site-brand-lockup { gap: .5rem; }
+  .site-brand-lockup__tag {
+    width: 17px;
+    height: 28px;
+    flex-basis: 17px;
+  }
+  .site-brand-lockup__wordmark { font-size: 1.3rem; }
 }
 /* ── Best Match primary entry ── */
 .best-match-entry {

@@ -16,3 +16,5 @@
 二阶段候选：真实 Aesthetic Profile、单件辐射图、真实反馈观测、移动端细节和 Firebase 兼容层清理。候选尚未锁定，不要在文档中写成已承诺范围。当前优先补齐邮箱端到端验收，再根据真实使用反馈排序二阶段。
 
 工程要求：新公开读走 `/api/public*` 与 Supabase RPC；新图片走 `/api/blob-upload`；修改数据模型时同步 migration、映射和公开 JSON；改动后运行 `npm run lint` 与 `npm run build`。
+
+UI 设计与布局必须遵守 `docs/UI-DESIGN-SYSTEM.md`：内容优先、顶部最多两个工作区、按功能属性分组、主操作独立突出、辅助功能降权、说明按需出现；移动端保持一屏一卡和可读的任务路径。增加新按钮前先判断它是否真的需要独立占据一行。

@@ -11,6 +11,7 @@ import { buildBestMatchShareUrl } from '../lib/sharing';
 import { auth } from '../lib/authCompat';
 import { BestMatch, WardrobeItem } from '../types';
 import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
+import { AuthButton } from './Auth';
 
 const AESTHETIC_THRESHOLD = 10;
 // 与 WardrobeList 保持一致：单品满 3 件才解锁 Best Match
@@ -84,7 +85,7 @@ export function BestMatchGallery() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <AuthorWardrobeEntry variant="solid" />
+              <AuthorWardrobeEntry />
               <button
                 onClick={() => { sfx.modalOpen(); navigate('/best-match/new'); }}
                 className="flex min-h-12 items-center gap-2 px-6 bg-ink text-white font-story text-[14px] tracking-wide font-semibold hover:bg-ink/85 transition-colors whitespace-nowrap"
@@ -92,6 +93,7 @@ export function BestMatchGallery() {
                 <Plus className="w-[18px] h-[18px]" />
                 <span>建立 Best Match</span>
               </button>
+              <AuthButton />
             </div>
           </div>
         </div>
