@@ -23,7 +23,7 @@ import { AestheticLabPage } from './components/AestheticLabPage';
 import { LocalAestheticLabPage } from './components/LocalAestheticLabPage';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
-import { Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
 const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|FBAN|FBAV|Instagram|Twitter|Snapchat|Pinterest|LinkedInApp/i.test(navigator.userAgent)
@@ -240,6 +240,15 @@ function AppRoutes() {
               <span>衣</span><em>LOG</em>
             </h1>
           </Link>
+          {import.meta.env.VITE_AUTHOR_UID && (
+            <Link
+              to="/author"
+              className="inline-flex items-center justify-center gap-1.5 min-h-10 px-2.5 sm:px-4 bg-stamp text-white font-tag text-[9px] sm:text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm whitespace-nowrap"
+            >
+              查看作者衣柜
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          )}
           <Link to="/aesthetic-lab" className="hidden sm:inline-flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.18em] text-graphite/65 hover:text-stamp transition-colors">
             <span className="h-1.5 w-1.5 rounded-full bg-stamp/70" />
             Aesthetic Lab
