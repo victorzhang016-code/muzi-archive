@@ -22,7 +22,7 @@ export async function uploadImageToBlob(dataUrl: string): Promise<string> {
   }
 
   const data = await res.json();
-  if (!data?.blobPath || typeof data.blobPath !== 'string') throw new Error('鍥剧墖涓婁紶鏈繑鍥炲湴鍧€');
-  return data.blobPath;
+  if (!data?.url || typeof data.url !== 'string') throw new Error('鍥剧墖涓婁紶鏈繑鍥炲湴鍧€');
+  return data.url;
 }
 

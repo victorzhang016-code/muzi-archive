@@ -83,8 +83,8 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
     // Reset input value so the same file can be selected again
     e.target.value = '';
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image size must be less than 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      setError('原图不能超过 20MB，建议先用手机相册压缩后再试');
       return;
     }
     setError(null);
@@ -95,6 +95,8 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
       setConverting(false);
       const reader = new FileReader();
       reader.onloadend = () => {
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
         setCropImageSrc(reader.result as string);
       };
       reader.readAsDataURL(normalized);
@@ -222,10 +224,16 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
                 image={cropImageSrc}
                 crop={crop}
                 zoom={zoom}
+                minZoom={1}
+                maxZoom={12}
+                zoomSpeed={1}
+                zoomWithScroll
+                objectFit="cover"
                 aspect={3 / 4}
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
+                onWheelRequest={() => true}
               />
             </div>
             <div className="mt-6 flex items-center gap-4">
@@ -236,7 +244,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
                   type="range"
                   value={zoom}
                   min={1}
-                  max={3}
+                  max={12}
                   step={0.1}
                   aria-labelledby="Zoom"
                   onChange={(e) => setZoom(Number(e.target.value))}
@@ -244,7 +252,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
                   style={{
                     appearance: 'none',
                     height: '2px',
-                    background: `linear-gradient(to right, #1C1C1A ${((zoom - 1) / 2) * 100}%, rgba(107,106,101,0.25) ${((zoom - 1) / 2) * 100}%)`,
+                    background: `linear-gradient(to right, #1C1C1A ${((zoom - 1) / 11) * 100}%, rgba(107,106,101,0.25) ${((zoom - 1) / 11) * 100}%)`,
                     outline: 'none',
                     borderRadius: '0',
                   }}

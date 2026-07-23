@@ -10,8 +10,9 @@ import { useWardrobe } from '../contexts/WardrobeContext';
 import { handleFirestoreError, OperationType, LoadErrorKind } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { bundleEntriesFromMatch, useBestMatches } from '../contexts/BestMatchContext';
-import { compressToBase64 } from '../lib/cropImage';
+import { compressToBase64, normalizeImageFile } from '../lib/cropImage';
 import { uploadImageToBlob } from '../lib/blobUpload';
+import { ImageCropperModal } from './ImageCropper';
 import { BestMatchView } from './BestMatchView';
 import { resolveMediaUrl } from '../lib/media';
 
@@ -24,6 +25,7 @@ export function BestMatchDetail() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoCropSrc, setPhotoCropSrc] = useState<string | null>(null);
   const [bundleVisible, setBundleVisible] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -119,11 +121,46 @@ export function BestMatchDetail() {
     }
   };
 
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !match) return;
+    if (file.size > 20 * 1024 * 1024) {
+      alert('原图不能超过 20MB，建议先压缩后再试');
+      return;
+    }
+    try {
+      const normalized = await normalizeImageFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setPhotoCropSrc(String(reader.result || ''));
+      reader.readAsDataURL(normalized);
+    } catch {
+      alert('图片无法读取，请换一张图片重试');
+    }
+  };
+
+  const handlePhotoConfirm = async (croppedFile: File) => {
+    if (!match) return;
+    setPhotoUploading(true);
+    try {
+      const base64 = await compressToBase64(croppedFile, 720, 0.78);
+      const url = await uploadImageToBlob(base64);
+      await updateBestMatch(match.id, { ...match, photoBase64: url });
+      setMatch((current) => current ? { ...current, photoBase64: url } : current);
+      setPhotoCropSrc(null);
+    } catch (err) {
+      const kind = handleFirestoreError(err, OperationType.WRITE, `best_matches/${match.id}`);
+      alert(kind === 'busy' ? '服务器繁忙，照片未保存，请稍后重试。' : '照片保存失败，请重试或换一张更小的图片。');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !match) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('图片不能超过 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      alert('原图不能超过 20MB，建议先压缩后再试');
       e.target.value = '';
       return;
     }
@@ -223,6 +260,14 @@ export function BestMatchDetail() {
 
   return (
     <>
+      {photoCropSrc && (
+        <ImageCropperModal
+          imageSrc={photoCropSrc}
+          onCancel={() => setPhotoCropSrc(null)}
+          onConfirm={handlePhotoConfirm}
+          title="裁剪整套 Look 图片"
+        />
+      )}
       <BestMatchView
         match={match}
         itemMap={itemMap}
@@ -273,7 +318,7 @@ export function BestMatchDetail() {
               ref={fileInputRef}
               type="file"
               accept="image/*,.heic,.heif"
-              onChange={handlePhotoUpload}
+              onChange={handlePhotoSelect}
               className="hidden"
             />
           </>

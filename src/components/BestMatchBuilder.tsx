@@ -7,8 +7,9 @@ import { useWardrobe } from '../contexts/WardrobeContext';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
 import { sfx } from '../lib/sounds';
 import { cn } from '../lib/utils';
-import { compressToBase64 } from '../lib/cropImage';
+import { compressToBase64, normalizeImageFile } from '../lib/cropImage';
 import { uploadImageToBlob } from '../lib/blobUpload';
+import { ImageCropperModal } from './ImageCropper';
 import {
   BestMatchItems,
   BestMatchSlot,
@@ -56,6 +57,8 @@ export function BestMatchBuilder() {
   const [story, setStory] = useState('');
   const [sceneTags, setSceneTags] = useState<SceneTag[]>([]);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [photoCropSrc, setPhotoCropSrc] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category>('上装');
   const [variantSlot, setVariantSlot] = useState<{ category: SlotKey; primaryId: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -341,11 +344,44 @@ export function BestMatchBuilder() {
     }
   };
 
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      showToast('原图不能超过 20MB，建议先压缩后再试');
+      return;
+    }
+    try {
+      const normalized = await normalizeImageFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setPhotoCropSrc(String(reader.result || ''));
+      reader.readAsDataURL(normalized);
+    } catch {
+      showToast('图片无法读取，请换一张图片重试');
+    }
+  };
+
+  const handlePhotoConfirm = async (croppedFile: File) => {
+    setPhotoUploading(true);
+    try {
+      const base64 = await compressToBase64(croppedFile, 720, 0.78);
+      const url = await uploadImageToBlob(base64);
+      setPhotoBase64(url);
+      setPhotoCropSrc(null);
+    } catch (err: any) {
+      showToast(err?.message || '图片上传失败，请重试');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('图片不能超过 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      showToast('原图不能超过 20MB，建议先压缩后再试');
+      e.target.value = '';
       return;
     }
     try {
@@ -375,7 +411,16 @@ export function BestMatchBuilder() {
   const lengthOptions: ('全部' | '长裤' | '短裤' | '裙子')[] = ['全部', '长裤', '短裤', '裙子'];
 
   return (
-    <div className="best-match-builder space-y-8 pb-24">
+    <>
+      {photoCropSrc && (
+        <ImageCropperModal
+          imageSrc={photoCropSrc}
+          onCancel={() => setPhotoCropSrc(null)}
+          onConfirm={handlePhotoConfirm}
+          title="裁剪整套 Look 图片"
+        />
+      )}
+      <div className="best-match-builder space-y-8 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-dashed border-graphite/25 pb-5">
         <button
@@ -454,19 +499,20 @@ export function BestMatchBuilder() {
               ) : (
                 <button
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={photoUploading}
                   className="w-32 h-32 border border-dashed border-graphite/30 flex flex-col items-center justify-center gap-2 text-graphite/50 hover:text-ink hover:border-graphite/60 transition-colors"
                   title="上传整套 Look 照片"
                   aria-label="上传整套 Look 照片"
                 >
                   <ImageIcon className="w-[18px] h-[18px]" />
-                  <span className="font-tag text-[12px] uppercase tracking-wider">Upload</span>
+                  <span className="font-tag text-[12px] uppercase tracking-wider">{photoUploading ? '处理中' : 'Upload'}</span>
                 </button>
               )}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,.heic,.heif"
-                onChange={handlePhotoChange}
+                onChange={handlePhotoSelect}
                 className="hidden"
               />
             </div>
@@ -920,7 +966,8 @@ export function BestMatchBuilder() {
           {toast}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

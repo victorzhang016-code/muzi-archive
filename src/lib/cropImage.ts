@@ -103,6 +103,8 @@ export default async function getCroppedImg(
   ctx.translate(-image.width / 2, -image.height / 2);
 
   // draw rotated image
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(image, 0, 0);
 
   const croppedCanvas = document.createElement('canvas');
@@ -112,6 +114,9 @@ export default async function getCroppedImg(
     return null;
   }
 
+  croppedCtx.imageSmoothingEnabled = true;
+  croppedCtx.imageSmoothingQuality = 'high';
+
   // Set the size of the cropped canvas.
   // 注意：本函数产出的 File 仅是中间产物——调用方（AddEditItemModal）随后会用
   // compressToBase64(file, 720, 0.78) 再压一道，最终存进 Firestore / 详情页显示的恒为 720px。
@@ -119,8 +124,8 @@ export default async function getCroppedImg(
   const MAX_WIDTH = 1200;
   const scale = pixelCrop.width > MAX_WIDTH ? MAX_WIDTH / pixelCrop.width : 1;
 
-  croppedCanvas.width = pixelCrop.width * scale;
-  croppedCanvas.height = pixelCrop.height * scale;
+  croppedCanvas.width = Math.max(1, Math.round(pixelCrop.width * scale));
+  croppedCanvas.height = Math.max(1, Math.round(pixelCrop.height * scale));
 
   // Draw the cropped image onto the new canvas
   croppedCtx.drawImage(
@@ -131,8 +136,8 @@ export default async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width * scale,
-    pixelCrop.height * scale
+    croppedCanvas.width,
+    croppedCanvas.height
   );
 
   // As a blob
