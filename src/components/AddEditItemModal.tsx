@@ -228,7 +228,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
                 maxZoom={12}
                 zoomSpeed={1}
                 zoomWithScroll
-                objectFit="cover"
+                objectFit="contain"
                 aspect={3 / 4}
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}

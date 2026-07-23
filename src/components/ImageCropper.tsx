@@ -41,6 +41,7 @@ export function ImageCropperPanel({ imageSrc, onCancel, onConfirm }: ImageCroppe
         <p className="text-[11px] text-graphite/55 mt-1">固定 3:4 竖版，横图也会保留更多可调整空间</p>
       </div>
       <div className="relative flex-1 min-h-0 bg-ink overflow-hidden border border-graphite/20 touch-none">
+        {/* Keep source framing intact; only the 3:4 crop frame is fixed. */}
         <Cropper
           image={imageSrc}
           crop={crop}
@@ -49,7 +50,7 @@ export function ImageCropperPanel({ imageSrc, onCancel, onConfirm }: ImageCroppe
           maxZoom={MAX_ZOOM}
           zoomSpeed={1}
           zoomWithScroll
-          objectFit="cover"
+          objectFit="contain"
           aspect={ASPECT}
           onCropChange={setCrop}
           onCropComplete={onCropComplete}
