@@ -192,3 +192,10 @@ Victor 已明确：数据分析和图片字段识别先在本机闭环，不以 
 - 已将 Victor 本地快照中的 101 条已确认视觉记录按单品 ID 回填 Production，生成 101 条审计修订；所有单品引用有效，原始 `wardrobe_items`、`best_matches` 和视觉字段未改写。
 - 单品详情顶部增加“解析”入口（滚动到解析面板）与“搭一套”入口；审美页增加“选择单品 / 建立搭配”起始操作说明。
 - 回归验证：`npm run lint`、`npm run test:aesthetic`（19/19）、`npm run build` 通过；Vercel Production deployment `wearlog-hq6wqsslx` 已 Ready，主域名 `www.wearlog.cn` 已绑定。未授权 API 仍返回 401，线上主页与 Production 环境隔离规则未放宽。
+
+## 2026-08-04 审美运行快照与快速搭配候选
+
+- Production 新增 `aesthetic_analysis_runs`，只保存可替换的派生分析快照，不覆盖衣物、Best Match 或视觉解析原始表。
+- 已同步本地最新 v4 运行结果：`wearlog-aesthetic-v4.0.0`、7 条原则、12 条待尝试组合、271 条替换关系、445 条文字命题；线上审美页和快速搭配页优先读取该快照。
+- 快速搭配在历史 Best Match/变体之后，会展示由既有规则引擎生成的“待尝试”候选，并保留来源搭配和替换单品。
+- 单品解析从详情顶部移除，改为“字段来源与解析管理”折叠入口；单品字段仍可查看、修改和重新获取候选。
