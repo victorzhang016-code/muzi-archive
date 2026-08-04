@@ -26,7 +26,7 @@ export function QuickOutfitPage() {
   useEffect(() => {
     let alive = true;
     listVisionAnalyses().then((next) => { if (alive) setAnalyses(next); }).catch(() => {
-      if (alive) setError('审美解释暂时没能读取；已确认搭配仍然可以使用。');
+      if (alive) setError('搭配说明暂时没能读取；已确认搭配仍然可以使用。');
     }).finally(() => { if (alive) setAnalysisLoading(false); });
     return () => { alive = false; };
   }, []);
@@ -85,7 +85,7 @@ export function QuickOutfitPage() {
 
       {selected && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-emerald-800/25 bg-emerald-50/70 p-4 text-emerald-950">
-          <div><p className="font-medium">已经记下：今天穿「{selected.sourceMatch.name || '这套 Best Match'}」</p><p className="mt-1 text-sm">之后可以在审美页补充实穿结果，它会成为这套搭配的真实证据。</p></div>
+          <div><p className="font-medium">已经记下：今天穿「{selected.sourceMatch.name || '这套 Best Match'}」</p><p className="mt-1 text-sm">之后可以在审美页补充实际穿着结果，它会帮助校准这套搭配。</p></div>
           <button type="button" onClick={() => setSelected(null)} className="inline-flex min-h-10 items-center gap-2 border border-emerald-800/30 px-3 text-sm"><RotateCcw className="h-4 w-4" />继续比较</button>
         </div>
       )}
@@ -104,8 +104,8 @@ export function QuickOutfitPage() {
                 </button>)}
               </div>
               <div className="flex flex-1 flex-col p-4">
-                <div className="flex items-start justify-between gap-3"><div><span className={`inline-block border px-2 py-1 text-[10px] ${option.kind === 'confirmed_match' ? 'border-emerald-700/35 bg-emerald-50 text-emerald-900' : option.kind === 'confirmed_variant' ? 'border-stamp/35 bg-stamp/5 text-stamp' : 'border-amber-700/35 bg-amber-50 text-amber-900'}`}>{option.kind === 'confirmed_match' ? '已确认搭配' : option.kind === 'confirmed_variant' ? '已确认替换' : '规则引擎建议 · 待尝试'}</span><h2 className="mt-2 font-story text-xl font-semibold">{option.sourceMatch.name || '未命名 Best Match'}</h2></div><span className="text-[10px] text-graphite/50">{option.selections.length} 件</span></div>
-                <p className="mt-2 text-sm leading-6 text-graphite/75">{option.kind === 'suggested_candidate' ? `沿用「${option.sourceMatch.name || '这套搭配'}」的结构，把${option.replacedItem?.name || '原单品'}换成「${option.candidateItem?.name || '候选单品'}」。这是基于已记录规则生成的待尝试组合。` : `来自你的 Best Match。${option.kind === 'confirmed_variant' && option.replacedItem ? `当前单品在这套搭配中替换「${option.replacedItem.name}」。` : '这件单品本来就在这套搭配里。'}`}</p>
+                <div className="flex items-start justify-between gap-3"><div><span className={`inline-block border px-2 py-1 text-[10px] ${option.kind === 'confirmed_match' ? 'border-emerald-700/35 bg-emerald-50 text-emerald-900' : option.kind === 'confirmed_variant' ? 'border-stamp/35 bg-stamp/5 text-stamp' : 'border-amber-700/35 bg-amber-50 text-amber-900'}`}>{option.kind === 'confirmed_match' ? '已确认搭配' : option.kind === 'confirmed_variant' ? '已确认替换' : '搭配建议 · 待尝试'}</span><h2 className="mt-2 font-story text-xl font-semibold">{option.sourceMatch.name || '未命名 Best Match'}</h2></div><span className="text-[10px] text-graphite/50">{option.selections.length} 件</span></div>
+                <p className="mt-2 text-sm leading-6 text-graphite/75">{option.kind === 'suggested_candidate' ? `沿用「${option.sourceMatch.name || '这套搭配'}」的结构，把${option.replacedItem?.name || '原单品'}换成「${option.candidateItem?.name || '备选单品'}」。这是根据你已经用过的搭配方式整理出的待尝试组合。` : `来自你的 Best Match。${option.kind === 'confirmed_variant' && option.replacedItem ? `当前单品在这套搭配中替换「${option.replacedItem.name}」。` : '这件单品本来就在这套搭配里。'}`}</p>
 
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 border-y border-dashed border-graphite/20 py-3 text-xs">
                   {option.selections.map((selection) => <div key={`${selection.slot}:${selection.index}`} className="contents"><dt className="text-graphite/50">{SLOT_LABELS[selection.slot]}</dt><dd className="truncate text-right">{selection.item.name}</dd></div>)}
@@ -113,7 +113,7 @@ export function QuickOutfitPage() {
 
                 <details className="mt-3 text-sm">
                   <summary className="cursor-pointer text-graphite underline decoration-graphite/25 underline-offset-4">为什么这样搭</summary>
-                  {explanations.length ? <div className="mt-3 space-y-2">{explanations.map((entry) => <div key={entry.id} className="border-l-2 border-stamp/40 pl-3"><p className="font-medium">{entry.action}</p><p className="mt-1 leading-6 text-graphite/70">{entry.effect}</p></div>)}</div> : <p className="mt-3 leading-6 text-graphite/70">你已经记录过这套搭配；当前还没有足够字段说明它的具体处理方式。</p>}
+                  {explanations.length ? <div className="mt-3 space-y-2">{explanations.map((entry) => <div key={entry.id} className="border-l-2 border-stamp/40 pl-3"><p className="font-medium">{entry.action}</p><p className="mt-1 leading-6 text-graphite/70">{entry.effect}</p></div>)}</div> : <p className="mt-3 leading-6 text-graphite/70">你已经记录过这套搭配；当前还没有足够的服装信息说明它具体做了什么。</p>}
                 </details>
 
                 <div className="mt-auto pt-5"><button type="button" disabled={isSelected} onClick={() => choose(option)} className="inline-flex min-h-11 w-full items-center justify-center gap-2 bg-ink px-4 text-sm text-white disabled:bg-emerald-800"><Check className="h-4 w-4" />{isSelected ? '今天就穿这套' : '今天穿这套'}</button></div>

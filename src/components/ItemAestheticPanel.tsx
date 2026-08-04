@@ -70,7 +70,7 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
       setAnalysis(current);
       setDraft(clonePayload(current?.payload));
     }).catch((reason) => {
-      if (alive) setError(reason instanceof Error ? reason.message : '没能读取审美字段');
+      if (alive) setError(reason instanceof Error ? reason.message : '没能读取这件衣服的设计信息');
     }).finally(() => {
       if (alive) setLoading(false);
     });
@@ -82,7 +82,7 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
     || draft.dominantColors.length > 0 || Boolean(draft.visualWeight || draft.formality), [draft]);
 
   const runAnalysis = async () => {
-    if (!item.imageUrl) { setError('先给这件衣服添加图片，再进行解析。'); return; }
+    if (!item.imageUrl) { setError('先给这件衣服添加图片，再让 AI 识别。'); return; }
     setWorking(true);
     setError('');
     setNotice('');
@@ -95,9 +95,9 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
       setAnalysis(next);
       setDraft(clonePayload(next.payload));
       setEditing(true);
-      setNotice('Kimi for coding 已返回候选字段。请检查后确认。');
+      setNotice('AI 已整理出一版设计信息，请检查后确认。');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '解析失败，请稍后重试');
+      setError(reason instanceof Error ? reason.message : 'AI 识别失败，请稍后重试');
     } finally {
       setWorking(false);
     }
@@ -112,7 +112,7 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
       setAnalysis(next);
       setDraft(clonePayload(next.payload));
       setEditing(status !== 'confirmed');
-      setNotice(status === 'confirmed' ? '这些字段已经和单品关联，并会进入审美规则计算。' : '已拒绝本次结果，它不会进入正式审美分析。');
+      setNotice(status === 'confirmed' ? '这些设计信息已经记在这件衣服上，并会用于整理你的搭配规律。' : '已拒绝本次结果，它不会进入正式搭配规律。');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存失败，请稍后重试');
     } finally {
@@ -135,7 +135,7 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
     }],
   }));
 
-  if (loading) return <div className="mt-8 border-t border-dashed border-graphite/25 pt-6 text-sm text-graphite/60"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />正在读取审美字段…</div>;
+  if (loading) return <div className="mt-8 border-t border-dashed border-graphite/25 pt-6 text-sm text-graphite/60"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />正在读取这件衣服的设计信息…</div>;
 
   return (
     <section id="item-aesthetic-panel" className="mt-8 scroll-mt-20 border-t border-dashed border-graphite/25 pt-6" aria-labelledby="item-aesthetic-title">
@@ -143,18 +143,18 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
         <div>
           <p className="font-tag text-[10px] uppercase tracking-[0.2em] text-stamp">Aesthetic fields</p>
           <h2 id="item-aesthetic-title" className="mt-1 font-story text-xl font-semibold text-ink">这件衣服的设计档案</h2>
-          <p className="mt-1 max-w-xl text-sm leading-6 text-graphite/70">廓形、材质、颜色和设计亮点会参与搭配规律。AI 先提出候选，你确认或修改后才成为正式字段。</p>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-graphite/70">廓形、材质、颜色和设计亮点会参与搭配规律。AI 先整理一版，你确认或修改后才会正式用于分析。</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {analysis && <button type="button" onClick={() => setEditing((value) => !value)} className="min-h-10 border border-graphite/25 bg-tag px-3 text-sm text-ink">{editing ? '收起修改' : '修改字段'}</button>}
+          {analysis && <button type="button" onClick={() => setEditing((value) => !value)} className="min-h-10 border border-graphite/25 bg-tag px-3 text-sm text-ink">{editing ? '收起修改' : '修改设计信息'}</button>}
           <details className="relative">
-            <summary className="flex min-h-10 cursor-pointer list-none items-center gap-1 border border-graphite/20 bg-white/70 px-3 text-sm text-graphite">字段来源与解析管理</summary>
+            <summary className="flex min-h-10 cursor-pointer list-none items-center gap-1 border border-graphite/20 bg-white/70 px-3 text-sm text-graphite">设计信息来源与管理</summary>
             <div className="absolute right-0 z-10 mt-2 w-[min(22rem,calc(100vw-2rem))] border border-graphite/20 bg-kraft p-3 shadow-lg">
-              <p className="text-xs leading-5 text-graphite/70">解析在后台只生成候选字段；这里可以查看来源、重新请求或处理授权。确认后的内容才会进入搭配规律。</p>
+              <p className="text-xs leading-5 text-graphite/70">AI 在后台只整理待确认内容；这里可以查看来源、重新请求或处理授权。确认后的内容才会进入搭配规律。</p>
               {!consented && !analysis && <p className="mt-2 border-l-2 border-stamp/50 pl-2 text-xs leading-5 text-stamp">发送图片前需要你的同意；不会发送故事、评分或完整衣橱。</p>}
               <button type="button" disabled={working || !item.imageUrl} onClick={() => void runAnalysis()} className="mt-3 inline-flex min-h-10 items-center gap-2 bg-ink px-3 text-sm text-white disabled:opacity-45">
                 {working ? <Loader2 className="h-4 w-4 animate-spin" /> : analysis ? <RefreshCw className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                {analysis ? '重新获取候选字段' : '开始后台解析'}
+                {analysis ? '重新整理设计信息' : '让 AI 整理一版'}
               </button>
             </div>
           </details>
@@ -195,7 +195,7 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <button type="button" disabled={working} onClick={() => void save('confirmed')} className="inline-flex min-h-11 items-center gap-2 bg-ink px-4 text-sm text-white disabled:opacity-50"><Check className="h-4 w-4" />确认并用于分析</button>
+            <button type="button" disabled={working} onClick={() => void save('confirmed')} className="inline-flex min-h-11 items-center gap-2 bg-ink px-4 text-sm text-white disabled:opacity-50"><Check className="h-4 w-4" />确认并用于搭配规律</button>
             <button type="button" disabled={working} onClick={() => void save('rejected')} className="min-h-11 border border-stamp px-4 text-sm text-stamp disabled:opacity-50">拒绝本次结果</button>
           </div>
         </div>

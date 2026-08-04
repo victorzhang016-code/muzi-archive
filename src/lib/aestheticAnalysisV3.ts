@@ -868,7 +868,7 @@ function decisionMechanismsForOutfit(outfit: Omit<OutfitCaseGraph, "decisionMech
       ruleId: `principle:${operation}`,
       caseId: outfit.matchId,
       operation,
-      condition: copy?.condition || "当前字段支持这项处理。",
+      condition: copy?.condition || "当前的服装信息支持这项处理。",
       action: copy?.mechanism || operation,
       effect: unique(relations.map((relation) => relation.effect)).join("；"),
       supportItemIds,
@@ -1438,7 +1438,7 @@ function buildDesignHighlightInsights(
   const distributionCopy: Record<Exclude<OutfitCompositionProfile["designFocus"]["distribution"], "quiet">, { title: string; statement: (count: number) => string }> = {
     core_led: {
       title: "搭配前提：核心外衣优先承载设计亮点",
-      statement: (count) => `这遵循你已声明的搭配方法。在 ${count} 套已记录搭配里，核心外衣带有已确认的设计亮点；支持单品自己的细节仍会保留，但不因存在字段就自动抢占整套焦点。`,
+      statement: (count) => `这遵循你已声明的搭配方法。在 ${count} 套已记录搭配里，核心外衣带有已确认的设计亮点；支持单品自己的细节仍会保留，但不会因为有设计细节就自动抢占整套焦点。`,
     },
     shared: {
       title: "设计亮点分布在多件单品上",
@@ -1880,7 +1880,7 @@ export function textTransmissionPreview(snapshot: LocalSnapshot, scope: TextExtr
     itemStoryCount: itemStories.length,
     matchStoryCount: matchStories.length,
     characters,
-    scope: scope === "best_match" ? "本轮只发送 Best Match 的文字说明；不发送图片、评分、单品字段或完整衣橱。" : "本轮只发送单品故事；不发送图片、评分、单品字段或完整衣橱。",
+    scope: scope === "best_match" ? "本轮只发送 Best Match 的文字说明；不发送图片、评分、单品信息或完整衣橱。" : "本轮只发送单品故事；不发送图片、评分、单品信息或完整衣橱。",
   };
 }
 
