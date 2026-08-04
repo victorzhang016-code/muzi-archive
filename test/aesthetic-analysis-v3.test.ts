@@ -245,11 +245,12 @@ test("keeps a trial outcome as scoped local evidence without fabricating a new r
   assert.deepEqual(run.principles.map((principle) => principle.id), base.principles.map((principle) => principle.id));
 });
 
-test("quick mode returns only recorded Best Match and contextual variants", () => {
+test("quick mode returns recorded matches plus rule-engine candidates", () => {
   const stamp = { toDate: () => new Date("2026-08-04T00:00:00.000Z") };
   const items = [
     { id: "coat", name: "外套", category: "上装" },
     { id: "pants", name: "长裤", category: "下装" },
+    { id: "pants-b", name: "候选裤", category: "下装" },
     { id: "shoe-a", name: "鞋 A", category: "鞋子" },
     { id: "shoe-b", name: "鞋 B", category: "鞋子" },
   ].map((item) => ({ ...item, userId: "u", season: "四季", rating: 8, story: "", createdAt: stamp, updatedAt: stamp })) as any;
@@ -266,5 +267,22 @@ test("quick mode returns only recorded Best Match and contextual variants", () =
   assert.equal(variant.length, 1);
   assert.equal(variant[0].kind, "confirmed_variant");
   assert.equal(variant[0].replacedItem?.id, "shoe-a");
+  const suggested = quickOutfitOptions("coat", matches, items, {
+    opportunities: [{
+      id: "opportunity:coat:bottoms:pants-b",
+      anchorItemId: "coat",
+      anchorItemName: "外套",
+      targetSlot: "bottoms",
+      replacesItemId: "pants",
+      replacesItemName: "长裤",
+      candidateItemId: "pants-b",
+      candidateItemName: "候选裤",
+      reasons: ["结构条件相近"],
+      evidenceIds: [],
+      score: 2,
+    }],
+  } as any);
+  assert.equal(suggested.at(-1)?.kind, "suggested_candidate");
+  assert.equal(suggested.at(-1)?.candidateItem?.id, "pants-b");
   assert.equal(quickOutfitOptions("missing", matches, items).length, 0);
 });

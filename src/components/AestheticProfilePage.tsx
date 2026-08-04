@@ -15,6 +15,7 @@ import {
 } from '../lib/aestheticAnalysisV3';
 import { buildLiveAestheticRun, listQuickWearRecords, liveAestheticSnapshot, saveDecisionBrief, saveQuickWearRecord, type QuickWearRecord } from '../lib/aestheticProduct';
 import { listVisionAnalyses, type VisionAnalysis } from '../lib/aestheticVision';
+import { loadSyncedAestheticRun } from '../lib/aestheticRunSync';
 import { resolveMediaUrl } from '../lib/media';
 
 type View = 'principles' | 'cases' | 'substitutions' | 'calibration';
@@ -169,6 +170,7 @@ export function AestheticProfilePage() {
   const [expanded, setExpanded] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [notice, setNotice] = useState('');
+  const [syncedRun, setSyncedRun] = useState<AnalysisRun | null>(null);
   const [quickRecords, setQuickRecords] = useState<QuickWearRecord[]>(() => listQuickWearRecords());
 
   useEffect(() => {
@@ -178,8 +180,21 @@ export function AestheticProfilePage() {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    loadSyncedAestheticRun().then((next) => { if (alive && next) setSyncedRun(next); }).catch(() => {
+      // A synced run is an enhancement; source rows and deterministic rules remain usable.
+    });
+    return () => { alive = false; };
+  }, []);
+
   const snapshot = useMemo(() => liveAestheticSnapshot(items, matches, analyses), [items, matches, analyses]);
-  const run = useMemo(() => buildLiveAestheticRun(snapshot), [snapshot, refresh]);
+  const generatedRun = useMemo(() => buildLiveAestheticRun(snapshot), [snapshot, refresh]);
+  const run = useMemo(() => {
+    // The synced bundle is the audited local run Victor asked to publish. It
+    // may intentionally cover a curated subset of the larger online wardrobe.
+    return syncedRun || generatedRun;
+  }, [generatedRun, syncedRun]);
   const confirmedCount = analyses.filter((entry) => entry.status === 'confirmed').length;
   const proposed = analyses.filter((entry) => entry.status === 'proposed');
   const itemMap = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);

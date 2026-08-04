@@ -145,18 +145,22 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
           <h2 id="item-aesthetic-title" className="mt-1 font-story text-xl font-semibold text-ink">这件衣服的设计档案</h2>
           <p className="mt-1 max-w-xl text-sm leading-6 text-graphite/70">廓形、材质、颜色和设计亮点会参与搭配规律。AI 先提出候选，你确认或修改后才成为正式字段。</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {analysis && <button type="button" onClick={() => setEditing((value) => !value)} className="min-h-10 border border-graphite/25 bg-tag px-3 text-sm text-ink">{editing ? '收起修改' : '修改字段'}</button>}
-          <button type="button" disabled={working || !item.imageUrl} onClick={() => void runAnalysis()} className="inline-flex min-h-10 items-center gap-2 bg-ink px-3 text-sm text-white disabled:opacity-45">
-            {working ? <Loader2 className="h-4 w-4 animate-spin" /> : analysis ? <RefreshCw className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-            {analysis ? '重新解析' : '用 Kimi 解析'}
-          </button>
+          <details className="relative">
+            <summary className="flex min-h-10 cursor-pointer list-none items-center gap-1 border border-graphite/20 bg-white/70 px-3 text-sm text-graphite">字段来源与解析管理</summary>
+            <div className="absolute right-0 z-10 mt-2 w-[min(22rem,calc(100vw-2rem))] border border-graphite/20 bg-kraft p-3 shadow-lg">
+              <p className="text-xs leading-5 text-graphite/70">解析在后台只生成候选字段；这里可以查看来源、重新请求或处理授权。确认后的内容才会进入搭配规律。</p>
+              {!consented && !analysis && <p className="mt-2 border-l-2 border-stamp/50 pl-2 text-xs leading-5 text-stamp">发送图片前需要你的同意；不会发送故事、评分或完整衣橱。</p>}
+              <button type="button" disabled={working || !item.imageUrl} onClick={() => void runAnalysis()} className="mt-3 inline-flex min-h-10 items-center gap-2 bg-ink px-3 text-sm text-white disabled:opacity-45">
+                {working ? <Loader2 className="h-4 w-4 animate-spin" /> : analysis ? <RefreshCw className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                {analysis ? '重新获取候选字段' : '开始后台解析'}
+              </button>
+            </div>
+          </details>
         </div>
       </div>
 
-      {!consented && !analysis && (
-        <p className="mt-4 border border-stamp/25 bg-stamp/5 p-3 text-sm leading-6 text-graphite/80">点击解析即表示你同意把当前单品图片发送给 Kimi for coding。本次只分析可见服装字段，不发送故事、评分或完整衣橱。</p>
-      )}
       {notice && <p className="mt-4 border-l-2 border-emerald-700 pl-3 text-sm leading-6 text-emerald-900">{notice}</p>}
       {error && <p className="mt-4 border-l-2 border-stamp pl-3 text-sm leading-6 text-stamp">{error}</p>}
 

@@ -4,8 +4,10 @@ import { useNavigate, useParams } from 'react-router';
 import { useBestMatches } from '../contexts/BestMatchContext';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { buildLiveAestheticRun, liveAestheticSnapshot, quickOutfitOptions, saveQuickWearRecord, type QuickOutfitOption } from '../lib/aestheticProduct';
+import type { AnalysisRun } from '../lib/aestheticAnalysisV3';
 import { listVisionAnalyses, type VisionAnalysis } from '../lib/aestheticVision';
 import { resolveMediaUrl } from '../lib/media';
+import { loadSyncedAestheticRun } from '../lib/aestheticRunSync';
 
 const SLOT_LABELS = { tops: '上装', bottoms: '下装', shoes: '鞋', accessories: '配饰' } as const;
 
@@ -18,6 +20,8 @@ export function QuickOutfitPage() {
   const [analysisLoading, setAnalysisLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<QuickOutfitOption | null>(null);
+  const [syncedRun, setSyncedRun] = useState<AnalysisRun | null>(null);
+  const [syncLoading, setSyncLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -27,12 +31,21 @@ export function QuickOutfitPage() {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    loadSyncedAestheticRun().then((next) => { if (alive) setSyncedRun(next); }).catch(() => {
+      // Fall back to the live deterministic run if the optional snapshot is unavailable.
+    }).finally(() => { if (alive) setSyncLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
   const anchor = items.find((item) => item.id === itemId);
-  const options = useMemo(() => quickOutfitOptions(itemId, matches, items), [itemId, matches, items]);
-  const run = useMemo(() => {
+  const generatedRun = useMemo(() => {
     if (!items.length && !matches.length) return null;
     return buildLiveAestheticRun(liveAestheticSnapshot(items, matches, analyses));
   }, [items, matches, analyses]);
+  const run = syncedRun || generatedRun;
+  const options = useMemo(() => quickOutfitOptions(itemId, matches, items, run), [itemId, matches, items, run]);
 
   const choose = (option: QuickOutfitOption) => {
     const record = {
@@ -42,12 +55,13 @@ export function QuickOutfitPage() {
       matchId: option.sourceMatch.id,
       selectedAt: new Date().toISOString(),
       state: 'selected' as const,
+      opportunityId: option.opportunityId,
     };
     saveQuickWearRecord(record);
     setSelected(option);
   };
 
-  const loading = itemLoading || matchLoading || analysisLoading;
+  const loading = itemLoading || matchLoading || analysisLoading || syncLoading;
   if (loading) return <div className="grid min-h-[55vh] place-items-center"><div className="text-center text-sm text-graphite/65"><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />正在整理已确认搭配…</div></div>;
 
   if (!anchor) return <div className="mx-auto max-w-xl py-20 text-center"><h1 className="font-story text-3xl font-semibold">没有找到这件衣服</h1><button type="button" onClick={() => navigate('/')} className="mt-6 min-h-11 bg-ink px-5 text-sm text-white">返回衣橱</button></div>;
@@ -90,8 +104,8 @@ export function QuickOutfitPage() {
                 </button>)}
               </div>
               <div className="flex flex-1 flex-col p-4">
-                <div className="flex items-start justify-between gap-3"><div><span className={`inline-block border px-2 py-1 text-[10px] ${option.kind === 'confirmed_match' ? 'border-emerald-700/35 bg-emerald-50 text-emerald-900' : 'border-stamp/35 bg-stamp/5 text-stamp'}`}>{option.kind === 'confirmed_match' ? '已确认搭配' : '已确认替换'}</span><h2 className="mt-2 font-story text-xl font-semibold">{option.sourceMatch.name || '未命名 Best Match'}</h2></div><span className="text-[10px] text-graphite/50">{option.selections.length} 件</span></div>
-                <p className="mt-2 text-sm leading-6 text-graphite/75">来自你的 Best Match。{option.kind === 'confirmed_variant' && option.replacedItem ? `当前单品在这套搭配中替换「${option.replacedItem.name}」。` : '这件单品本来就在这套搭配里。'}</p>
+                <div className="flex items-start justify-between gap-3"><div><span className={`inline-block border px-2 py-1 text-[10px] ${option.kind === 'confirmed_match' ? 'border-emerald-700/35 bg-emerald-50 text-emerald-900' : option.kind === 'confirmed_variant' ? 'border-stamp/35 bg-stamp/5 text-stamp' : 'border-amber-700/35 bg-amber-50 text-amber-900'}`}>{option.kind === 'confirmed_match' ? '已确认搭配' : option.kind === 'confirmed_variant' ? '已确认替换' : '规则引擎建议 · 待尝试'}</span><h2 className="mt-2 font-story text-xl font-semibold">{option.sourceMatch.name || '未命名 Best Match'}</h2></div><span className="text-[10px] text-graphite/50">{option.selections.length} 件</span></div>
+                <p className="mt-2 text-sm leading-6 text-graphite/75">{option.kind === 'suggested_candidate' ? `沿用「${option.sourceMatch.name || '这套搭配'}」的结构，把${option.replacedItem?.name || '原单品'}换成「${option.candidateItem?.name || '候选单品'}」。这是基于已记录规则生成的待尝试组合。` : `来自你的 Best Match。${option.kind === 'confirmed_variant' && option.replacedItem ? `当前单品在这套搭配中替换「${option.replacedItem.name}」。` : '这件单品本来就在这套搭配里。'}`}</p>
 
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 border-y border-dashed border-graphite/20 py-3 text-xs">
                   {option.selections.map((selection) => <div key={`${selection.slot}:${selection.index}`} className="contents"><dt className="text-graphite/50">{SLOT_LABELS[selection.slot]}</dt><dd className="truncate text-right">{selection.item.name}</dd></div>)}

@@ -108,10 +108,12 @@ export type QuickOutfitOption = {
   id: string;
   sourceMatch: BestMatch;
   anchorItem: WardrobeItem;
-  kind: 'confirmed_match' | 'confirmed_variant';
+  kind: 'confirmed_match' | 'confirmed_variant' | 'suggested_candidate';
   selections: QuickOutfitSelection[];
   replacedSlot?: keyof BestMatchItems;
   replacedItem?: WardrobeItem;
+  candidateItem?: WardrobeItem;
+  opportunityId?: string;
 };
 
 const SLOT_ORDER: Array<keyof BestMatchItems> = ['tops', 'bottoms', 'shoes', 'accessories'];
@@ -127,7 +129,7 @@ function isComplete(selections: QuickOutfitSelection[]) {
   return selections.some((entry) => entry.slot === 'tops') && selections.some((entry) => entry.slot === 'bottoms');
 }
 
-export function quickOutfitOptions(anchorItemId: string, matches: BestMatch[], items: WardrobeItem[]) {
+export function quickOutfitOptions(anchorItemId: string, matches: BestMatch[], items: WardrobeItem[], run?: AnalysisRun | null) {
   const itemMap = new Map(items.map((item) => [item.id, item]));
   const anchorItem = itemMap.get(anchorItemId);
   if (!anchorItem) return [] as QuickOutfitOption[];
@@ -168,6 +170,42 @@ export function quickOutfitOptions(anchorItemId: string, matches: BestMatch[], i
     });
   }
 
+  // The quick mode should also surface a small number of new combinations
+  // discovered by the existing rule engine. They remain "待尝试" and keep the
+  // source Best Match context; they are not silently promoted to a confirmed
+  // outfit.
+  if (run) {
+    const opportunities = run.opportunities.filter((entry) => entry.anchorItemId === anchorItemId);
+    for (const opportunity of opportunities) {
+      const candidate = itemMap.get(opportunity.candidateItemId);
+      if (!candidate || candidate.id === anchorItemId) continue;
+      const sourceMatch = matches.find((match) => {
+        const primary = selectionsForMatch(match, itemMap);
+        return primary.some((selection) => selection.item.id === anchorItemId)
+          && primary.some((selection) => selection.slot === opportunity.targetSlot && selection.item.id === opportunity.replacesItemId);
+      });
+      if (!sourceMatch) continue;
+      const primary = selectionsForMatch(sourceMatch, itemMap);
+      const targetIndex = primary.findIndex((selection) => selection.slot === opportunity.targetSlot && selection.item.id === opportunity.replacesItemId);
+      if (targetIndex < 0) continue;
+      const next = primary.map((selection, index) => index === targetIndex
+        ? { ...selection, item: candidate, replacedItem: selection.item }
+        : selection);
+      if (!isComplete(next) || !next.some((selection) => selection.item.id === anchorItemId)) continue;
+      options.push({
+        id: `opportunity:${opportunity.id}`,
+        sourceMatch,
+        anchorItem,
+        kind: 'suggested_candidate',
+        selections: next,
+        replacedSlot: opportunity.targetSlot as keyof BestMatchItems,
+        replacedItem: opportunity.replacesItemId ? itemMap.get(opportunity.replacesItemId) : undefined,
+        candidateItem: candidate,
+        opportunityId: opportunity.id,
+      });
+    }
+  }
+
   const seen = new Set<string>();
   return options.filter((option) => {
     const canonical = option.selections.map((entry) => `${entry.slot}:${entry.index}:${entry.item.id}`).join('|');
@@ -175,11 +213,15 @@ export function quickOutfitOptions(anchorItemId: string, matches: BestMatch[], i
     seen.add(canonical);
     return true;
   }).sort((left, right) => {
-    if (left.kind !== right.kind) return left.kind === 'confirmed_match' ? -1 : 1;
+    const rank = (option: QuickOutfitOption) => option.kind === 'confirmed_match' ? 0 : option.kind === 'confirmed_variant' ? 1 : 2;
+    if (rank(left) !== rank(right)) return rank(left) - rank(right);
     const leftTime = left.sourceMatch.updatedAt?.toDate?.().getTime?.() || 0;
     const rightTime = right.sourceMatch.updatedAt?.toDate?.().getTime?.() || 0;
     return rightTime - leftTime || left.id.localeCompare(right.id);
-  }).slice(0, 3);
+  });
+  const confirmed = options.filter((option) => option.kind !== 'suggested_candidate').slice(0, 3);
+  const suggested = options.filter((option) => option.kind === 'suggested_candidate').slice(0, 3);
+  return [...confirmed, ...suggested];
 }
 
 export type QuickWearRecord = {
@@ -190,6 +232,7 @@ export type QuickWearRecord = {
   selectedAt: string;
   state: 'selected' | 'satisfied' | 'unsatisfied' | 'not_worn';
   reason?: string;
+  opportunityId?: string;
 };
 
 const QUICK_RECORDS_KEY = 'wearlog.aesthetic.quick-wear.v1';
