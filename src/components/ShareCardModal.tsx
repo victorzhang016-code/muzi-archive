@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { toPng } from 'html-to-image';
+import { getFontEmbedCSS, toBlob } from 'html-to-image';
 import QRCode from 'qrcode';
 import { X, Download, Share2, Loader2, Check, Copy, Globe, EyeOff } from 'lucide-react';
 import { BestMatch, WardrobeItem } from '../types';
@@ -42,8 +42,13 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
   const [copied, setCopied] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(CAPTURE_WIDTH + 32);
   const [captureHeight, setCaptureHeight] = useState(760);
+  const fontEmbedCssPromiseRef = useRef<Promise<string | null> | null>(null);
+  const renderedBlobRef = useRef<{ key: string; blob: Blob } | null>(null);
 
   const shortUrl = shareUrl.replace(/^https?:\/\//, '');
+  const captureKey = target.kind === 'item'
+    ? `item:${target.item.id}:${target.item.imageUrl || ''}:${qrDataUrl}`
+    : `best-match:${target.match.id}:${target.match.photoBase64 || ''}:${qrDataUrl}`;
 
   const previewScale = Math.min(1, Math.max(0.62, (viewportWidth - 24) / CAPTURE_WIDTH));
   const previewWidth = CAPTURE_WIDTH * previewScale;
@@ -65,6 +70,46 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
+  }, [qrDataUrl, target.kind, target.kind === 'item' ? target.item.id : target.match.id]);
+
+  const getCaptureFontCss = async () => {
+    if (!cardRef.current) return null;
+    if (!fontEmbedCssPromiseRef.current) {
+      const node = cardRef.current;
+      fontEmbedCssPromiseRef.current = (async () => {
+        try {
+          if (document.fonts?.ready) await document.fonts.ready;
+          return await getFontEmbedCSS(node, { preferredFontFormat: 'woff2', cacheBust: false });
+        } catch (error) {
+          console.warn('share card font embedding skipped', error);
+          return null;
+        }
+      })();
+    }
+    return fontEmbedCssPromiseRef.current;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const warmFonts = () => {
+      if (!cancelled) void getCaptureFontCss();
+    };
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+      const idleId = idleWindow.requestIdleCallback(warmFonts, { timeout: 1200 });
+      return () => {
+        cancelled = true;
+        idleWindow.cancelIdleCallback?.(idleId);
+      };
+    }
+    const timer = window.setTimeout(warmFonts, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [qrDataUrl, target.kind, target.kind === 'item' ? target.item.id : target.match.id]);
 
   // 打开分享卡即自动让这一条可公开访问（链接默认就能打开）
@@ -142,25 +187,62 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
       ? `wearlog-${(target.item.name || 'item').slice(0, 12)}.png`
       : `wearlog-${(target.match.name || 'outfit').slice(0, 12)}.png`;
 
-  const renderPng = async (): Promise<string | null> => {
+  const waitForCardImages = async () => {
+    if (!cardRef.current) return;
+    const images = Array.from(cardRef.current.querySelectorAll('img'));
+    await Promise.all(images.map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        let timeout: number | undefined;
+        const finish = () => {
+          if (timeout !== undefined) window.clearTimeout(timeout);
+          image.removeEventListener('load', finish);
+          image.removeEventListener('error', finish);
+          resolve();
+        };
+        image.addEventListener('load', finish, { once: true });
+        image.addEventListener('error', finish, { once: true });
+        timeout = window.setTimeout(finish, 3000);
+      });
+    }));
+  };
+
+  const renderCardBlob = async (): Promise<Blob | null> => {
     if (!cardRef.current) return null;
-    return toPng(cardRef.current, {
-      cacheBust: true,
-      pixelRatio: 2,
-      width: CAPTURE_WIDTH,
-      backgroundColor: '#DDD8CC',
-    });
+    if (renderedBlobRef.current?.key === captureKey) return renderedBlobRef.current.blob;
+
+    await waitForCardImages();
+    const fontEmbedCSS = await getCaptureFontCss();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      const blob = await toBlob(cardRef.current, {
+        cacheBust: false,
+        fetchRequestInit: { cache: 'force-cache', signal: controller.signal },
+        ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true }),
+        pixelRatio: 1.5,
+        width: CAPTURE_WIDTH,
+        backgroundColor: '#DDD8CC',
+      });
+      if (!blob) return null;
+      renderedBlobRef.current = { key: captureKey, blob };
+      return blob;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   };
 
   const handleDownload = async () => {
     setGenerating(true);
     try {
-      const url = await renderPng();
-      if (!url) return;
+      const blob = await renderCardBlob();
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName();
       a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
       console.error(e);
       alert('生成图片失败，请重试');
@@ -171,11 +253,13 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
 
   const handleShare = async () => {
     setGenerating(true);
+    let shareBlobUrl: string | null = null;
     try {
-      const url = await renderPng();
-      if (!url) return;
-      const blob = await (await fetch(url)).blob();
+      const blob = await renderCardBlob();
+      if (!blob) return;
       const file = new File([blob], fileName(), { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
+      shareBlobUrl = url;
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
       if (nav.canShare && nav.canShare({ files: [file] })) {
         await nav.share({ files: [file], text: shareUrl });
@@ -187,8 +271,12 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
         a.click();
       }
     } catch (e) {
-      if ((e as Error)?.name !== 'AbortError') console.error(e);
+      if ((e as Error)?.name !== 'AbortError') {
+        console.error(e);
+        alert('系统分享暂时不可用，请改用“保存图片”后分享。');
+      }
     } finally {
+      if (shareBlobUrl) URL.revokeObjectURL(shareBlobUrl);
       setGenerating(false);
     }
   };
@@ -230,8 +318,8 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             >
             {/* 顶部 wordmark */}
             <div className="text-center mb-5">
-              <p className="font-tag font-bold text-ink tracking-[0.08em]" style={{ fontSize: '1.05rem' }}>
-                衣LOG
+              <p className="site-wordmark" aria-label="衣LOG" style={{ fontSize: '1.05rem' }}>
+                <span>衣</span><em>LOG</em>
               </p>
               <p className="font-story text-[11px] text-graphite/70 italic mt-0.5">
                 每一件衣服都有它的故事

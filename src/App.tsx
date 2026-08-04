@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -13,6 +13,8 @@ import { LoginMarquee } from './components/LoginMarquee';
 import { BestMatchGallery } from './components/BestMatchGallery';
 import { BestMatchBuilder } from './components/BestMatchBuilder';
 import { BestMatchDetail } from './components/BestMatchDetail';
+import { QuickOutfitPage } from './components/QuickOutfitPage';
+import { AestheticProfilePage } from './components/AestheticProfilePage';
 import { WardrobeProvider } from './contexts/WardrobeContext';
 import { BestMatchProvider } from './contexts/BestMatchContext';
 import { FeedbackPrompt } from './components/FeedbackPrompt';
@@ -23,6 +25,10 @@ import { SiteBrandLockup } from './components/SiteBrandLockup';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
 import { Loader2 } from 'lucide-react';
+
+const LocalAestheticLabPage = import.meta.env.DEV
+  ? lazy(() => import('./components/LocalAestheticLabPage').then((module) => ({default: module.LocalAestheticLabPage})))
+  : null;
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
 const isWebView = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|BytedanceWebview|Line\/|FBAN|FBAV|Instagram|Twitter|Snapchat|Pinterest|LinkedInApp/i.test(navigator.userAgent)
@@ -200,10 +206,22 @@ function PageRoutes() {
           <Route path="/best-match" element={<BestMatchGallery />} />
           <Route path="/best-match/new" element={<BestMatchBuilder />} />
           <Route path="/best-match/:id" element={<BestMatchDetail />} />
+          <Route path="/outfit/quick/:itemId" element={<QuickOutfitPage />} />
+          <Route path="/aesthetic" element={<AestheticProfilePage />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
   );
+}
+
+function ScrollToTop() {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.search]);
+
+  return null;
 }
 
 function AppRoutes() {
@@ -225,10 +243,20 @@ function AppRoutes() {
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
       <header className="relative z-40 bg-kraft/80 border-b border-dashed border-graphite/15">
         <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center group">
-            <SiteBrandLockup />
-          </Link>
-          <AuthButton className="site-header-auth--topbar" />
+          <div className="flex min-w-0 items-center gap-3 sm:gap-6">
+            <Link to="/" className="flex shrink-0 items-center group">
+              <SiteBrandLockup />
+            </Link>
+            <nav className="hidden items-center gap-1 sm:flex" aria-label="主要功能">
+              <Link to="/" className="min-h-9 px-2.5 py-2 text-xs text-graphite transition-colors hover:text-ink">衣橱</Link>
+              <Link to="/best-match" className="min-h-9 px-2.5 py-2 text-xs text-graphite transition-colors hover:text-ink">Best Match</Link>
+              <Link to="/aesthetic" className="min-h-9 px-2.5 py-2 text-xs text-graphite transition-colors hover:text-stamp">我的穿衣规律</Link>
+            </nav>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/aesthetic" className="min-h-9 border border-graphite/20 px-2.5 py-2 text-xs text-graphite sm:hidden">审美</Link>
+            <AuthButton className="site-header-auth--topbar" />
+          </div>
         </div>
       </header>
 
@@ -292,6 +320,7 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <RecoveryRedirect />
+        <ScrollToTop />
         <Routes>
           <Route path="/share/:userId/item/:itemId" element={<SharedItemView />} />
           <Route path="/share/:userId/best-match/:matchId" element={<SharedBestMatchView />} />
@@ -304,6 +333,16 @@ export default function App() {
           <Route path="/auth-check" element={<SupabaseAuthCheck />} />
           <Route path="/auth/confirm" element={<EmailConfirmPage />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          {LocalAestheticLabPage && (
+            <Route
+              path="/aesthetic-lab/local"
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-kraft" />}>
+                  <LocalAestheticLabPage />
+                </Suspense>
+              }
+            />
+          )}
           <Route path="/*" element={<AppRoutes />} />
         </Routes>
       </BrowserRouter>

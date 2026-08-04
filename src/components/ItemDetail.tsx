@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { auth } from '../lib/authCompat';
 import { deleteWardrobeItem } from '../lib/supabaseData';
 import { WardrobeItem } from '../types';
-import { ArrowLeft, Edit2, Trash2, Loader2, Share2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Loader2, Share2, Sparkles } from 'lucide-react';
 import { AddEditItemModal } from './AddEditItemModal';
 import { ShareCardModal } from './ShareCardModal';
 import { buildItemShareUrl } from '../lib/sharing';
@@ -16,6 +16,7 @@ import { useBestMatches, matchesContainingItem, bundleEntriesFromMatch } from '.
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { TagBundle } from './TagBundle';
 import { resolveMediaUrl } from '../lib/media';
+import { ItemAestheticPanel } from './ItemAestheticPanel';
 
 export function ItemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -146,6 +147,14 @@ export function ItemDetail() {
           <span>返回</span>
         </button>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/outfit/quick/${item.id}`)}
+            className="min-h-10 flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-ink text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-ink/90 transition-colors shadow-sm"
+            title="用这件衣服搭一套"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden min-[420px]:inline">搭一套</span>
+          </button>
           <button
             onClick={() => { sfx.modalOpen(); setIsShareModalOpen(true); }}
             className="min-h-10 flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
@@ -342,6 +351,8 @@ export function ItemDetail() {
           ))}
         </div>
       </div>
+
+      <ItemAestheticPanel item={item} />
 
       {/* ── 出现在 N 套搭配里 ── */}
       {relatedMatches.length > 0 && (

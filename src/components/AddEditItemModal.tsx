@@ -203,8 +203,8 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/80 backdrop-blur-sm">
-      <div className="bg-kraft rounded-none w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col border border-dashed border-graphite/25">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/80 backdrop-blur-sm p-0 sm:p-4">
+      <div className="bg-kraft rounded-none w-full h-full max-w-2xl max-h-none overflow-hidden shadow-2xl flex flex-col border border-dashed border-graphite/25 sm:h-auto sm:max-h-[calc(100vh-2rem)]">
         <div className="sticky top-0 bg-kraft border-b border-graphite/20 px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-lg font-tag font-bold text-ink uppercase tracking-wider">
             {cropImageSrc ? '裁剪图片' : (itemToEdit ? '编辑衣物' : '添加新衣物')}
@@ -280,7 +280,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
+          <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
           {error && (
             <div className="p-4 bg-red-50 text-stamp border border-red-100 text-sm font-medium">
               {error}

@@ -6,6 +6,9 @@ coverage/
 *.log
 .env*
 
+# Versioned local-only aesthetic snapshots and derived analysis runs.
+.local-data/
+
 # Unreleased local aesthetic workbench. Keep experiments out of production commits.
 api/aesthetic/
 docs/AESTHETIC-*.md
@@ -40,3 +43,12 @@ skills-lock.json
 VibeCoding经验总结——衣LOG.md
 
 .env*
+
+# Productized aesthetic contracts and authenticated APIs are source code.
+# Local snapshots, audit UI and private derived runs above remain ignored.
+!api/aesthetic/
+!api/aesthetic/decision-brief.ts
+!api/aesthetic/vision/
+!api/aesthetic/vision/analyze.ts
+!src/lib/aestheticVision.ts
+!supabase/migrations/202607190001_aesthetic_vision.sql

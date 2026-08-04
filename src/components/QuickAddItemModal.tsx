@@ -114,8 +114,8 @@ export function QuickAddItemModal({ isOpen, onClose, onSaved }: QuickAddItemModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/35 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-kraft border border-graphite/15 shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/35 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+      <div className="w-full h-full max-w-lg rounded-none sm:rounded-2xl sm:h-auto sm:max-h-[calc(100vh-2rem)] bg-kraft border border-graphite/15 shadow-2xl overflow-hidden flex flex-col" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-graphite/10">
           <div><p className="font-tag text-[11px] tracking-[0.22em] text-graphite/60 uppercase">First garment</p><h2 className="font-story text-xl text-ink">记录第一件衣物</h2></div>
           <button type="button" aria-label="关闭" onClick={onClose} className="min-h-11 min-w-11 inline-flex items-center justify-center text-graphite hover:text-ink"><X className="w-5 h-5" /></button>
@@ -124,7 +124,7 @@ export function QuickAddItemModal({ isOpen, onClose, onSaved }: QuickAddItemModa
         {status === 'success' ? (
           <div className="px-6 py-10 text-center"><div className="mx-auto mb-5 w-14 h-14 rounded-full bg-stamp text-white flex items-center justify-center"><Check className="w-7 h-7" /></div><h3 className="font-story text-2xl text-ink">第一件已进入衣柜</h3><p className="mt-2 text-sm text-graphite/70">再记录两件，就可以开始建立你的 Best Match。</p><div className="mt-7 flex gap-3"><button type="button" onClick={reset} className="flex-1 min-h-12 border border-graphite/25 text-ink text-sm">继续添加</button><button type="button" onClick={onClose} className="flex-1 min-h-12 bg-ink text-white text-sm">看看我的衣柜 →</button></div></div>
         ) : (
-          <div className="px-5 py-5 sm:px-6 sm:py-6">
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
             <div className="rounded-xl border border-dashed border-graphite/25 bg-white/35 p-4">
               {imageData ? <div className="flex items-center gap-4"><img src={imageData} alt="待登记衣物" className="w-24 h-24 rounded-lg object-cover bg-white" /><button type="button" onClick={() => galleryRef.current?.click()} className="min-h-11 px-3 border border-graphite/20 text-sm">更换图片</button></div> : <div className="grid grid-cols-2 gap-3"><button type="button" onClick={() => galleryRef.current?.click()} className="min-h-14 inline-flex items-center justify-center gap-2 border border-graphite/20 bg-white/55 text-sm"><ImagePlus className="w-5 h-5" />从相册选</button><button type="button" onClick={() => cameraRef.current?.click()} className="min-h-14 inline-flex items-center justify-center gap-2 border border-graphite/20 bg-white/55 text-sm"><Camera className="w-5 h-5" />现在拍一张</button></div>}
               <input ref={galleryRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={(event) => { void handleFile(event.target.files?.[0]); event.target.value = ''; }} />

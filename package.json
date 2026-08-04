@@ -9,6 +9,7 @@
     "emu": "firebase emulators:start --import=./.emulator-data --export-on-exit=./.emulator-data",
     "emu:fresh": "firebase emulators:start --export-on-exit=./.emulator-data",
     "build": "vite build",
+    "test:aesthetic": "tsx --test test/aesthetic-analysis-v3.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
