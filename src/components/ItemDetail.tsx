@@ -156,6 +156,14 @@ export function ItemDetail() {
             <span className="hidden min-[420px]:inline">搭一套</span>
           </button>
           <button
+            onClick={() => document.getElementById('item-aesthetic-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="min-h-10 flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 border border-stamp/45 bg-stamp/5 text-stamp font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/10 transition-colors"
+            title="查看或开启这件单品的审美解析"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden min-[420px]:inline">解析</span>
+          </button>
+          <button
             onClick={() => { sfx.modalOpen(); setIsShareModalOpen(true); }}
             className="min-h-10 flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
             title="分享"

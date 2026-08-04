@@ -138,7 +138,7 @@ export function ItemAestheticPanel({ item }: { item: WardrobeItem }) {
   if (loading) return <div className="mt-8 border-t border-dashed border-graphite/25 pt-6 text-sm text-graphite/60"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />正在读取审美字段…</div>;
 
   return (
-    <section className="mt-8 border-t border-dashed border-graphite/25 pt-6" aria-labelledby="item-aesthetic-title">
+    <section id="item-aesthetic-panel" className="mt-8 scroll-mt-20 border-t border-dashed border-graphite/25 pt-6" aria-labelledby="item-aesthetic-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-tag text-[10px] uppercase tracking-[0.2em] text-stamp">Aesthetic fields</p>

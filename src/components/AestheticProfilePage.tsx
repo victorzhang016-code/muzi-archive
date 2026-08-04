@@ -200,6 +200,18 @@ export function AestheticProfilePage() {
       <dl className="grid grid-cols-3 border border-graphite/20 bg-tag/65 text-center"><div className="p-3"><dt className="text-[10px] text-graphite/50">确认字段</dt><dd className="mt-1 text-xl font-semibold">{confirmedCount}</dd></div><div className="border-x border-graphite/15 p-3"><dt className="text-[10px] text-graphite/50">Best Match</dt><dd className="mt-1 text-xl font-semibold">{run.outfitCases.length}</dd></div><div className="p-3"><dt className="text-[10px] text-graphite/50">可追溯规律</dt><dd className="mt-1 text-xl font-semibold">{run.principles.length}</dd></div></dl>
     </header>
 
+    <section className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-stamp/30 bg-stamp/5 p-4 sm:p-5">
+      <div>
+        <p className="font-tag text-[10px] uppercase tracking-[0.2em] text-stamp">Start here</p>
+        <h2 className="mt-1 font-story text-xl font-semibold">从单品开始，把解析结果接进你的穿衣规律</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-graphite/70">打开一件衣服，在详情页顶部点“解析”。确认后的廓形、材质、颜色和设计亮点会进入这里；“搭一套”也从同一个位置进入。</p>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        <button type="button" onClick={() => navigate('/')} className="min-h-10 border border-graphite/25 bg-white px-3 text-sm text-ink hover:border-stamp">选择单品</button>
+        <button type="button" onClick={() => navigate('/best-match/new')} className="min-h-10 bg-ink px-3 text-sm text-white">建立搭配</button>
+      </div>
+    </section>
+
     <nav className="sticky top-0 z-20 -mx-3.5 mt-4 border-y border-graphite/15 bg-kraft/95 px-3.5 py-2 backdrop-blur sm:mx-0 sm:px-0" aria-label="审美档案导航"><div className="flex flex-wrap gap-1">{(Object.keys(VIEW_LABELS) as View[]).map((key) => <button type="button" key={key} onClick={() => { setView(key); setExpanded(''); }} className={`min-h-10 border px-3 text-sm ${view === key ? 'border-ink bg-ink text-white' : 'border-transparent text-graphite hover:border-graphite/25 hover:text-ink'}`}>{VIEW_LABELS[key]}</button>)}</div></nav>
     {notice && <p className="mt-4 border-l-2 border-stamp pl-3 text-sm leading-6 text-stamp">{notice}</p>}
 
