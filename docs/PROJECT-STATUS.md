@@ -98,7 +98,7 @@ Firebase 已不再是现行业务数据平面。仓库里仍保留 Firebase 依�
 
 ## 2026-07-17 部署收口
 
-- Supabase Production：`wearlog`，ref `cfnkhilwpkfqebrticqe`，4 个 migrations 已执行。
+- Supabase Production：`wearlog`，ref `cfnkhilwpkfqebrticqe`，5 个 migrations 已执行。
 - Supabase Preview / Development：`wearlog-dev`，ref `mazsopbfpqchzhyuaron`，4 个 migrations 已执行。
 - Vercel Production 与 Preview 已使用不同 Supabase 项目；Production 已部署并绑定 `www.wearlog.cn`。
 - Vercel 环境变量矩阵与后续维护约定见 `docs/DEPLOYMENT-ENV.md`。
@@ -184,3 +184,11 @@ Victor 已明确：数据分析和图片字段识别先在本机闭环，不以 
 
 - 图片裁剪保持原图方向，裁剪器只固定 3:4 裁剪框，不再用横向 viewport 预裁竖图。
 - 横图通过完整显示、拖动和缩放适配；桌面端支持滚轮，移动端支持双指缩放。
+
+## 2026-08-04 Production 审美功能启用
+
+- 根因：线上 Production Supabase 曾缺少 `aesthetic_vision_consents`、`aesthetic_vision_analyses`、`aesthetic_vision_revisions`，导致审美解析读取 404；前端部署本身并不等于数据库迁移已执行。
+- 已通过 Supabase Management API 执行并登记 `202607190001_aesthetic_vision.sql`，Production migration history 与实际表结构一致；RLS 仅允许登录用户访问自己的记录。
+- 已将 Victor 本地快照中的 101 条已确认视觉记录按单品 ID 回填 Production，生成 101 条审计修订；所有单品引用有效，原始 `wardrobe_items`、`best_matches` 和视觉字段未改写。
+- 单品详情顶部增加“解析”入口（滚动到解析面板）与“搭一套”入口；审美页增加“选择单品 / 建立搭配”起始操作说明。
+- 回归验证：`npm run lint`、`npm run test:aesthetic`（19/19）、`npm run build` 通过；Vercel Production deployment `wearlog-hq6wqsslx` 已 Ready，主域名 `www.wearlog.cn` 已绑定。未授权 API 仍返回 401，线上主页与 Production 环境隔离规则未放宽。
