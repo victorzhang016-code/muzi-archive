@@ -97,13 +97,13 @@ export function SharedBestMatchView() {
 
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
-      <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
+      <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md hairline-b">
         <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="site-wordmark" aria-label="衣LOG">
               <span>衣</span><em>LOG</em>
             </h1>
-            <span className="font-tag text-[8px] uppercase tracking-[0.2em] text-graphite/50 border border-dashed border-graphite/25 px-2 py-0.5">
+            <span className="font-tag text-[8px] uppercase tracking-[0.2em] text-graphite/50 border border-graphite/20 px-2 py-0.5">
               Best Match · 只读
             </span>
           </div>

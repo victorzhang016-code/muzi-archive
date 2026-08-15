@@ -3,7 +3,7 @@ export function LoginBrandTag() {
     <div
       className="login-tag-brand"
       role="img"
-      aria-label="wearlog 衣LOG，个人衣橱档案"
+      aria-label="wearlog 衣LOG，个人衣柜档案"
     >
       <img
         className="login-tag-brand__material"

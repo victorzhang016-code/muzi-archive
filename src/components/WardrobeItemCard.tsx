@@ -93,35 +93,32 @@ export function WardrobeItemCard({ item, index, onEdit, onDelete, onShare, onCar
 
           {/* Edit / Delete / Share — only in owner mode */}
           {(onEdit || onDelete || onShare) && (
-            <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-30">
+            <div className="card-actions absolute top-2 left-2 flex gap-1.5 z-30">
               {onShare && (
                 <button
                   onClick={(e) => { e.stopPropagation(); sfx.modalOpen(); onShare(item); }}
-                  className="p-2 transition-colors shadow-sm"
-                  style={{ background: 'rgba(194,65,39,0.85)', border: '1px solid rgba(194,65,39,0.5)', color: '#fff', backdropFilter: 'blur(4px)' }}
+                  className="card-icon-action card-icon-action--share"
                   title="分享"
                 >
-                  <Share2 className="w-3.5 h-3.5" />
+                  <Share2 className="w-4 h-4" />
                 </button>
               )}
               {onEdit && (
                 <button
                   onClick={(e) => { e.stopPropagation(); sfx.modalOpen(); onEdit(item); }}
-                  className="p-2 transition-colors shadow-sm"
-                  style={{ background: 'rgba(128,128,128,0.25)', border: '1px solid rgba(128,128,128,0.25)', color: theme.textPrimary, backdropFilter: 'blur(4px)' }}
+                  className="card-icon-action"
                   title="编辑"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
+                  <Edit2 className="w-4 h-4" />
                 </button>
               )}
               {onDelete && (
                 <button
                   onClick={(e) => { e.stopPropagation(); sfx.deleteItem(); onDelete(item); }}
-                  className="p-2 transition-colors shadow-sm"
-                  style={{ background: 'rgba(128,128,128,0.25)', border: '1px solid rgba(128,128,128,0.25)', color: '#E05C40', backdropFilter: 'blur(4px)' }}
+                  className="card-icon-action card-icon-action--delete"
                   title="删除"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               )}
             </div>

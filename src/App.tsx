@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Link, NavLink, Navigate, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthButton, useAuth } from './components/Auth';
@@ -22,12 +22,17 @@ import { SupabaseAuthCheck } from './components/SupabaseAuthCheck';
 import { ResetPassword } from './components/ResetPassword';
 import { LoginBrandTag } from './components/LoginBrandTag';
 import { SiteBrandLockup } from './components/SiteBrandLockup';
+import MobileTabBar from './components/MobileTabBar';
 import { consumeRecoverySession, hasRecoverySession, supabase } from './lib/supabase';
 import { consumeOnboardingIntent, getOnboardingIntent, safeOnboardingPath } from './lib/onboarding';
 import { Loader2 } from 'lucide-react';
 
 const LocalAestheticLabPage = import.meta.env.DEV
   ? lazy(() => import('./components/LocalAestheticLabPage').then((module) => ({default: module.LocalAestheticLabPage})))
+  : null;
+
+const UiPreviewPage = import.meta.env.DEV
+  ? lazy(() => import('./components/UiPreviewPage'))
   : null;
 
 // Google OAuth 不支持在各类 App 内置浏览器中登录
@@ -71,7 +76,7 @@ function LoginPage() {
 
         {/* Tagline */}
         <h2 className="text-xl sm:text-3xl font-story font-bold text-ink tracking-tight mb-2 sm:mb-3">
-          记录你的穿搭与衣橱故事
+          记录你的穿搭与衣柜故事
         </h2>
         <p className="text-[13px] sm:text-base text-graphite mb-3 sm:mb-6 leading-relaxed font-story">
           每一件衣服都有它的故事。<br />
@@ -241,33 +246,52 @@ function AppRoutes() {
 
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
-      <header className="relative z-40 bg-kraft/80 border-b border-dashed border-graphite/15">
-        <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center justify-between">
-          <div className="flex min-w-0 items-center gap-3 sm:gap-6">
-            <Link to="/" className="flex shrink-0 items-center group">
-              <SiteBrandLockup />
-            </Link>
-            <nav className="hidden items-center gap-1 sm:flex" aria-label="主要功能">
-              <Link to="/" className="min-h-9 px-2.5 py-2 text-xs text-graphite transition-colors hover:text-ink">衣橱</Link>
-              <Link to="/best-match" className="min-h-9 px-2.5 py-2 text-xs text-graphite transition-colors hover:text-ink">Best Match</Link>
-              <Link to="/aesthetic" className="min-h-9 px-2.5 py-2 text-xs text-graphite transition-colors hover:text-stamp">我的穿衣规律</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link to="/aesthetic" className="min-h-9 border border-graphite/20 px-2.5 py-2 text-xs text-graphite sm:hidden">审美</Link>
-            <AuthButton className="site-header-auth--topbar" />
-          </div>
+      {/* 移动端顶栏（桌面端由侧边栏接管） */}
+      <header className="relative z-40 bg-kraft/80 hairline-b sm:hidden">
+        <div className="px-3.5 h-12 flex items-center justify-between">
+          <Link to="/" className="flex shrink-0 items-center group">
+            <SiteBrandLockup />
+          </Link>
+          <AuthButton className="site-header-auth--topbar" />
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-3 sm:py-7">
+      {/* 桌面端侧边导航：一根挂绳 + 三张吊牌 */}
+      <aside className="site-sidebar hidden sm:flex">
+        <Link to="/" className="flex items-center group w-fit">
+          <SiteBrandLockup />
+        </Link>
+        <nav className="site-sidebar__nav" aria-label="主要功能">
+          <span className="site-sidebar__string" aria-hidden="true" />
+          <NavLink to="/" end className="side-nav-tag">
+            <span className="side-nav-tag__label">衣柜</span>
+            <span className="side-nav-tag__meta">Archive</span>
+          </NavLink>
+          <NavLink to="/best-match" className="side-nav-tag">
+            <span className="side-nav-tag__label">Best Match</span>
+            <span className="side-nav-tag__meta">最佳搭配</span>
+          </NavLink>
+          <NavLink to="/aesthetic" className="side-nav-tag">
+            <span className="side-nav-tag__label">我的穿衣规律</span>
+            <span className="side-nav-tag__meta">Style Rules</span>
+          </NavLink>
+        </nav>
+        <div className="mt-auto">
+          <AuthButton />
+        </div>
+      </aside>
+
+      <div className="sm:pl-[var(--sidebar-w)]">
+      <main className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-3 pb-20 sm:py-7">
         <WardrobeProvider uid={user.uid}>
           <BestMatchProvider uid={user.uid}>
             <PageRoutes />
             <FeedbackPrompt />
+            <MobileTabBar />
           </BestMatchProvider>
         </WardrobeProvider>
       </main>
+      </div>
     </div>
   );
 }
@@ -339,6 +363,16 @@ export default function App() {
               element={
                 <Suspense fallback={<div className="min-h-screen bg-kraft" />}>
                   <LocalAestheticLabPage />
+                </Suspense>
+              }
+            />
+          )}
+          {UiPreviewPage && (
+            <Route
+              path="/ui-preview"
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-kraft" />}>
+                  <UiPreviewPage />
                 </Suspense>
               }
             />

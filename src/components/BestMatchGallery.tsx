@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'motion/react';
-import { ArrowLeft, Plus, Loader2, Sparkles, Share2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Loader2, Sparkles, Share2 } from 'lucide-react';
 import { useBestMatches, bundleEntriesFromMatch } from '../contexts/BestMatchContext';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { sfx } from '../lib/sounds';
@@ -12,7 +12,6 @@ import { auth } from '../lib/authCompat';
 import { BestMatch, WardrobeItem } from '../types';
 import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
 
-const AESTHETIC_THRESHOLD = 10;
 // 与 WardrobeList 保持一致：单品满 3 件才解锁 Best Match
 const BEST_MATCH_UNLOCK = 3;
 
@@ -54,19 +53,16 @@ export function BestMatchGallery() {
     );
   }
 
-  const remaining = Math.max(0, AESTHETIC_THRESHOLD - matches.length);
-  const unlocked = remaining === 0;
-
   return (
     <div className="best-match-gallery space-y-5 sm:space-y-10">
       <div className="flex flex-col gap-5">
-        <div className="border-b border-dashed border-graphite/25 pb-4 sm:pb-5">
+        <div className="hairline-b pb-4 sm:pb-5">
           <button
             onClick={() => { sfx.filterClick(); navigate('/'); }}
-            className="flex min-h-10 items-center gap-2 font-tag text-[12px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors mb-4"
+            className="back-link mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Archive</span>
+            <span>返回衣柜</span>
           </button>
           <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">
             Best Match · {matches.length} Looks
@@ -96,42 +92,7 @@ export function BestMatchGallery() {
           </div>
         </div>
 
-        <div className="best-match-profile border border-dashed border-graphite/30 bg-tag/40 px-4 py-4 sm:px-6 sm:py-5 flex items-center gap-3 sm:gap-4">
-          <div className="w-9 h-9 sm:w-11 sm:h-11 border border-graphite/30 flex items-center justify-center shrink-0">
-            <Sparkles className="w-[18px] h-[18px] text-graphite" />
-          </div>
-          <div className="best-match-profile__copy flex-1 min-w-0">
-            <p className="font-tag text-[11px] uppercase tracking-[0.25em] text-graphite/60 mb-1">
-              Aesthetic Profile
-            </p>
-            {unlocked ? (
-              <>
-                <p className="font-story text-[15px] text-ink mb-1">
-                  审美档案已解锁，AI 分析即将上线
-                </p>
-                <p className="font-story italic text-xs text-graphite/60">
-                  基于 {matches.length} 套 best match 的风格倾向 / 色板 / 探索建议
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="font-story text-sm text-ink mb-2">
-                  再积累 <strong>{remaining}</strong> 套解锁审美分析
-                </p>
-                <div className="h-1.5 bg-graphite/15 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-ink transition-all"
-                    style={{ width: `${(matches.length / AESTHETIC_THRESHOLD) * 100}%` }}
-                  />
-                </div>
-                <p className="font-tag text-[10px] tracking-[0.15em] text-graphite/45 mt-1.5">
-                  {matches.length} / {AESTHETIC_THRESHOLD}
-                </p>
-              </>
-            )}
-          </div>
         </div>
-      </div>
 
       {matches.length === 0 ? (
         <div className="text-center py-32">
@@ -205,7 +166,7 @@ function MatchCard({ match, index, itemMap, exiting, onOpen, onShare }: MatchCar
       whileTap={{ scale: 0.97 }}
     >
       <motion.div
-        className="best-match-card-surface relative w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-5 group-hover:border-graphite/45 transition-colors"
+        className="best-match-card-surface relative w-full rounded-xl bg-white/30 border border-graphite/20 p-5 group-hover:border-graphite/45 transition-colors"
         whileHover={{ y: -4 }}
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       >

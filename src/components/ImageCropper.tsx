@@ -111,7 +111,7 @@ interface ImageCropperModalProps extends ImageCropperPanelProps {
 export function ImageCropperModal({ title = '裁剪图片', ...props }: ImageCropperModalProps) {
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center p-0 sm:p-4 bg-ink/80 backdrop-blur-sm">
-      <div className="bg-kraft rounded-none w-full h-full max-w-2xl max-h-none overflow-hidden shadow-2xl flex flex-col border border-dashed border-graphite/25 sm:h-auto sm:max-h-[calc(100vh-2rem)]">
+      <div className="bg-kraft rounded-none w-full h-full max-w-2xl max-h-none overflow-hidden shadow-2xl flex flex-col border border-graphite/20 sm:h-auto sm:max-h-[calc(100vh-2rem)]">
         <div className="sticky top-0 bg-kraft border-b border-graphite/20 px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-lg font-tag font-bold text-ink uppercase tracking-wider">{title}</h2>
           <button type="button" onClick={props.onCancel} className="p-2 hover:bg-white transition-colors border border-transparent hover:border-graphite/20" aria-label="关闭裁剪">

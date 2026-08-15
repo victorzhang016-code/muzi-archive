@@ -422,7 +422,7 @@ export function BestMatchBuilder() {
       )}
       <div className="best-match-builder space-y-8 pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-dashed border-graphite/25 pb-5">
+      <div className="flex items-center justify-between hairline-b pb-5">
         <button
           onClick={() => { sfx.filterClick(); navigate(editId ? `/best-match/${editId}` : '/best-match'); }}
           className="flex min-h-10 items-center gap-2 font-tag text-[12px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
@@ -458,7 +458,7 @@ export function BestMatchBuilder() {
             <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-3 text-center">
               Preview · {primaryCount} 主件{variantCount > 0 ? ` · ${variantCount} 变体` : ''}
             </p>
-            <div className="rounded-xl bg-white/30 border border-dashed border-graphite/20 p-4 flex justify-center min-h-[200px]">
+            <div className="rounded-xl bg-white/30 border border-graphite/20 p-4 flex justify-center min-h-[200px]">
               {previewEntries.length > 0 ? (
                 <TagBundle entries={previewEntries} size="mini" />
               ) : (
@@ -847,7 +847,7 @@ export function BestMatchBuilder() {
               {variantSlot && ' · 选变体中'}
             </p>
             {filteredCategoryItems.length === 0 ? (
-              <p className="font-story italic text-sm text-graphite/50 py-8 text-center border border-dashed border-graphite/20">
+              <p className="font-story italic text-sm text-graphite/50 py-8 text-center border border-graphite/20">
                 {categoryItems.length === 0 ? '该品类衣柜还没有衣物' : '当前筛选下没有衣物'}
               </p>
             ) : (
@@ -916,7 +916,7 @@ export function BestMatchBuilder() {
       </div>
 
       {/* Bottom: scene tags + story */}
-      <div className="space-y-5 border-t border-dashed border-graphite/25 pt-6">
+      <div className="space-y-5 hairline-t pt-6">
         <div>
           <p className="font-tag text-[9px] uppercase tracking-[0.25em] text-graphite/50 mb-2">
             Scene 场景（可选）

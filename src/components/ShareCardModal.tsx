@@ -334,7 +334,7 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             )}
 
             {/* 底部 footer：二维码 + 短链 */}
-            <div className="flex items-center gap-4 mt-6 pt-5 border-t border-dashed border-graphite/30">
+            <div className="flex items-center gap-4 mt-6 pt-5 hairline-t">
               {qrDataUrl && (
                 <img src={qrDataUrl} alt="QR" className="w-16 h-16 shrink-0 border border-graphite/15 bg-tag" />
               )}
@@ -352,7 +352,7 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
         {/* ── 操作区 ── */}
         <div className="mt-5 space-y-3">
           {/* 这一条的公开状态 */}
-          <div className="border border-dashed border-tag/30 bg-black/20 px-3 sm:px-4 py-3">
+          <div className="border border-tag/30 bg-black/20 px-3 sm:px-4 py-3">
             {thisShared === null ? (
               <p className="min-h-11 font-story text-[14px] text-tag/70 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> 正在生成可分享链接…
@@ -392,7 +392,7 @@ export function ShareCardModal({ target, shareUrl, onClose, allMatches }: Props)
             type="button"
             onClick={handleToggleWardrobe}
             disabled={togglingWardrobe || wardrobePublic === null}
-            className="w-full min-h-14 flex items-center gap-3 border border-dashed border-tag/30 bg-black/20 px-3 sm:px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"
+            className="w-full min-h-14 flex items-center gap-3 border border-tag/30 bg-black/20 px-3 sm:px-4 py-3 text-left hover:bg-black/30 transition-colors disabled:opacity-60"
           >
             <span
               className={`w-6 h-6 shrink-0 border flex items-center justify-center transition-colors ${

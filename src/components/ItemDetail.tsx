@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { auth } from '../lib/authCompat';
 import { deleteWardrobeItem } from '../lib/supabaseData';
 import { WardrobeItem } from '../types';
-import { ArrowLeft, Edit2, Trash2, Loader2, Share2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Layers, Loader2, Share2 } from 'lucide-react';
 import { AddEditItemModal } from './AddEditItemModal';
 import { ShareCardModal } from './ShareCardModal';
 import { buildItemShareUrl } from '../lib/sharing';
@@ -26,6 +26,7 @@ export function ItemDetail() {
   const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const { matches } = useBestMatches();
   const { items: wardrobe, loading: wardrobeLoading } = useWardrobe();
 
@@ -128,36 +129,33 @@ export function ItemDetail() {
 
   return (
     <div
-      className="min-h-[70vh] cursor-pointer"
-      onClick={() => { sfx.filterClick(); navigate('/'); }}
-      title="点击空白处返回"
+      className="min-h-[70vh]"
     >
     <div
-      className="animate-fade-up max-w-xl mx-auto cursor-default"
-      onClick={(e) => e.stopPropagation()}
+      className="animate-fade-up max-w-xl mx-auto lg:max-w-none"
     >
 
       {/* Back nav */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-5 sm:mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4 sm:mb-5">
         <button
           onClick={() => { sfx.filterClick(); navigate('/'); }}
-          className="flex items-center gap-2 font-tag text-[10px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors font-medium"
+          className="back-link"
         >
-          <ArrowLeft className="w-3 h-3" />
-          <span>返回</span>
+          <ArrowLeft className="w-4 h-4" />
+          <span>返回衣柜</span>
         </button>
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(`/outfit/quick/${item.id}`)}
-            className="min-h-10 flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-ink text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-ink/90 transition-colors shadow-sm"
+            className="min-h-10 flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-ink text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-ink/90 transition-colors shadow-sm"
             title="用这件衣服搭一套"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden min-[420px]:inline">搭一套</span>
+            <Layers className="w-3.5 h-3.5" />
+            <span>搭一套</span>
           </button>
           <button
             onClick={() => { sfx.modalOpen(); setIsShareModalOpen(true); }}
-            className="min-h-10 flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-stamp text-white font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
+            className="min-h-10 flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-stamp text-white border border-stamp font-tag text-[10px] uppercase tracking-wider font-bold hover:bg-stamp/90 transition-colors shadow-sm"
             title="分享"
           >
             <Share2 className="w-3.5 h-3.5" />
@@ -165,19 +163,23 @@ export function ItemDetail() {
           </button>
           <button
             onClick={() => { sfx.modalOpen(); setIsEditModalOpen(true); }}
-            className="p-2 text-graphite hover:text-ink transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+            className="icon-action"
+            title="编辑"
           >
-            <Edit2 className="w-3.5 h-3.5" />
+            <Edit2 className="w-4 h-4" />
           </button>
           <button
-            onClick={handleDelete}
-            className="p-2 text-graphite hover:text-stamp transition-colors border border-graphite/15 bg-tag/60 hover:bg-tag shadow-sm"
+            onClick={() => setIsDeleteConfirmOpen(true)}
+            className="icon-action icon-action--danger"
+            title="删除"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      <div className="lg:grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-8 xl:gap-10 lg:items-start">
+        <div className="min-w-0 lg:sticky lg:top-6">
       {/* ── The large physical tag ── */}
       <div
         className="tag-shadow relative overflow-hidden"
@@ -293,7 +295,7 @@ export function ItemDetail() {
             <div className="mb-7">
               <div className="w-6 h-[1.5px] mb-5" style={{ background: theme.accentColor }} />
               {item.story ? (
-                <p className="leading-[2] whitespace-pre-wrap text-[15px] font-story" style={{ color: theme.textSecondary }}>
+                <p className="leading-[1.9] whitespace-pre-wrap text-[14.5px] font-story" style={{ color: theme.textSecondary }}>
                   {item.story}
                 </p>
               ) : (
@@ -312,40 +314,38 @@ export function ItemDetail() {
         </div>
       </div>
 
+        </div>
+        <div className="min-w-0 mt-6 lg:mt-0">
       {/* ── Wash Label ── */}
       <div
         className="wash-label px-4 sm:px-6 py-4 sm:py-5"
         style={{
           background: theme.isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.25)',
           borderStyle: 'solid',
-          borderWidth: '0 1px 1px 1px',
           borderColor: theme.borderEdge,
           color: theme.textSecondary,
         }}
       >
         <div className="flex items-center gap-2 mb-3">
           <div className="w-3 h-px" style={{ background: theme.textMuted }} />
-          <span className="text-[7px] tracking-[0.3em] font-bold" style={{ color: theme.textMuted }}>CARE LABEL</span>
+          <span className="text-[9px] tracking-[0.3em] font-bold" style={{ color: theme.textSecondary }}>CARE LABEL</span>
         </div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-          <p><span style={{ color: theme.textMuted }}>CAT. </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.category}</span></p>
-          <p><span style={{ color: theme.textMuted }}>SEASON </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.season}</span></p>
+          <p><span style={{ color: theme.textMuted }}>CAT. </span><span style={{ color: theme.textPrimary }} className="font-medium">{item.category}</span></p>
+          <p><span style={{ color: theme.textMuted }}>SEASON </span><span style={{ color: theme.textPrimary }} className="font-medium">{item.season}</span></p>
           {item.topType && (
-            <p><span style={{ color: theme.textMuted }}>TYPE </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.topType}</span></p>
+            <p><span style={{ color: theme.textMuted }}>TYPE </span><span style={{ color: theme.textPrimary }} className="font-medium">{item.topType}</span></p>
           )}
           {item.length && (
-            <p><span style={{ color: theme.textMuted }}>TYPE </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.length}</span></p>
+            <p><span style={{ color: theme.textMuted }}>TYPE </span><span style={{ color: theme.textPrimary }} className="font-medium">{item.length}</span></p>
           )}
-          <p><span style={{ color: theme.textMuted }}>RATING </span><span style={{ color: theme.textSecondary }} className="font-medium">{item.rating}/10</span></p>
-          <p><span style={{ color: theme.textMuted }}>DATE </span><span style={{ color: theme.textSecondary }} className="font-medium">{dateStr}</span></p>
-          {item.brand && (
-            <p><span style={{ color: theme.textMuted }}>BRAND </span><span style={{ color: theme.textSecondary }} className="font-medium uppercase">{item.brand}</span></p>
-          )}
+          <p><span style={{ color: theme.textMuted }}>DATE </span><span style={{ color: theme.textPrimary }} className="font-medium">{dateStr}</span></p>
           {item.purchaseYear && (
             <p><span style={{ color: theme.textMuted }}>YEAR </span><span style={{ color: theme.accentColor }} className="font-bold">{item.purchaseYear}</span></p>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-3 pt-2.5" style={{ borderTop: `1px dashed ${theme.textMuted}`, opacity: 0.5 }}>
+        <div className="hairline-dark mt-3" style={{ '--hairline-color': theme.textMuted, opacity: 0.5 } as CSSProperties} aria-hidden="true" />
+        <div className="flex items-center gap-3" style={{ opacity: 0.7, color: theme.textSecondary }}>
           {['◯', '△', '☐', '◇', '⬡'].map((sym, i) => (
             <span key={i} className="text-[15px]">{sym}</span>
           ))}
@@ -356,7 +356,7 @@ export function ItemDetail() {
 
       {/* ── 出现在 N 套搭配里 ── */}
       {relatedMatches.length > 0 && (
-        <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-dashed border-graphite/25">
+        <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 hairline-t">
           <p className="font-tag text-[9px] uppercase tracking-[0.3em] text-graphite/55 mb-1">
             Appears In
           </p>
@@ -371,7 +371,7 @@ export function ItemDetail() {
                   key={m.id}
                   onMouseEnter={() => sfx.cardHover()}
                   onClick={() => { sfx.cardClick(); navigate(`/best-match/${m.id}`); }}
-                  className="min-w-0 rounded-xl bg-white/30 border border-dashed border-graphite/20 hover:border-graphite/45 hover:-translate-y-1 transition-all p-2 sm:p-3 cursor-pointer"
+                  className="min-w-0 rounded-xl bg-white/30 border border-graphite/20 hover:border-graphite/45 hover:-translate-y-1 transition-all p-2 sm:p-3 cursor-pointer"
                 >
                   {entries.length > 0 && (
                     <TagBundle
@@ -393,6 +393,9 @@ export function ItemDetail() {
         </div>
       )}
 
+        </div>
+      </div>
+
       <AddEditItemModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -405,6 +408,38 @@ export function ItemDetail() {
           shareUrl={buildItemShareUrl(auth.currentUser.publicId, item.id)}
           onClose={() => setIsShareModalOpen(false)}
         />
+      )}
+
+      {isDeleteConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-sm"
+          onClick={() => setIsDeleteConfirmOpen(false)}
+        >
+          <div
+            className="bg-kraft border border-graphite/20 max-w-sm w-full px-7 py-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-stamp mb-2">Delete</p>
+            <h3 className="font-story text-xl font-bold text-ink mb-2">删除「{item.name}」？</h3>
+            <p className="font-story text-sm text-graphite/75 leading-relaxed mb-7">
+              这条档案会被永久删除，包括图片与故事，无法恢复。
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => { setIsDeleteConfirmOpen(false); handleDelete(); }}
+                className="w-full px-6 py-3 bg-stamp text-white font-story text-[13px] font-semibold hover:bg-stamp/90 transition-colors"
+              >
+                确认删除
+              </button>
+              <button
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="w-full px-6 py-2.5 font-story text-[13px] text-graphite hover:text-ink transition-colors"
+              >
+                再想想
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
     </div>

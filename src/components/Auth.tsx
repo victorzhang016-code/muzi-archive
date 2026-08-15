@@ -79,7 +79,35 @@ export function useAuth() {
 
 export function AuthButton({ className = '' }: { className?: string }) {
   const { user, loading, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
   if (loading) return <button disabled className={`site-header-auth flex items-center gap-2 min-h-9 px-3 border border-graphite/20 bg-white/70 text-graphite/50 ${className}`}><Loader2 className="w-4 h-4 animate-spin" /></button>;
   if (!user) return null;
-  return <div className={`site-header-auth flex items-center gap-2 ${className}`}>{user.photoURL && <img src={user.photoURL} alt={user.displayName || 'User'} className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />}<span className="font-story text-[13px] text-graphite/75 hidden sm:block max-w-28 truncate">{user.displayName}</span><button onClick={logout} className="flex min-h-9 items-center gap-2 rounded-full px-3.5 border border-graphite/15 bg-white/85 hover:border-graphite/40 hover:text-ink text-graphite/75 transition-colors font-story text-[13px] whitespace-nowrap shadow-sm"><LogOut className="w-4 h-4" /><span>退出</span></button></div>;
+  return (
+    <div className={`site-header-auth relative flex items-center gap-2 ${className}`}>
+      {/* 移动端：头像点开账号菜单，避免顶栏拥挤 */}
+      <button onClick={() => setMenuOpen((v) => !v)} className="flex items-center sm:hidden" aria-label="账号菜单" aria-expanded={menuOpen}>
+        {user.photoURL ? (
+          <img src={user.photoURL} alt={user.displayName || 'User'} className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
+        ) : (
+          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-graphite/25 bg-tag font-story text-[12px] text-graphite/80">
+            {(user.displayName || user.email || '衣')[0]}
+          </span>
+        )}
+      </button>
+      {menuOpen && (
+        <>
+          <button className="fixed inset-0 z-40 cursor-default sm:hidden" onClick={() => setMenuOpen(false)} aria-label="关闭账号菜单" />
+          <div className="absolute right-0 top-full z-50 mt-2 border border-graphite/20 bg-tag p-1 shadow-lg sm:hidden">
+            <button onClick={logout} className="flex min-h-9 items-center gap-2 whitespace-nowrap px-3 font-story text-[13px] text-graphite/75 hover:text-ink"><LogOut className="w-4 h-4" /><span>退出</span></button>
+          </div>
+        </>
+      )}
+      {/* 桌面端：头像 + 名字 + 退出 */}
+      <div className="hidden items-center gap-2 sm:flex">
+        {user.photoURL && <img src={user.photoURL} alt={user.displayName || 'User'} className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />}
+        <span className="font-story text-[13px] text-graphite/75 max-w-28 truncate">{user.displayName}</span>
+        <button onClick={logout} className="flex min-h-9 items-center gap-2 rounded-full px-3.5 border border-graphite/15 bg-white/85 hover:border-graphite/40 hover:text-ink text-graphite/75 transition-colors font-story text-[13px] whitespace-nowrap shadow-sm"><LogOut className="w-4 h-4" /><span>退出</span></button>
+      </div>
+    </div>
+  );
 }

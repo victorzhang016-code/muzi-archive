@@ -87,7 +87,7 @@ export function FeedbackPrompt() {
           onClick={snooze}
         >
           <motion.div
-            className="relative w-full max-w-sm bg-kraft border border-dashed border-graphite/30 shadow-2xl px-7 py-8 text-center"
+            className="relative w-full max-w-sm bg-kraft border border-graphite/20 shadow-2xl px-7 py-8 text-center"
             initial={{ opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}

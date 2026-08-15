@@ -276,10 +276,10 @@ export function BestMatchDetail() {
         backSlot={
           <button
             onClick={() => closeWithAnimation()}
-            className="flex min-h-10 items-center gap-2 font-tag text-[12px] uppercase tracking-[0.2em] text-graphite hover:text-ink transition-colors"
+            className="back-link"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Best Match</span>
+            <span>返回搭配列表</span>
           </button>
         }
         actionsSlot={

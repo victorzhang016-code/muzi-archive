@@ -129,3 +129,11 @@ Firebase `npm run emu`、`dev:emu` 是历史兼容脚本；不要把它们写成
 2. `docs/AESTHETIC-FOUNDATION-EXECUTION-PLAN.md`
 
 执行时必须遵守计划中的阶段闸门。未经过 Victor 确认的图片识别或 AI 提取结果，不得写入正式个人审美画像或作为确认关系参与推荐排序。
+
+## 个人审美学习基座 v3
+
+凡涉及本地审美工作台、审美分析、搭配机制、变体、文本意图、身形假设、原则卡或后续推荐，必须在执行前完整读取：
+
+`docs/AESTHETIC-ANALYSIS-RULES.md`
+
+该文件是当前最高分析规则。旧版词频结论、单品角色总分、永久角色与 RGB 欧氏阈值均已废弃；不得重新引入。实验仅允许在 Development 和 `.local-data/` 中运行，不得修改 Production 数据或线上主页。

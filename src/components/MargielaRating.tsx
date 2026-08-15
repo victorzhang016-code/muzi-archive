@@ -21,7 +21,7 @@ export function MargielaRating({
   const isLg = size === 'lg';
 
   return (
-    <div className={cn("flex items-center flex-wrap", isLg ? "gap-1" : "gap-0.5")}>
+    <div className={cn("flex items-center", isLg ? "w-full max-w-[420px] justify-between" : "flex-wrap gap-0.5")}>
       {Array.from({ length: 11 }, (_, i) => {
         const isActive = i === rating;
         return (
@@ -30,7 +30,7 @@ export function MargielaRating({
             onClick={interactive && onChange ? (e) => { e.stopPropagation(); sfx.ratingClick(); onChange(i); } : undefined}
             className={cn(
               "inline-flex items-center justify-center leading-none relative font-tag select-none",
-              isLg ? "w-9 h-9 text-[15px]" : "w-[19px] h-[19px] text-[9px]",
+              isLg ? "flex-1 max-w-9 h-9 text-[13px] sm:text-[15px]" : "w-[19px] h-[19px] text-[9px]",
               interactive ? "cursor-pointer hover:opacity-80 transition-opacity" : "",
               isActive ? "font-bold" : ""
             )}

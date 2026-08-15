@@ -204,7 +204,7 @@ export function AddEditItemModal({ isOpen, onClose, itemToEdit, defaultCategory 
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/80 backdrop-blur-sm p-0 sm:p-4">
-      <div className="bg-kraft rounded-none w-full h-full max-w-2xl max-h-none overflow-hidden shadow-2xl flex flex-col border border-dashed border-graphite/25 sm:h-auto sm:max-h-[calc(100vh-2rem)]">
+      <div className="bg-kraft rounded-none w-full h-full max-w-2xl max-h-none overflow-hidden shadow-2xl flex flex-col border border-graphite/20 sm:h-auto sm:max-h-[calc(100vh-2rem)]">
         <div className="sticky top-0 bg-kraft border-b border-graphite/20 px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-lg font-tag font-bold text-ink uppercase tracking-wider">
             {cropImageSrc ? '裁剪图片' : (itemToEdit ? '编辑衣物' : '添加新衣物')}

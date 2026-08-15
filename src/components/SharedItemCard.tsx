@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { WardrobeItem } from '../types';
 import { MargielaRating } from './MargielaRating';
 import { getTagTheme } from '../lib/tagThemes';
@@ -153,7 +154,8 @@ export function SharedItemCard({ item }: { item: WardrobeItem }) {
             <p><span style={{ color: theme.textMuted }}>YEAR </span><span style={{ color: theme.accentColor }} className="font-bold">{item.purchaseYear}</span></p>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-3 pt-2.5" style={{ borderTop: `1px dashed ${theme.textMuted}`, opacity: 0.5 }}>
+        <div className="hairline-dark mt-3" style={{ '--hairline-color': theme.textMuted, opacity: 0.5 } as CSSProperties} aria-hidden="true" />
+        <div className="flex items-center gap-3" style={{ opacity: 0.5 }}>
           {['◯', '△', '☐', '◇', '⬡'].map((sym, i) => (
             <span key={i} className="text-[15px]">{sym}</span>
           ))}

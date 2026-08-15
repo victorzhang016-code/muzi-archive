@@ -6,7 +6,7 @@ import { WardrobeItemCard } from './WardrobeItemCard';
 import { AddEditItemModal } from './AddEditItemModal';
 import { QuickAddItemModal } from './QuickAddItemModal';
 import { handleFirestoreError, OperationType } from '../lib/firebase-errors';
-import { Plus, Loader2, Database, ArrowUpDown, Trash2, Check, Sparkles, Lock, X, ChevronDown } from 'lucide-react';
+import { Plus, Loader2, Database, ArrowUpDown, ArrowRight, Trash2, Check, Sparkles, X, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ShareCardModal } from './ShareCardModal';
 import { buildItemShareUrl, isWardrobePublic, setWardrobePublic } from '../lib/sharing';
@@ -18,6 +18,7 @@ import { useBestMatches } from '../contexts/BestMatchContext';
 import { sfx } from '../lib/sounds';
 import { useNavigate } from 'react-router';
 import { AuthorWardrobeEntry } from './AuthorWardrobeEntry';
+import { HeaderNavChips } from './HeaderNavChips';
 
 const CATEGORIES: ('全部' | Category)[] = ['全部', '上装', '下装', '鞋子', '配饰'];
 
@@ -399,6 +400,10 @@ export function WardrobeList() {
             category: item.category,
             season: item.season || '四季',
             story: item.story || '',
+            ...(item.purchaseYear ? { purchaseYear: item.purchaseYear } : {}),
+            ...(item.topType ? { topType: item.topType } : {}),
+            ...(item.length ? { length: item.length } : {}),
+            ...(item.accessoryType ? { accessoryType: item.accessoryType } : {}),
             userId,
             orderIndex: items.length + i,
             ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
@@ -531,7 +536,7 @@ export function WardrobeList() {
     <div className="space-y-5 sm:space-y-7">
       {/* Header */}
         <div className="flex flex-col gap-3">
-        <div className="border-b border-dashed border-graphite/25 pb-4">
+        <div className="hairline-b pb-4">
           <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">
             D-Tag Archive · {items.length} Items
           </p>
@@ -549,79 +554,15 @@ export function WardrobeList() {
             </div>
             {/* Workspace 1: account sits above the two peer actions. */}
             <div className="archive-header-actions flex flex-wrap justify-end items-center gap-2 w-full sm:w-auto">
-                <AuthorWardrobeEntry className="archive-utility-button" />
-              <WardrobePublicButton
-                wardrobePublic={wardrobePublic}
-                loading={wardrobePublicLoading}
-                onToggle={toggleWardrobePublic}
-                placement="header"
-              />
-              <div className="hidden">
-                <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
-                <select
-                  value={sortOrder}
-                  onChange={(e) => { sfx.toggle(); setSortOrder(e.target.value as any); }}
-                  className="bg-transparent font-story text-[14px] tracking-wide text-ink/75 outline-none cursor-pointer hover:text-ink transition-colors w-full"
-                >
-                  <option value="default">默认排序</option>
-                  <option value="ratingDesc">评分 ↓</option>
-                  <option value="ratingAsc">评分 ↑</option>
-                  <option value="yearDesc">年份 ↓</option>
-                  <option value="yearAsc">年份 ↑</option>
-                  <option value="season">季节</option>
-                  <option value="brand">品牌</option>
-                  <option value="category">品类</option>
-                </select>
-              </div>
+              <HeaderNavChips current="/" />
+              <AuthorWardrobeEntry className="archive-utility-button" />
             </div>
           </div>
         </div>
 
-        {/* Best Match entry —— 上传满 3 件单品才解锁 */}
-        {bestMatchUnlocked ? (
-          <button
-            onMouseEnter={() => sfx.cardHover()}
-            onClick={() => { sfx.cardClick(); navigate('/best-match'); }}
-            className="best-match-entry group w-full text-left"
-          >
-            <div className="best-match-entry__mark" aria-hidden="true">
-              <span className="tag-stack-mark__tag tag-stack-mark__tag--back" />
-              <span className="tag-stack-mark__tag tag-stack-mark__tag--middle" />
-              <span className="tag-stack-mark__tag tag-stack-mark__tag--front" />
-            </div>
-            <div className="best-match-entry__copy">
-              <p className="best-match-entry__eyebrow">Best Match · {matches.length} Looks</p>
-              <p className="best-match-entry__title">心中的最佳搭配</p>
-              <p className="best-match-entry__description">
-                {matches.length === 0 ? '把那些“绝对没错”的组合，存成你的审美档案。' : '查看与继续添加你最认可的搭配组合。'}
-              </p>
-            </div>
-            <span className="best-match-entry__cta">
-              <span className="best-match-entry__cta-full">进入档案</span>
-              <span className="best-match-entry__cta-short">查看搭配</span>
-              <span aria-hidden>↗</span>
-            </span>
-          </button>
-        ) : (
-          <div
-            className="best-match-entry best-match-entry--locked w-full text-left"
-            title={`再添加 ${BEST_MATCH_UNLOCK - items.length} 件单品解锁 Best Match`}
-          >
-            <div className="best-match-entry__mark">
-              <Lock className="w-4 h-4 text-graphite/40" />
-            </div>
-            <div className="best-match-entry__copy">
-              <p className="best-match-entry__eyebrow">Best Match · Locked</p>
-              <p className="best-match-entry__title text-graphite/65">
-                再添加 <strong className="text-graphite/80">{BEST_MATCH_UNLOCK - items.length}</strong> 件单品解锁「心中最佳搭配」
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* 首次分享提示 */}
         {!shareHintSeen && items.length > 0 && (
-          <div className="flex items-center gap-3 bg-tag/70 border border-dashed border-stamp/30 px-4 py-2.5">
+          <div className="flex items-center gap-3 bg-tag/70 border border-stamp/30 px-4 py-2.5">
             <p className="flex-1 font-story text-[13px] text-ink/75 leading-snug">
               点任意单品/搭配右上角的<span className="text-stamp font-semibold"> 分享 </span>，即可生成图文卡片发给朋友 →
             </p>
@@ -746,13 +687,6 @@ export function WardrobeList() {
 
           {/* 导入说明：可导入内容与边界，降低批量导入的困惑 */}
           <div className="order-4 basis-full w-full sm:text-right">
-            <button
-              onClick={() => setImportHelpOpen(v => !v)}
-              className="hidden"
-            >
-              <span>{importHelpOpen ? '▾' : '▸'}</span>
-              <span>导入说明</span>
-            </button>
             {importHelpOpen && (
               <div className="mt-2 px-4 py-3 bg-tag/70 border border-graphite/20 text-left max-w-md sm:ml-auto">
                 <p className="font-tag text-[9px] uppercase tracking-widest text-graphite/45 mb-2">可导入的内容 / 边界</p>
@@ -797,7 +731,7 @@ export function WardrobeList() {
         <div className={cn("archive-filter-panel", filterPanelOpen && "archive-filter-panel--open")}>
         {/* Category filter pills */}
         <div className="archive-category-filters flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 min-h-10 px-3 sm:px-4 bg-tag/70 border border-graphite/30 shrink-0">
+          <div className="flex items-center gap-2 min-h-10 sm:min-h-12 px-3 sm:px-4 bg-tag/70 border border-graphite/30 shrink-0">
             <ArrowUpDown className="w-[17px] h-[17px] text-graphite/60 shrink-0" />
             <select
               value={sortOrder}
@@ -814,6 +748,7 @@ export function WardrobeList() {
               <option value="category">品类</option>
             </select>
           </div>
+          <div className="archive-pills-row">
           {CATEGORIES.map(cat => {
             const isActive = filterCategory === cat;
             const count = cat === '全部'
@@ -840,7 +775,7 @@ export function WardrobeList() {
             <button
               type="button"
               onClick={() => setYearFilterOpen(v => !v)}
-              className="ml-auto flex min-h-10 sm:min-h-12 items-center gap-1.5 px-3 sm:px-4 font-tag text-[11px] uppercase tracking-widest text-graphite/60 border border-graphite/20 hover:text-ink hover:border-graphite/45 transition-colors shrink-0"
+              className="ml-auto flex min-h-10 sm:min-h-12 items-center gap-1.5 px-3 sm:px-4 font-tag text-[11px] uppercase tracking-widest text-graphite border border-graphite/40 hover:text-ink hover:border-graphite/70 transition-colors shrink-0"
             >
               <span>Year</span>
               <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", yearFilterOpen && "rotate-180")} />
@@ -850,12 +785,13 @@ export function WardrobeList() {
             <button
               type="button"
               onClick={() => setBrandFilterOpen(v => !v)}
-              className="flex min-h-10 sm:min-h-12 items-center gap-1.5 px-3 sm:px-4 font-tag text-[11px] uppercase tracking-widest text-graphite/60 border border-graphite/20 hover:text-ink hover:border-graphite/45 transition-colors shrink-0"
+              className="flex min-h-10 sm:min-h-12 items-center gap-1.5 px-3 sm:px-4 font-tag text-[11px] uppercase tracking-widest text-graphite border border-graphite/40 hover:text-ink hover:border-graphite/70 transition-colors shrink-0"
             >
               <span>Brand</span>
               <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", brandFilterOpen && "rotate-180")} />
             </button>
           )}
+          </div>
         </div>
 
         {/* Sub-filters */}
@@ -963,28 +899,6 @@ export function WardrobeList() {
         {brandIndex.length > 0 && brandFilterOpen && (
           <div className="flex flex-col gap-2">
             {/* 标题行：Brand 标签 + 展开箭头 + 当前选中品牌（如有） */}
-            <div className="hidden">
-              <button
-                onClick={() => setBrandFilterOpen(v => !v)}
-                className="flex min-h-9 items-center gap-1.5 font-tag text-[12px] uppercase tracking-widest text-graphite/55 hover:text-ink transition-colors shrink-0"
-              >
-                <span>{brandFilterOpen ? '▾' : '▸'}</span>
-                <span>Brand</span>
-              </button>
-              {/* 已选中时，收起状态也保留可见的 badge */}
-              {filterBrand !== null && !brandFilterOpen && (() => {
-                const b = brandIndex.find(b => b.key === filterBrand);
-                return b ? (
-                  <button
-                    onClick={() => { sfx.filterClick(); setFilterBrand(null); }}
-                    className="min-h-10 px-4 py-2 font-story text-[13px] tracking-wide font-medium border bg-ink/10 text-ink border-ink/30 flex items-center gap-1.5"
-                  >
-                    {b.display}
-                    <span className="text-ink/40 text-[10px]">✕</span>
-                  </button>
-                ) : null;
-              })()}
-            </div>
             {/* 展开后的 pills */}
             {brandFilterOpen && (
               <div className="flex items-center gap-2 flex-wrap pl-4">
@@ -1102,12 +1016,6 @@ export function WardrobeList() {
                 <Plus className="w-4 h-4" />
                 先记录第一件
               </button>
-              <button
-                onClick={openQuickAddModal}
-                className="hidden"
-              >
-                完整填写
-              </button>
             </div>
           </div>
         ) : (
@@ -1116,7 +1024,7 @@ export function WardrobeList() {
               <WardrobeItemCard
                 key={item.id}
                 item={{...item, season: item.displaySeason as Season}}
-                index={i}
+                index={i + 1}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onShare={(it) => { setShareTarget(it); }}
@@ -1168,14 +1076,14 @@ export function WardrobeList() {
           onClick={() => setBmUnlockPopup(false)}
         >
           <div
-            className="bg-kraft border border-dashed border-graphite/30 max-w-sm w-full px-7 py-8 text-center shadow-2xl"
+            className="bg-kraft border border-graphite/20 max-w-sm w-full px-7 py-8 text-center shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 border border-stamp/40 flex items-center justify-center mx-auto mb-5">
               <Sparkles className="w-5 h-5 text-stamp" />
             </div>
             <p className="font-tag text-[10px] uppercase tracking-[0.3em] text-graphite/55 mb-2">Unlocked</p>
-            <h3 className="text-2xl font-story font-bold text-ink mb-3">🎉 Best Match 解锁了！</h3>
+            <h3 className="text-2xl font-story font-bold text-ink mb-3">Best Match 解锁了</h3>
             <p className="font-story text-sm text-graphite/75 leading-relaxed mb-7">
               你已经记录了 3 件单品。现在可以把心里那些「绝对没错」的搭配组合记下来了。
             </p>

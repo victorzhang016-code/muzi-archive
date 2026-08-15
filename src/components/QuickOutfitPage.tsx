@@ -64,13 +64,13 @@ export function QuickOutfitPage() {
   const loading = itemLoading || matchLoading || analysisLoading || syncLoading;
   if (loading) return <div className="grid min-h-[55vh] place-items-center"><div className="text-center text-sm text-graphite/65"><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />正在整理已确认搭配…</div></div>;
 
-  if (!anchor) return <div className="mx-auto max-w-xl py-20 text-center"><h1 className="font-story text-3xl font-semibold">没有找到这件衣服</h1><button type="button" onClick={() => navigate('/')} className="mt-6 min-h-11 bg-ink px-5 text-sm text-white">返回衣橱</button></div>;
+  if (!anchor) return <div className="mx-auto max-w-xl py-20 text-center"><h1 className="font-story text-3xl font-semibold">没有找到这件衣服</h1><button type="button" onClick={() => navigate('/')} className="mt-6 min-h-11 bg-ink px-5 text-sm text-white">返回衣柜</button></div>;
 
   return (
     <section className="mx-auto max-w-6xl pb-12">
-      <button type="button" onClick={() => navigate(`/item/${anchor.id}`)} className="inline-flex min-h-10 items-center gap-2 text-sm text-graphite hover:text-ink"><ArrowLeft className="h-4 w-4" />返回单品</button>
+      <button type="button" onClick={() => navigate(`/item/${anchor.id}`)} className="back-link"><ArrowLeft className="h-4 w-4" />返回单品</button>
 
-      <header className="mt-3 grid gap-5 border-b border-dashed border-graphite/25 pb-6 md:grid-cols-[112px_minmax(0,1fr)] md:items-end">
+      <header className="mt-3 grid gap-5 hairline-b pb-6 md:grid-cols-[112px_minmax(0,1fr)] md:items-end">
         <div className="aspect-[3/4] overflow-hidden border border-graphite/15 bg-tag">
           {anchor.imageUrl ? <img src={resolveMediaUrl(anchor.imageUrl)} alt={anchor.name} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center"><Shirt className="h-6 w-6 text-graphite/35" /></div>}
         </div>
@@ -84,9 +84,9 @@ export function QuickOutfitPage() {
       {error && <p className="mt-5 border-l-2 border-stamp pl-3 text-sm leading-6 text-stamp">{error}</p>}
 
       {selected && (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-emerald-800/25 bg-emerald-50/70 p-4 text-emerald-950">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-ink/25 bg-tag p-4 text-ink">
           <div><p className="font-medium">已经记下：今天穿「{selected.sourceMatch.name || '这套 Best Match'}」</p><p className="mt-1 text-sm">之后可以在审美页补充实际穿着结果，它会帮助校准这套搭配。</p></div>
-          <button type="button" onClick={() => setSelected(null)} className="inline-flex min-h-10 items-center gap-2 border border-emerald-800/30 px-3 text-sm"><RotateCcw className="h-4 w-4" />继续比较</button>
+          <button type="button" onClick={() => setSelected(null)} className="inline-flex min-h-10 items-center gap-2 border border-graphite/30 px-3 text-sm"><RotateCcw className="h-4 w-4" />继续比较</button>
         </div>
       )}
 
@@ -96,7 +96,7 @@ export function QuickOutfitPage() {
             const outfit = run?.outfitCases.find((entry) => entry.matchId === option.sourceMatch.id);
             const explanations = outfit?.decisionMechanisms.filter((entry) => entry.role !== 'structural' && entry.status !== 'pending').slice(0, 2) || [];
             const isSelected = selected?.id === option.id;
-            return <article key={option.id} className={`flex min-w-0 flex-col border bg-tag/75 ${isSelected ? 'border-emerald-700' : 'border-graphite/20'}`}>
+            return <article key={option.id} className={`flex min-w-0 flex-col border bg-tag/75 ${isSelected ? 'border-ink' : 'border-graphite/20'}`}>
               <div className="grid grid-cols-4 gap-px bg-graphite/10 p-px">
                 {option.selections.slice(0, 8).map((selection) => <button type="button" onClick={() => navigate(`/item/${selection.item.id}`)} key={`${selection.slot}:${selection.index}`} className="relative aspect-[3/4] overflow-hidden bg-kraft" title={selection.item.name}>
                   {selection.item.imageUrl ? <img src={resolveMediaUrl(selection.item.imageUrl)} alt={selection.item.name} className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-[10px] text-graphite/50">{selection.item.name}</span>}
@@ -104,10 +104,10 @@ export function QuickOutfitPage() {
                 </button>)}
               </div>
               <div className="flex flex-1 flex-col p-4">
-                <div className="flex items-start justify-between gap-3"><div><span className={`inline-block border px-2 py-1 text-[10px] ${option.kind === 'confirmed_match' ? 'border-emerald-700/35 bg-emerald-50 text-emerald-900' : option.kind === 'confirmed_variant' ? 'border-stamp/35 bg-stamp/5 text-stamp' : 'border-amber-700/35 bg-amber-50 text-amber-900'}`}>{option.kind === 'confirmed_match' ? '已确认搭配' : option.kind === 'confirmed_variant' ? '已确认替换' : '搭配建议 · 待尝试'}</span><h2 className="mt-2 font-story text-xl font-semibold">{option.sourceMatch.name || '未命名 Best Match'}</h2></div><span className="text-[10px] text-graphite/50">{option.selections.length} 件</span></div>
+                <div className="flex items-start justify-between gap-3"><div><span className={`inline-block border px-2 py-1 text-[10px] ${option.kind === 'confirmed_match' ? 'border-ink/35 bg-ink/5 text-ink' : option.kind === 'confirmed_variant' ? 'border-stamp/35 bg-stamp/5 text-stamp' : 'border-string/45 bg-string/10 text-string'}`}>{option.kind === 'confirmed_match' ? '已确认搭配' : option.kind === 'confirmed_variant' ? '已确认替换' : '搭配建议 · 待尝试'}</span><h2 className="mt-2 font-story text-xl font-semibold">{option.sourceMatch.name || '未命名 Best Match'}</h2></div><span className="text-[10px] text-graphite/50">{option.selections.length} 件</span></div>
                 <p className="mt-2 text-sm leading-6 text-graphite/75">{option.kind === 'suggested_candidate' ? `沿用「${option.sourceMatch.name || '这套搭配'}」的结构，把${option.replacedItem?.name || '原单品'}换成「${option.candidateItem?.name || '备选单品'}」。这是根据你已经用过的搭配方式整理出的待尝试组合。` : `来自你的 Best Match。${option.kind === 'confirmed_variant' && option.replacedItem ? `当前单品在这套搭配中替换「${option.replacedItem.name}」。` : '这件单品本来就在这套搭配里。'}`}</p>
 
-                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 border-y border-dashed border-graphite/20 py-3 text-xs">
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 hairline-t hairline-b py-3 text-xs">
                   {option.selections.map((selection) => <div key={`${selection.slot}:${selection.index}`} className="contents"><dt className="text-graphite/50">{SLOT_LABELS[selection.slot]}</dt><dd className="truncate text-right">{selection.item.name}</dd></div>)}
                 </dl>
 
@@ -116,13 +116,13 @@ export function QuickOutfitPage() {
                   {explanations.length ? <div className="mt-3 space-y-2">{explanations.map((entry) => <div key={entry.id} className="border-l-2 border-stamp/40 pl-3"><p className="font-medium">{entry.action}</p><p className="mt-1 leading-6 text-graphite/70">{entry.effect}</p></div>)}</div> : <p className="mt-3 leading-6 text-graphite/70">你已经记录过这套搭配；当前还没有足够的服装信息说明它具体做了什么。</p>}
                 </details>
 
-                <div className="mt-auto pt-5"><button type="button" disabled={isSelected} onClick={() => choose(option)} className="inline-flex min-h-11 w-full items-center justify-center gap-2 bg-ink px-4 text-sm text-white disabled:bg-emerald-800"><Check className="h-4 w-4" />{isSelected ? '今天就穿这套' : '今天穿这套'}</button></div>
+                <div className="mt-auto pt-5"><button type="button" disabled={isSelected} onClick={() => choose(option)} className="inline-flex min-h-11 w-full items-center justify-center gap-2 bg-ink px-4 text-sm text-white disabled:bg-graphite"><Check className="h-4 w-4" />{isSelected ? '今天就穿这套' : '今天穿这套'}</button></div>
               </div>
             </article>;
           })}
         </div>
       ) : (
-        <div className="mt-8 border border-dashed border-graphite/30 bg-tag/55 px-5 py-10 text-center">
+        <div className="mt-8 border border-graphite/20 bg-tag/55 px-5 py-10 text-center">
           <h2 className="font-story text-2xl font-semibold">这件衣服还没有已确认的搭配</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-graphite/70">先记录一套 Best Match，之后它会直接出现在这里。</p>
           <button type="button" onClick={() => navigate('/best-match/new')} className="mt-5 min-h-11 bg-ink px-5 text-sm text-white">建立 Best Match</button>

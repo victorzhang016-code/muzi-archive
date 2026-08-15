@@ -1,4 +1,4 @@
-import { useMemo, useState, ReactNode } from 'react';
+import { useEffect, useMemo, useState, ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { GitBranch } from 'lucide-react';
 import { BestMatch, BestMatchItems, WardrobeItem } from '../types';
@@ -8,6 +8,8 @@ import { getTagTheme } from '../lib/tagThemes';
 import { toDateSafe } from '../lib/publicWardrobe';
 import { sfx } from '../lib/sounds';
 import { cn } from '../lib/utils';
+import { ColorSwatchFan } from './ColorSwatchCard';
+import { listVisionAnalyses } from '../lib/aestheticVision';
 
 /**
  * Best Match 详情的「唯一布局」——主人（BestMatchDetail）和访客（SharedBestMatchView）共用，
@@ -75,6 +77,47 @@ export function BestMatchView({
     });
     return out;
   }, [match, itemMap, slotDisplay]);
+
+  const [palette, setPalette] = useState<Array<{ color: { r: number; g: number; b: number }; role: string }>>([]);
+  useEffect(() => {
+    let alive = true;
+    listVisionAnalyses().then((analyses) => {
+      if (!alive) return;
+      const confirmedByItem = new Map(analyses.filter((a) => a.status === 'confirmed').map((a) => [a.itemId, a]));
+      // 只保留最关键的颜色：按槽位顺序（上装→下装→鞋→配饰）取主色；同色系只留第一张，最多 6 张
+      const familyOf = (r: number, g: number, b: number) => {
+        const rn = r / 255, gn = g / 255, bn = b / 255;
+        const mx = Math.max(rn, gn, bn), mn = Math.min(rn, gn, bn);
+        const l = (mx + mn) / 2;
+        const sat = mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1) || 1);
+        if (sat < 0.18) return l > 0.88 ? 'white' : l < 0.35 ? 'black' : 'gray';
+        const h = mx === rn ? (gn - bn) / (mx - mn) : mx === gn ? 2 + (bn - rn) / (mx - mn) : 4 + (rn - gn) / (mx - mn);
+        const hue = (h * 60 + 360) % 360;
+        if (hue < 15 || hue >= 345) return 'red';
+        if (hue < 45) return 'orange';
+        if (hue < 70) return 'yellow';
+        if (hue < 160) return 'green';
+        if (hue < 190) return 'cyan';
+        if (hue < 255) return 'blue';
+        if (hue < 290) return 'purple';
+        return 'pink';
+      };
+      const seenFamilies = new Set<string>();
+      const swatches: Array<{ color: { r: number; g: number; b: number }; role: string }> = [];
+      entries.forEach((entry) => {
+        if (swatches.length >= 6) return;
+        const analysis = confirmedByItem.get(entry.item.id);
+        const dom = analysis?.payload.dominantColors?.find((c) => c.role === 'dominant') ?? analysis?.payload.dominantColors?.[0];
+        if (!dom) return;
+        const family = familyOf(dom.rgb[0], dom.rgb[1], dom.rgb[2]);
+        if (seenFamilies.has(family)) return;
+        seenFamilies.add(family);
+        swatches.push({ color: { r: dom.rgb[0], g: dom.rgb[1], b: dom.rgb[2] }, role: entry.item.name });
+      });
+      setPalette(swatches);
+    }).catch(() => { /* 访客端或无数据时不展示色卡 */ });
+    return () => { alive = false; };
+  }, [entries]);
 
   const created = toDateSafe(match.createdAt);
   const dateStr = created
@@ -169,6 +212,20 @@ export function BestMatchView({
 
           {/* Photo (injected — owner editable / public read-only / none) */}
           {photoSlot && <motion.div variants={childVariants}>{photoSlot}</motion.div>}
+
+          {/* 这套搭配的色卡（组团色卡扇） */}
+          {palette.length >= 2 && (
+            <motion.div variants={childVariants} className="pt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-px bg-graphite/60" />
+                <span className="font-tag text-[8px] tracking-[0.3em] font-bold text-graphite/60">
+                  PALETTE · {palette.length} COLORS
+                </span>
+              </div>
+              <h3 className="font-story text-lg font-semibold text-ink mb-2">这套搭配的色卡</h3>
+              <ColorSwatchFan colors={palette} spread={12} />
+            </motion.div>
+          )}
 
           {/* Constituent list */}
           <motion.div className="pt-3" variants={childVariants}>

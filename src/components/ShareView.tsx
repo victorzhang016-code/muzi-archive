@@ -157,13 +157,13 @@ export function ShareView() {
 
   return (
     <div className="min-h-screen bg-kraft text-ink font-sans selection:bg-stamp selection:text-white">
-      <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md border-b border-dashed border-graphite/15">
+      <header className="sticky top-0 z-40 bg-kraft/90 backdrop-blur-md hairline-b">
         <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="site-wordmark" aria-label="衣LOG">
               <span>衣</span><em>LOG</em>
             </h1>
-            <span className="font-tag text-[8px] uppercase tracking-[0.2em] text-graphite/50 border border-dashed border-graphite/25 px-2 py-0.5">
+            <span className="font-tag text-[8px] uppercase tracking-[0.2em] text-graphite/50 border border-graphite/20 px-2 py-0.5">
               只读
             </span>
           </div>
@@ -174,8 +174,8 @@ export function ShareView() {
       </header>
 
       <main className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-6 sm:py-12">
-        {/* CTA：创建我自己的衣柜 —— 站点设计语言（直角 / 虚线 / tag 底），红实心按钮为唯一焦点 */}
-        <div className="mb-6 sm:mb-10 border border-dashed border-graphite/30 bg-tag/60 px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* CTA：创建我自己的衣柜 —— 站点设计语言（直角 / 细线 / tag 底），红实心按钮为唯一焦点 */}
+        <div className="mb-6 sm:mb-10 border border-graphite/20 bg-tag/60 px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <p className="font-story text-ink text-[15px] font-semibold">喜欢这种记录方式？</p>
             <p className="font-story text-graphite/70 text-[13px] mt-0.5">建一个只属于你的衣柜，记录每件衣服的故事。</p>
@@ -234,7 +234,7 @@ export function ShareView() {
                     onClick={() => navigate(`/share/${userId}/best-match/${match.id}`)}
                     className="flex flex-col items-start gap-3 group text-left"
                   >
-                    <div className="w-full rounded-xl bg-white/30 border border-dashed border-graphite/20 p-3 sm:p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
+                    <div className="w-full rounded-xl bg-white/30 border border-graphite/20 p-3 sm:p-5 group-hover:border-graphite/45 group-hover:-translate-y-1 transition-all">
                       {entries.length > 0 ? (
                         <TagBundle entries={entries} size="mini" variant="stacked" />
                       ) : match.photoBase64 ? (
