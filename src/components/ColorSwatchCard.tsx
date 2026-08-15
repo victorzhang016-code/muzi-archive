@@ -126,7 +126,7 @@ export function ColorSwatchFan({
             style={{
               left: xSwing + 8,
               transform: `rotate(${rot}deg)`,
-              zIndex: i + 1,
+              zIndex: n - i,
               transition: `transform 0.55s cubic-bezier(0.22,1,0.36,1) ${i * 55}ms`,
             }}
           >

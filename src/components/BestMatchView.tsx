@@ -138,7 +138,7 @@ export function BestMatchView({
   return (
     <div className="best-match-view-shell max-w-6xl mx-auto pb-12">
       {/* Top nav — full width */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="sticky top-0 z-30 flex items-center justify-between mb-6 bg-kraft/90 py-3 backdrop-blur-md">
         {backSlot}
         {actionsSlot ? <div className="flex items-center gap-2">{actionsSlot}</div> : <div />}
       </div>
@@ -210,20 +210,22 @@ export function BestMatchView({
             </motion.div>
           )}
 
-          {/* Photo (injected — owner editable / public read-only / none) */}
-          {photoSlot && <motion.div variants={childVariants}>{photoSlot}</motion.div>}
-
-          {/* 这套搭配的色卡（组团色卡扇） */}
-          {palette.length >= 2 && (
-            <motion.div variants={childVariants} className="pt-2">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-px bg-graphite/60" />
-                <span className="font-tag text-[8px] tracking-[0.3em] font-bold text-graphite/60">
-                  PALETTE · {palette.length} COLORS
-                </span>
-              </div>
-              <h3 className="font-story text-lg font-semibold text-ink mb-2">这套搭配的色卡</h3>
-              <ColorSwatchFan colors={palette} spread={12} />
+          {/* 照片 + 这套搭配的色卡（桌面端左右并置，移动端上下） */}
+          {(photoSlot || palette.length >= 1) && (
+            <motion.div variants={childVariants} className="flex flex-wrap items-end gap-x-10 gap-y-6">
+              {photoSlot}
+              {palette.length >= 1 && (
+                <div className="pb-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-px bg-graphite/60" />
+                    <span className="font-tag text-[8px] tracking-[0.3em] font-bold text-graphite/60">
+                      PALETTE · {palette.length} COLORS
+                    </span>
+                  </div>
+                  <h3 className="font-story text-lg font-semibold text-ink mb-2">这套搭配的色卡</h3>
+                  <ColorSwatchFan colors={palette} spread={12} />
+                </div>
+              )}
             </motion.div>
           )}
 
