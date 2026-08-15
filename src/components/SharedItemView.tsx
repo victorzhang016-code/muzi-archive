@@ -96,7 +96,7 @@ export function SharedItemView() {
         </div>
       </header>
 
-      <main className="shared-item-page max-w-xl mx-auto px-3.5 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <main className="shared-item-page max-w-[380px] mx-auto px-3.5 sm:px-6 py-5 sm:py-7">
         <SharedItemCard item={item} />
 
         {wardrobePublic && (

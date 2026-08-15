@@ -178,7 +178,7 @@ export function ItemDetail() {
         </div>
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-8 xl:gap-10 lg:items-start">
+      <div className="lg:grid lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:gap-8 xl:gap-10 lg:items-start">
         <div className="min-w-0 lg:sticky lg:top-6">
       {/* ── The large physical tag ── */}
       <div
@@ -243,7 +243,7 @@ export function ItemDetail() {
           <div className="mx-4 mb-4">
             <div style={{ padding: '8px 8px 28px 8px', ...polaroidInner }}>
               {item.imageUrl ? (
-                <div className="item-detail-image-frame aspect-[3/4] overflow-hidden">
+                <div className="item-detail-image-frame aspect-[3/4] lg:aspect-[4/5] overflow-hidden">
                   <img
                     src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name}

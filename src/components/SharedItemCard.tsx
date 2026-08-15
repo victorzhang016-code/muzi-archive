@@ -80,7 +80,7 @@ export function SharedItemCard({ item }: { item: WardrobeItem }) {
           <div className="mx-4 mb-4">
             <div style={{ padding: '8px 8px 28px 8px', ...polaroidInner }}>
               {item.imageUrl ? (
-                <div className="shared-item-image-frame aspect-[3/4] overflow-hidden">
+                <div className="shared-item-image-frame aspect-[4/5] overflow-hidden">
                   <img
                     src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name}
@@ -110,18 +110,18 @@ export function SharedItemCard({ item }: { item: WardrobeItem }) {
 
           <div className="px-6 pb-6">
             <div className="h-px mb-5" style={{ background: theme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)' }} />
-            <h1 className="font-story font-bold text-3xl sm:text-4xl leading-tight tracking-tight mb-5"
+            <h1 className="font-story font-bold text-2xl sm:text-[1.7rem] leading-tight tracking-tight mb-4"
               style={{ color: theme.textPrimary }}>
               {item.name && item.name !== '未命名' ? item.name : '未命名'}
             </h1>
-            <div className="mb-7">
+            <div className="mb-5">
               <div className="w-6 h-[1.5px] mb-5" style={{ background: theme.accentColor }} />
               {item.story ? (
-                <p className="leading-[2] whitespace-pre-wrap text-[15px] font-story" style={{ color: theme.textSecondary }}>
+                <p className="leading-[1.85] whitespace-pre-wrap text-[13.5px] font-story" style={{ color: theme.textSecondary }}>
                   {item.story}
                 </p>
               ) : (
-                <p className="leading-[2] text-[15px] font-story italic" style={{ color: theme.textMuted }}>
+                <p className="leading-[1.85] text-[13.5px] font-story italic" style={{ color: theme.textMuted }}>
                   暂无故事
                 </p>
               )}
@@ -132,7 +132,7 @@ export function SharedItemCard({ item }: { item: WardrobeItem }) {
       </div>
 
       <div
-        className="wash-label px-6 py-5"
+        className="wash-label px-5 py-4"
         style={{
           background: theme.isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.25)',
           borderStyle: 'solid',

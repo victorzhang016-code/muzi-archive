@@ -30,7 +30,7 @@ export function MargielaRating({
             onClick={interactive && onChange ? (e) => { e.stopPropagation(); sfx.ratingClick(); onChange(i); } : undefined}
             className={cn(
               "inline-flex items-center justify-center leading-none relative font-tag select-none",
-              isLg ? "flex-1 max-w-9 h-9 text-[13px] sm:text-[15px]" : "w-[19px] h-[19px] text-[9px]",
+              isLg ? "w-6 h-6 text-[11px] sm:w-[26px] sm:h-[26px] sm:text-[12px]" : "w-[19px] h-[19px] text-[9px]",
               interactive ? "cursor-pointer hover:opacity-80 transition-opacity" : "",
               isActive ? "font-bold" : ""
             )}

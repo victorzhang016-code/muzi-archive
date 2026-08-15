@@ -227,7 +227,15 @@ export function ShareView() {
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 sm:gap-x-6 gap-y-6 sm:gap-y-10">
               {matches.map((match) => {
-                const entries = bundleEntriesFromMatch(match, wardrobeMap);
+                // 公开 RPC 只带 allItemIds（不带槽位结构）；用它兜底重建吊牌串，而不是退回照片
+                const slotEntries = bundleEntriesFromMatch(match, wardrobeMap);
+                const entries = slotEntries.length > 0
+                  ? slotEntries
+                  : (match.allItemIds || [])
+                      .map((id) => wardrobeMap.get(id))
+                      .filter((it): it is NonNullable<typeof it> => Boolean(it))
+                      .slice(0, 6)
+                      .map((item) => ({ item, variantCount: 0 }));
                 return (
                   <button
                     key={match.id}
