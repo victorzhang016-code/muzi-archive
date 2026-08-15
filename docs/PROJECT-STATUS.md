@@ -208,4 +208,8 @@ Victor 已明确：数据分析和图片字段识别先在本机闭环，不以 
 - Best Match 入口卡与「我的穿衣规律」入口卡物件化：搭配扇（真实 look 照片）与潘通色卡扇（`ColorSwatchCard`/`ColorSwatchFan`，带绽放动画），替代全宽虚线条。
 - 规律页（/aesthetic）：原则卡大编号 + 代表搭配色条 + 可读可信度行；配色区与搭配案例/替换关系接入色卡与单品缩略图；H1 统一为「我的穿衣规律」。
 - 迭代补充：页头交叉导航 chip（仅桌面端、与「查看作者衣柜」同尺寸、倾斜+纸张阴影）；「衣橱」全站改称「衣柜」；返回链接统一为描边 back-link；Best Match 详情页新增「这套搭配的色卡」组团色卡扇（同色系去重、最多 6 张）；设计档案面板内嵌「重新解析/取消」；单品导入补齐购买年份与子类型字段。
-- 本轮改动经 Victor 本地逐轮验收（Dev 库已灌入 Production 数据副本用于验收）；验收通过后部署 Production。
+- 本轮改动经 Victor 本地逐轮验收（Dev 库已灌入 Production 数据副本用于验收），分三次提交部署 Production：`4713e40`（主体）、`5fbf2a3`（公开页修复）、`09f7177`（Best Match 详情收尾）。
+- 验收后返工记录：入口卡从「网格大卡」改为页头紧凑 chip（`HeaderNavChips`，仅主页、仅桌面、与作者衣柜 CTA 同尺寸）；移动端只保留底部 Tab 栏一套导航；「衣橱」全站改称「衣柜」；返回链接统一 `.back-link`。
+- 公开页修复：公开 RPC 只下发 `allItemIds`，ShareView 的 Best Match 卡曾退回显示上传照片/No items；现用 allItemIds 从衣柜数据重建 TagBundle。公开单品页收窄一屏可读；评分圈修回正圆。
+- Best Match 详情：顶栏 sticky；新增「这套搭配的色卡」组团色卡扇（每张取单品主色、色系家族去重、最多 6 张、首张在前、与 Look 照片并置）。
+- 已知边界：`/ui-preview` 是 DEV-only 方向稿页，不进生产路由；本地 dev 的 `/api/public*` 不可用，公开页只能在线上验证。
